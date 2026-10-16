@@ -1,4 +1,3 @@
-// server.js
 import express from 'express';
 import multer from 'multer';
 import { GoogleGenAI, Type } from '@google/genai';
@@ -12,65 +11,116 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Configuración para recibir los PDFs de las clases en memoria
 const upload = multer({ storage: multer.memoryStorage() });
-
-// Conexión con Google AI Studio (Usa la variable configurada en Render)
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// Base de datos inicial en memoria (Lista para conectar tu MongoDB URI en Render)
-let usersDB = {
-  "estudiante@psicologia.edu": {
-    name: "Estudiante LPC",
+// Tus 6 materias oficiales de Psicología (Semestre 2, 2026)
+const getInitialPsychologySubjects = () => [
+  { id: "lpc-ep2", name: "Escuelas Psicológicas II", section: "Sección A", schedule: "Semestre 2, 2026", defaultHero: "HE_MAN", storybooks: [] },
+  { id: "lpc-pe2", name: "Psicología Evolutiva II", section: "Sección A", schedule: "Semestre 2, 2026", defaultHero: "CANDY_CANDY", storybooks: [] },
+  { id: "lpc-ti1", name: "Técnicas de Investigación", section: "Sección A", schedule: "Sáb 17 Oct - 08:00 AM", defaultHero: "GI_JOE", storybooks: [] },
+  { id: "lpc-fil2", name: "Filosofía II", section: "Sección A", schedule: "Semestre 2, 2026", defaultHero: "HE_MAN", storybooks: [] },
+  { id: "lpc-soc", name: "Sociología", section: "Sección A", schedule: "Sáb 17 Oct - 10:30 AM", defaultHero: "OSITOS_CARINOSITOS", storybooks: [] },
+  { id: "lpc-nc1", name: "Neurociencia Cognitiva", section: "Sección A", schedule: "Semestre 2, 2026", defaultHero: "TRANSFORMERS", storybooks: [] }
+];
+
+// Base de Datos Multi-Usuario con tu usuario haroldocana configurado
+const usersDB = {
+  "haroldocana": {
+    username: "haroldocana",
+    fullName: "Harold Benjamín Ocaña Guillén",
+    email: "haroldocana@psicologia.edu",
+    githubRepo: "https://github.com/haroldocana/psico-storybook-retro",
+    password: "admin123",
+    career: "Licenciatura en Psicología Clínica (LPC)",
+    subscriptionActive: true,
     subscriptionBaseUSD: 6.00,
     aiConsumptionUSD: 0.00,
-    storybooksCreated: 0
+    totalTokensUsed: 0,
+    storybooksCreated: 0,
+    subjects: getInitialPsychologySubjects()
   }
 };
 
-// Tus 6 materias iniciales de Psicología + Opción de agregar todas las que quieras
-let subjectsDB = [
-  { id: "lpc-ep2", name: "Escuelas Psicológicas II", section: "Sección A", schedule: "Asincrónico", defaultHero: "HE_MAN", storybooks: [] },
-  { id: "lpc-pe2", name: "Psicología Evolutiva II", section: "Sección A", schedule: "Asincrónico", defaultHero: "CANDY_CANDY", storybooks: [] },
-  { id: "lpc-ti1", name: "Técnicas de Investigación", section: "Sección A", schedule: "Sáb 17 Oct - 08:00 AM", defaultHero: "GI_JOE", storybooks: [] },
-  { id: "lpc-fil2", name: "Filosofía II", section: "Sección A", schedule: "Asincrónico", defaultHero: "HE_MAN", storybooks: [] },
-  { id: "lpc-soc", name: "Sociología", section: "Sección A", schedule: "Sáb 17 Oct - 10:30 AM", defaultHero: "OSITOS_CARINOSITOS", storybooks: [] },
-  { id: "lpc-nc1", name: "Neurociencia Cognitiva", section: "Sección A", schedule: "Asincrónico", defaultHero: "TRANSFORMERS", storybooks: [] }
-];
+function findUser(identifier) {
+  const cleanId = (identifier || '').trim().toLowerCase();
+  return Object.values(usersDB).find(
+    u => u.username.toLowerCase() === cleanId || u.email.toLowerCase() === cleanId
+  );
+}
 
-// 1. Obtener catálogo de materias y estado de cuenta ($6.00 + consumo IA)
-app.get('/api/dashboard', (req, res) => {
-  res.json({
-    user: usersDB["estudiante@psicologia.edu"],
-    subjects: subjectsDB
-  });
+// 1. Registro de nuevos usuarios ($6.00 USD/mes + consumo IA)
+app.post('/api/auth/register', (req, res) => {
+  const { fullName, username, email, password, career, loadPsychologyTemplate } = req.body;
+  const cleanUsername = (username || '').trim().toLowerCase();
+
+  if (!cleanUsername || !password || !fullName) {
+    return res.status(400).json({ error: "Todos los campos son obligatorios." });
+  }
+  if (findUser(cleanUsername) || findUser(email)) {
+    return res.status(400).json({ error: "El usuario o correo ya está registrado." });
+  }
+
+  usersDB[cleanUsername] = {
+    username: cleanUsername,
+    fullName,
+    email: (email || `${cleanUsername}@psicologia.edu`).trim().toLowerCase(),
+    password,
+    career: career || "Licenciatura en Psicología Clínica",
+    subscriptionActive: true,
+    subscriptionBaseUSD: 6.00,
+    aiConsumptionUSD: 0.00,
+    totalTokensUsed: 0,
+    storybooksCreated: 0,
+    subjects: loadPsychologyTemplate !== false ? getInitialPsychologySubjects() : []
+  };
+
+  const { password: _, ...safeUser } = usersDB[cleanUsername];
+  res.json({ user: safeUser });
 });
 
-// 2. Crear una NUEVA materia dinámicamente
+// 2. Login con usuario (haroldocana) o correo
+app.post('/api/auth/login', (req, res) => {
+  const { identifier, password } = req.body;
+  const foundUser = findUser(identifier);
+
+  if (!foundUser || foundUser.password !== password) {
+    return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
+  }
+
+  const { password: _, ...safeUser } = foundUser;
+  res.json({ user: safeUser });
+});
+
+// 3. Crear más materias dinámicamente en el catálogo del usuario
 app.post('/api/subjects', (req, res) => {
-  const { name, section, schedule, defaultHero } = req.body;
+  const { username, name, section, schedule, defaultHero } = req.body;
+  const user = findUser(username);
+  if (!user) return res.status(401).json({ error: "Sesión no válida" });
+
   const newSubject = {
     id: 'subj-' + Date.now(),
     name,
     section: section || 'Sección A',
-    schedule: schedule || 'Por definir',
+    schedule: schedule || 'Semestre 2, 2026',
     defaultHero: defaultHero || 'CANDY_CANDY',
     storybooks: []
   };
-  subjectsDB.push(newSubject);
-  res.json(newSubject);
+  user.subjects.push(newSubject);
+  res.json({ subject: newSubject });
 });
 
-// 3. Subir PDF o Texto de la clase y Generar Storybook + Quiz con Google AI Studio
+// 4. Generar Storybook Animado + Quiz con Gemini API
 app.post('/api/generate-storybook', upload.single('document'), async (req, res) => {
   try {
-    const { subjectId, topicTitle, universe, customText } = req.body;
-    const subject = subjectsDB.find(s => s.id === subjectId);
-    if (!subject) return res.status(404).json({ error: 'Materia no encontrada' });
+    const { username, subjectId, topicTitle, universe, customText } = req.body;
+    const user = findUser(username);
+    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
+
+    const subject = user.subjects.find(s => s.id === subjectId);
+    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
 
     const contents = [];
-
-    // Si el estudiante subió un archivo PDF de la universidad, lo enviamos directo a Gemini
     if (req.file) {
       contents.push({
         inlineData: {
@@ -80,28 +130,30 @@ app.post('/api/generate-storybook', upload.single('document'), async (req, res) 
       });
     }
 
-    const systemPrompt = `
-      Eres el Motor Pedagógico Retro-Manga para la carrera de Psicología Clínica.
-      Materia actual: "${subject.name}". Tema: "${topicTitle}".
-      Universo elegido por el estudiante: "${universe}".
+    const prompt = `
+      Eres el Motor Pedagógico Retro-Manga del Centro de Estudio Universitario de ${user.fullName}.
+      Carrera: "${user.career}". Materia: "${subject.name}". Tema: "${topicTitle}".
+      Universo elegido: "${universe}".
 
-      PERSONALIDADES DISPONIBLES:
-      - CANDY_CANDY: Estilo manga shōjo clásico dramático y empático. Explica mediante casos clínicos emotivos, apego y desarrollo humano.
-      - TRANSFORMERS: Estilo Cybertron G1 (Optimus Prime, Perceptor, Ratchet). Explica procesos neurocognitivos, biológicos o lógicos como circuitos, matrices y sistemas que se transforman.
-      - GI_JOE: Estilo táctico años 80 (Duke, Scarlett). Explica metodologías, terapias o protocolos de investigación como misiones estratégicas contra los sesgos y trampas de Cobra. Termina con "¡Y saber es la mitad de la batalla!".
-      - HE_MAN: Estilo épico de Eternia (He-Man, Sorceress vs Skeletor). Explica filosofía, psicoanálisis y escuelas psicológicas como secretos del Castillo Grayskull y fuerzas de la mente.
-      - OSITOS_CARINOSITOS: Estilo tierno y comunitario (Quiéreme Mucho). Explica sociología, empatía y regulación emocional usando el Rayo Cariñosito para iluminar conceptos complejos.
+      PERSONALIDADES:
+      - CANDY_CANDY: Manga shōjo clásico dramático y empático (casos clínicos, apego, desarrollo humano).
+      - TRANSFORMERS: Cybertron G1 (Optimus Prime, Perceptor, Ratchet). Procesos neurocognitivos, biológicos y lógicos como circuitos y sistemas que se transforman.
+      - GI_JOE: Comando táctico años 80 (Duke, Scarlett). Metodologías de investigación, psicometría y terapias como misiones contra trampas de Cobra. Termina con "¡Y saber es la mitad de la batalla!".
+      - HE_MAN: Épico de Eternia (He-Man, Sorceress vs Skeletor). Filosofía, historia y escuelas psicológicas como secretos del Castillo Grayskull.
+      - OSITOS_CARINOSITOS: Cálido y comunitario (Quiéreme Mucho). Sociología, empatía y regulación emocional iluminando con el Rayo Cariñosito.
 
       INSTRUCCIÓN:
-      Analiza el material proporcionado y transfórmalo en un Storybook animado de 4 escenas rigurosamente académicas + un segmento de prueba (Quiz) de 3 preguntas de nivel universitario.
-      ${customText ? `Material de clase adicional: ${customText}` : ''}
+      Transforma el documento o apuntes en un Storybook animado de 4 escenas con alto rigor universitario + 1 Segmento de Prueba (Quiz) de 3 preguntas de opción múltiple con retroalimentación del héroe.
+      ${customText ? `Contenido de estudio adicional: ${customText}` : ''}
     `;
 
-    contents.push(systemPrompt);
+    contents.push(prompt);
+
+    const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: contents,
+      model: modelName,
+      contents,
       config: {
         responseMimeType: 'application/json',
         responseSchema: {
@@ -145,37 +197,30 @@ app.post('/api/generate-storybook', upload.single('document'), async (req, res) 
     });
 
     const storybookData = JSON.parse(response.text);
+    const totalTokens = (response.usageMetadata?.promptTokenCount || 1500) + (response.usageMetadata?.candidatesTokenCount || 1200);
+    const chargeUSD = 0.25;
 
-    // Cálculo del consumo de IA (Tokens reales + tarifa de generación por Storybook de $0.25 USD)
-    const promptTokens = response.usageMetadata?.promptTokenCount || 1500;
-    const outputTokens = response.usageMetadata?.candidatesTokenCount || 1200;
-    const rawCloudCost = (promptTokens * 0.00000015) + (outputTokens * 0.00000125);
-    const billedToStudentUSD = 0.25; // Cobro por Storybook generado al estudiante
+    user.aiConsumptionUSD += chargeUSD;
+    user.totalTokensUsed += totalTokens;
+    user.storybooksCreated += 1;
 
-    usersDB["estudiante@psicologia.edu"].aiConsumptionUSD += billedToStudentUSD;
-    usersDB["estudiante@psicologia.edu"].storybooksCreated += 1;
-
-    const savedStorybook = {
+    const newStorybook = {
       id: 'sb-' + Date.now(),
       createdAt: new Date().toISOString(),
-      tokensUsed: promptTokens + outputTokens,
-      rawCloudCost: rawCloudCost.toFixed(5),
-      billedUSD: billedToStudentUSD,
+      tokensUsed: totalTokens,
+      billedUSD: chargeUSD,
       ...storybookData
     };
 
-    subject.storybooks.push(savedStorybook);
+    subject.storybooks.push(newStorybook);
 
-    res.json({
-      storybook: savedStorybook,
-      billingUpdate: usersDB["estudiante@psicologia.edu"]
-    });
-
-  } catch (error) {
-    console.error('Error generando Storybook:', error);
-    res.status(500).json({ error: error.message });
+    const { password: _, ...safeUser } = user;
+    res.json({ storybook: newStorybook, user: safeUser });
+  } catch (err) {
+    console.error('Error generando Storybook:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`Servidor activo en puerto ${PORT}`));
