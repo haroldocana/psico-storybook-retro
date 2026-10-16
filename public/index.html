@@ -1,1 +1,445 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PsicoStorybook Retro-Manga | Centro de Estudio IA</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes pulseRetro {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-4px); }
+    }
+    .retro-box { animation: pulseRetro 3.5s ease-in-out infinite; border: 2px solid #f59e0b; box-shadow: 5px 5px 0px #0f172a; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
 
+  <!-- PANTALLA DE LOGIN Y REGISTRO -->
+  <div id="authScreen" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950">
+    <div class="bg-slate-900 p-8 rounded-2xl max-w-md w-full border border-indigo-500/40 shadow-2xl">
+      <div class="text-center mb-6">
+        <span class="px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full text-xs font-bold uppercase">Centro de Estudio IA</span>
+        <h1 class="text-3xl font-extrabold mt-2 bg-gradient-to-r from-pink-400 via-amber-300 to-cyan-400 bg-clip-text text-transparent">PsicoStorybook Retro</h1>
+        <p class="text-slate-400 text-xs mt-1">He-Man • Candy Candy • Transformers • G.I. Joe • Ositos Cariñositos</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 mb-6 bg-slate-800 p-1 rounded-xl text-xs font-bold">
+        <button id="tabLoginBtn" onclick="switchAuthTab('login')" class="py-2 rounded-lg bg-indigo-600 text-white">Iniciar Sesión</button>
+        <button id="tabRegBtn" onclick="switchAuthTab('register')" class="py-2 rounded-lg text-slate-400 hover:text-white">Crear Usuario ($6/mes)</button>
+      </div>
+
+      <div id="authError" class="hidden mb-4 p-3 rounded-lg bg-rose-950 border border-rose-500 text-rose-200 text-xs"></div>
+
+      <!-- LOGIN CON USUARIO haroldocana PRECARGADO -->
+      <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Usuario o Correo Electrónico</label>
+          <input type="text" id="loginIdentifier" value="haroldocana" required class="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Contraseña</label>
+          <input type="password" id="loginPassword" value="admin123" required class="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm" />
+        </div>
+        <div class="p-3 rounded-lg bg-slate-800/80 border border-slate-700 text-[11px] text-slate-300">
+          👤 <strong>Usuario Principal:</strong> <code>haroldocana</code> | <strong>Clave:</strong> <code>admin123</code>
+        </div>
+        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-pink-600 to-indigo-600 hover:opacity-95 font-bold text-white shadow-lg text-sm">
+          Entrar al Centro de Estudio
+        </button>
+      </form>
+
+      <!-- REGISTRO DE NUEVOS ESTUDIANTES -->
+      <form id="registerForm" onsubmit="handleRegister(event)" class="hidden space-y-3">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Nombre Completo</label>
+          <input type="text" id="regFullName" placeholder="Ej. Estudiante Psicología" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Usuario</label>
+            <input type="text" id="regUsername" placeholder="usuario123" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Carrera</label>
+            <input type="text" id="regCareer" value="Psicología Clínica" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Correo Electrónico</label>
+          <input type="email" id="regEmail" placeholder="correo@universidad.edu" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Contraseña</label>
+          <input type="password" id="regPassword" placeholder="••••••••" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
+        </div>
+        <label class="flex items-center gap-2 text-xs text-slate-300 pt-1">
+          <input type="checkbox" id="regLoadPsico" checked class="rounded bg-slate-800" />
+          Precargar las 6 materias de Psicología (Semestre 2, 2026)
+        </label>
+        <div class="p-3 rounded-lg bg-indigo-950/70 border border-indigo-500/40 text-xs text-indigo-200">
+          💳 <strong>Plan Mensual: $6.00 USD/mes</strong> + Consumo IA ($0.25 USD por Storybook).
+        </div>
+        <button type="submit" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-white shadow-lg text-sm">
+          Activar Suscripción ($6.00) y Crear Usuario
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- DASHBOARD PRINCIPAL -->
+  <div id="appScreen" class="hidden">
+    <header class="bg-slate-900/95 border-b border-slate-800 sticky top-0 z-30">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-black bg-gradient-to-r from-pink-400 via-amber-300 to-cyan-400 bg-clip-text text-transparent">
+            ⚡ PsicoStorybook Retro-Manga
+          </h2>
+          <p class="text-xs text-slate-300">
+            👤 <strong id="headerUserName"></strong> (<span id="headerUsername" class="text-amber-300 font-mono"></span>) • <span id="headerUserCareer" class="text-indigo-400"></span>
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-4 bg-slate-800 px-4 py-2 rounded-xl border border-slate-700 text-xs">
+          <div>
+            <span class="text-slate-400 block">Suscripción</span>
+            <strong class="text-emerald-400">$6.00 USD</strong>
+          </div>
+          <div class="h-6 w-px bg-slate-700"></div>
+          <div>
+            <span class="text-slate-400 block">Consumo IA (<span id="headerSbCount">0</span> Storybooks)</span>
+            <strong class="text-amber-400" id="headerAiCost">$0.00 USD</strong>
+          </div>
+          <div class="h-6 w-px bg-slate-700"></div>
+          <div>
+            <span class="text-slate-400 block">Total Mes</span>
+            <strong class="text-white text-sm" id="headerTotalBill">$6.00 USD</strong>
+          </div>
+          <button onclick="logout()" class="ml-2 px-2.5 py-1 rounded bg-rose-600/20 text-rose-300 hover:bg-rose-600 hover:text-white font-bold">
+            Salir
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <!-- CATÁLOGO DE MATERIAS -->
+      <section class="lg:col-span-4 space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-base font-bold text-white">📚 Catálogo de Materias</h3>
+          <button onclick="toggleNewSubjectBox()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold">
+            + Agregar Materia
+          </button>
+        </div>
+
+        <div id="newSubjectBox" class="hidden p-4 rounded-xl bg-slate-900 border border-indigo-500/40 space-y-3">
+          <h4 class="text-xs font-bold uppercase text-indigo-300">Crear Nueva Materia</h4>
+          <input id="newSubjName" type="text" placeholder="Nombre de la materia" class="w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 text-sm" />
+          <input id="newSubjSchedule" type="text" placeholder="Horario o Semestre" class="w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 text-sm" />
+          <select id="newSubjHero" class="w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 text-sm">
+            <option value="CANDY_CANDY">🌸 Candy Candy (Clínica / Evolutiva)</option>
+            <option value="TRANSFORMERS">🤖 Transformers (Neurociencia)</option>
+            <option value="GI_JOE">🎖️ G.I. Joe (Investigación)</option>
+            <option value="HE_MAN">⚔️ He-Man (Filosofía / Escuelas)</option>
+            <option value="OSITOS_CARINOSITOS">🌈 Ositos Cariñositos (Sociología)</option>
+          </select>
+          <button onclick="createNewSubject()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 rounded font-bold text-xs">Guardar Materia</button>
+        </div>
+
+        <div id="subjectsList" class="space-y-3"></div>
+      </section>
+
+      <!-- GENERADOR Y VISOR DE STORYBOOK -->
+      <section class="lg:col-span-8 space-y-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <span class="text-xs uppercase font-bold text-pink-400" id="activeSubjectSchedule"></span>
+          <h3 class="text-2xl font-black text-white mt-1 mb-4" id="activeSubjectName">Selecciona una materia</h3>
+
+          <form onsubmit="generateStorybook(event)" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Tema o Capítulo del Libro</label>
+                <input type="text" id="topicTitle" required placeholder="Ej. El Método Científico / Sinapsis Neuronal" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Personaje / Universo Retro-Manga</label>
+                <select id="universeSelect" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm font-semibold">
+                  <option value="CANDY_CANDY">🌸 Candy Candy (Manga Shōjo Clásico)</option>
+                  <option value="TRANSFORMERS">🤖 Transformers (Cybertron G1)</option>
+                  <option value="GI_JOE">🎖️ G.I. Joe (Comando Táctico 80s)</option>
+                  <option value="HE_MAN">⚔️ He-Man (Maestros del Universo)</option>
+                  <option value="OSITOS_CARINOSITOS">🌈 Ositos Cariñositos (Quiereme Mucho)</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Subir Documento PDF de la Clase</label>
+              <input type="file" id="pdfFile" accept=".pdf,.txt" class="w-full text-xs text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-600 file:text-white" />
+            </div>
+
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">O pegar texto / apuntes del libro:</label>
+              <textarea id="customText" rows="3" placeholder="Pega aquí el contenido del capítulo o guía de estudio..." class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm"></textarea>
+            </div>
+
+            <button type="submit" id="btnGenerate" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 via-pink-600 to-indigo-600 font-extrabold text-sm shadow-lg">
+              ✨ Crear Storybook Animado + Examen de Prueba (+$0.25 USD consumo IA)
+            </button>
+          </form>
+        </div>
+
+        <div id="storybookViewer" class="hidden space-y-6">
+          <div class="bg-slate-900 border-2 border-amber-400/60 rounded-2xl p-6 space-y-5">
+            <div>
+              <span id="sbUniverseBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-pink-500/20 text-pink-300"></span>
+              <h2 id="sbTitle" class="text-2xl font-black text-white mt-2"></h2>
+              <p id="sbSummary" class="text-sm text-slate-400 mt-1"></p>
+            </div>
+
+            <div id="sceneContainer" class="retro-box bg-slate-800/90 p-6 rounded-xl space-y-4"></div>
+
+            <div class="flex items-center justify-between">
+              <button onclick="prevScene()" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold">⬅ Anterior</button>
+              <span id="sceneIndicator" class="text-xs font-bold text-amber-400"></span>
+              <button onclick="nextScene()" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold">Siguiente ➡</button>
+            </div>
+          </div>
+
+          <div class="bg-slate-900 border border-emerald-500/40 rounded-2xl p-6 space-y-4">
+            <h3 class="text-lg font-extrabold text-emerald-400">🎯 Segmento de Prueba (Autoevaluación)</h3>
+            <div id="quizContainer" class="space-y-4"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let activeSubjectId = null;
+    let activeStorybook = null;
+    let currentSceneIdx = 0;
+
+    function switchAuthTab(tab) {
+      document.getElementById('authError').classList.add('hidden');
+      const isLogin = tab === 'login';
+      document.getElementById('loginForm').classList.toggle('hidden', !isLogin);
+      document.getElementById('registerForm').classList.toggle('hidden', isLogin);
+      document.getElementById('tabLoginBtn').className = isLogin ? 'py-2 rounded-lg bg-indigo-600 text-white' : 'py-2 rounded-lg text-slate-400';
+      document.getElementById('tabRegBtn').className = !isLogin ? 'py-2 rounded-lg bg-indigo-600 text-white' : 'py-2 rounded-lg text-slate-400';
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const identifier = document.getElementById('loginIdentifier').value;
+      const password = document.getElementById('loginPassword').value;
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, password })
+      });
+      const data = await res.json();
+      if (!res.ok) return showAuthError(data.error);
+      enterDashboard(data.user);
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const payload = {
+        fullName: document.getElementById('regFullName').value,
+        username: document.getElementById('regUsername').value,
+        career: document.getElementById('regCareer').value,
+        email: document.getElementById('regEmail').value,
+        password: document.getElementById('regPassword').value,
+        loadPsychologyTemplate: document.getElementById('regLoadPsico').checked
+      };
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) return showAuthError(data.error);
+      enterDashboard(data.user);
+    }
+
+    function showAuthError(msg) {
+      const box = document.getElementById('authError');
+      box.textContent = msg;
+      box.classList.remove('hidden');
+    }
+
+    function enterDashboard(user) {
+      currentUser = user;
+      document.getElementById('authScreen').classList.add('hidden');
+      document.getElementById('appScreen').classList.remove('hidden');
+      refreshUserUI();
+      if (currentUser.subjects.length > 0) {
+        selectSubject(currentUser.subjects[0].id);
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      activeSubjectId = null;
+      document.getElementById('appScreen').classList.add('hidden');
+      document.getElementById('authScreen').classList.remove('hidden');
+    }
+
+    function refreshUserUI() {
+      document.getElementById('headerUserName').textContent = currentUser.fullName;
+      document.getElementById('headerUsername').textContent = `@${currentUser.username}`;
+      document.getElementById('headerUserCareer').textContent = currentUser.career;
+      document.getElementById('headerSbCount').textContent = currentUser.storybooksCreated;
+      document.getElementById('headerAiCost').textContent = `$${currentUser.aiConsumptionUSD.toFixed(2)} USD`;
+      const total = currentUser.subscriptionBaseUSD + currentUser.aiConsumptionUSD;
+      document.getElementById('headerTotalBill').textContent = `$${total.toFixed(2)} USD`;
+      renderSubjects();
+    }
+
+    function renderSubjects() {
+      const container = document.getElementById('subjectsList');
+      container.innerHTML = currentUser.subjects.map(s => `
+        <div onclick="selectSubject('${s.id}')" class="cursor-pointer p-4 rounded-xl border transition ${s.id === activeSubjectId ? 'bg-indigo-950/90 border-pink-500 shadow-lg' : 'bg-slate-900 border-slate-800 hover:border-slate-700'}">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-800 text-amber-300">${s.defaultHero}</span>
+            <span class="text-[11px] text-slate-400">${s.schedule}</span>
+          </div>
+          <h4 class="font-bold text-white mt-1.5">${s.name}</h4>
+          <p class="text-xs text-slate-400 mt-1">${s.storybooks.length} Storybooks guardados</p>
+        </div>
+      `).join('');
+    }
+
+    function selectSubject(id) {
+      activeSubjectId = id;
+      const subj = currentUser.subjects.find(s => s.id === id);
+      if (!subj) return;
+      document.getElementById('activeSubjectSchedule').textContent = `${subj.section} • ${subj.schedule}`;
+      document.getElementById('activeSubjectName').textContent = subj.name;
+      document.getElementById('universeSelect').value = subj.defaultHero;
+      renderSubjects();
+      if (subj.storybooks.length > 0) {
+        openStorybook(subj.storybooks[subj.storybooks.length - 1]);
+      } else {
+        document.getElementById('storybookViewer').classList.add('hidden');
+      }
+    }
+
+    function toggleNewSubjectBox() {
+      document.getElementById('newSubjectBox').classList.toggle('hidden');
+    }
+
+    async function createNewSubject() {
+      const name = document.getElementById('newSubjName').value;
+      const schedule = document.getElementById('newSubjSchedule').value;
+      const defaultHero = document.getElementById('newSubjHero').value;
+      if (!name) return;
+
+      const res = await fetch('/api/subjects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUser.username, name, schedule, defaultHero })
+      });
+      const data = await res.json();
+      currentUser.subjects.push(data.subject);
+      document.getElementById('newSubjName').value = '';
+      toggleNewSubjectBox();
+      selectSubject(data.subject.id);
+    }
+
+    async function generateStorybook(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btnGenerate');
+      btn.disabled = true;
+      btn.textContent = '⏳ Leyendo documento con Gemini y armando Storybook...';
+
+      const formData = new FormData();
+      formData.append('username', currentUser.username);
+      formData.append('subjectId', activeSubjectId);
+      formData.append('topicTitle', document.getElementById('topicTitle').value);
+      formData.append('universe', document.getElementById('universeSelect').value);
+      formData.append('customText', document.getElementById('customText').value);
+      const fileInput = document.getElementById('pdfFile');
+      if (fileInput.files[0]) formData.append('document', fileInput.files[0]);
+
+      try {
+        const res = await fetch('/api/generate-storybook', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        currentUser = data.user;
+        refreshUserUI();
+        openStorybook(data.storybook);
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '✨ Crear Storybook Animado + Examen de Prueba (+$0.25 USD consumo IA)';
+      }
+    }
+
+    function openStorybook(sb) {
+      activeStorybook = sb;
+      currentSceneIdx = 0;
+      document.getElementById('storybookViewer').classList.remove('hidden');
+      document.getElementById('sbUniverseBadge').textContent = `Universo: ${sb.universe} • Tokens IA: ${sb.tokensUsed}`;
+      document.getElementById('sbTitle').textContent = sb.title;
+      document.getElementById('sbSummary').textContent = sb.summary;
+      renderScene();
+      renderQuiz();
+    }
+
+    function renderScene() {
+      const s = activeStorybook.scenes[currentSceneIdx];
+      document.getElementById('sceneIndicator').textContent = `Escena ${currentSceneIdx + 1} de ${activeStorybook.scenes.length}`;
+      document.getElementById('sceneContainer').innerHTML = `
+        <div class="flex items-center justify-between">
+          <span class="px-3 py-1 rounded bg-amber-500/20 text-amber-300 text-xs font-bold">🗣 ${s.characterName}</span>
+          <span class="text-xs text-cyan-400 font-mono">✨ Animación: ${s.animationEffect}</span>
+        </div>
+        <div class="p-3 rounded bg-slate-950 border border-slate-700 text-xs text-indigo-300">
+          <strong>Concepto Universitario:</strong> ${s.academicConcept}
+        </div>
+        <p class="text-base text-white leading-relaxed font-medium">"${s.storyDialogue}"</p>
+        <div class="p-3 rounded bg-slate-950/60 border border-dashed border-slate-700 text-[11px] text-slate-400">
+          🎨 <strong>Arte de la Viñeta:</strong> ${s.visualPromptRetro}
+        </div>
+      `;
+    }
+
+    function prevScene() { if (currentSceneIdx > 0) { currentSceneIdx--; renderScene(); } }
+    function nextScene() { if (currentSceneIdx < activeStorybook.scenes.length - 1) { currentSceneIdx++; renderScene(); } }
+
+    function renderQuiz() {
+      document.getElementById('quizContainer').innerHTML = activeStorybook.quiz.map((q, qIdx) => `
+        <div class="p-4 rounded-xl bg-slate-800 border border-slate-700 space-y-2">
+          <p class="font-bold text-sm text-white">${qIdx + 1}. ${q.question}</p>
+          <div class="space-y-1.5">
+            ${q.options.map((opt, oIdx) => `
+              <button onclick="checkQuiz(${qIdx},${oIdx})" class="w-full text-left px-3 py-2 rounded bg-slate-900 hover:bg-indigo-950 border border-slate-700 text-xs">
+                ${opt}
+              </button>
+            `).join('')}
+          </div>
+          <div id="fb-${qIdx}" class="hidden p-3 rounded text-xs mt-2"></div>
+        </div>
+      `).join('');
+    }
+
+    function checkQuiz(qIdx, oIdx) {
+      const q = activeStorybook.quiz[qIdx];
+      const fb = document.getElementById(`fb-${qIdx}`);
+      fb.classList.remove('hidden');
+      if (oIdx === q.correctIndex) {
+        fb.className = 'p-3 rounded text-xs mt-2 bg-emerald-950 border border-emerald-500 text-emerald-200';
+        fb.innerHTML = `✅ <strong>¡Correcto!</strong> ${q.heroExplanation}`;
+      } else {
+        fb.className = 'p-3 rounded text-xs mt-2 bg-rose-950 border border-rose-500 text-rose-200';
+        fb.innerHTML = `❌ <strong>Revisa el concepto:</strong> ${q.heroExplanation}`;
+      }
+    }
+  </script>
+</body>
+</html>
