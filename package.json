@@ -1,1 +1,13 @@
-
+{
+  "name": "psico-storybook-retro",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@google/genai": "^0.1.2",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1"
+  }
+}
