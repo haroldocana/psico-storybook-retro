@@ -70,8 +70,8 @@ const UserModel = mongoose.model('User', UserSchema);
 
 const getInitialSubjectsForCareer = (career) => {
   return [
-    { id: "lpc-ep2", name: "Escuelas Psicológicas II", section: "Sección A", schedule: "Semestre 2", documents: [], storybooks: [], exams: [] },
-    { id: "lpc-pe2", name: "Psicología Evolutiva II", section: "Sección A", schedule: "Semestre 2", documents: [], storybooks: [], exams: [] }
+    { id: "filo-cont", name: "Filosofía Contemporánea y Existencialismo", section: "Sección A", schedule: "Semestre 2", documents: [], storybooks: [], exams: [] },
+    { id: "filo-gen", name: "Filosofía General", section: "Sección A", schedule: "Semestre 2", documents: [], storybooks: [], exams: [] }
   ];
 };
 
@@ -191,7 +191,6 @@ app.delete('/api/subjects/:subjectId', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ENDPOINT DE CARGA (SOPORTA ARCHIVOS Y YOUTUBE CON TRANSCRIPCIÓN PROFUNDA)
 app.post('/api/documents', upload.any(), async (req, res) => {
   try {
     const { username, subjectId, docTitle, customText, youtubeUrl } = req.body;
@@ -205,13 +204,13 @@ app.post('/api/documents', upload.any(), async (req, res) => {
     const dateStr = new Date().toLocaleDateString('es-GT');
 
     if (youtubeUrl && youtubeUrl.includes('youtu')) {
-      const ytContents = [`Extrae y sintetiza detalladamente toda la información científica, filosófica o psicológica del siguiente enlace de clase magistral de YouTube: ${youtubeUrl}`];
+      const ytContents = [`Extrae y explica con palabras humanas, claras y sin enredos filosóficos el contenido de la clase magistral de YouTube: ${youtubeUrl}`];
       const ytRes = await generateWithFallback(ytContents, null);
 
       const newDoc = new DocumentModel({
         docId: `doc-yt-${Date.now()}`, username: cleanUsername, subjectId,
-        title: docTitle || `Clase Magistral YouTube (${youtubeUrl})`, fileName: 'YouTube_Clase.txt', mimeType: 'text/plain',
-        base64Data: null, textContent: `Transcripción / Análisis de YouTube:\n${ytRes.text}`, uploadedAt: dateStr
+        title: docTitle || `Clase YouTube (${youtubeUrl})`, fileName: 'YouTube_Filo.txt', mimeType: 'text/plain',
+        base64Data: null, textContent: `Resumen Filosófico de YouTube:\n${ytRes.text}`, uploadedAt: dateStr
       });
       await newDoc.save();
     }
@@ -230,7 +229,7 @@ app.post('/api/documents', upload.any(), async (req, res) => {
     } else if (customText?.trim() && !youtubeUrl) {
       const newDoc = new DocumentModel({
         docId: `doc-${Date.now()}-txt`, username: cleanUsername, subjectId,
-        title: docTitle || 'Apuntes Dictados', fileName: 'Apuntes.txt', mimeType: 'text/plain',
+        title: docTitle || 'Apuntes Filosofía', fileName: 'Apuntes.txt', mimeType: 'text/plain',
         base64Data: null, textContent: customText, uploadedAt: dateStr
       });
       await newDoc.save();
@@ -263,6 +262,37 @@ async function getFullDocumentsForSubject(username, subject, documentId) {
   return allDocs.filter(d => d.id === documentId);
 }
 
+// MÓDULO DE SOLICITUD DE TAREAS Y DOCUMENTACIÓN FILOSÓFICA (MÉTODO CONTINENTAL / EXISTENCIAL EN PALABRAS HUMANAS)
+app.post('/api/human-homework', async (req, res) => {
+  try {
+    const { username, subjectId, taskPrompt } = req.body;
+    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
+    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
+    const subject = user.subjects.find(s => s.id === subjectId);
+    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
+
+    const allDocs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
+    const contents = [];
+    for (const doc of allDocs) {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
+    }
+
+    contents.push(`
+      Actúa como un profesor de Filosofía que utiliza el método continental y existencial.
+      INSTRUCCIÓN ESTRICTA: 
+      - Explica los conceptos filosóficos (como el ser, la existencia, la angustia, el Dasein, Heidegger, etc.) usando palabras humanas, cotidianas y de puro entendimiento. Cero tecnicismos fríos o lenguaje rebuscado.
+      - Conecta las ideas con lo que vive el ser humano en su realidad.
+      - Responde a la solicitud de tarea o información del estudiante: "${taskPrompt}"
+    `);
+
+    const response = await generateWithFallback(contents, null);
+    user.aiConsumptionUSD += 0.12;
+    await user.save();
+    res.json({ result: response.text, user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.post('/api/rag-search', async (req, res) => {
   try {
     const { username, subjectId, query } = req.body;
@@ -277,7 +307,7 @@ app.post('/api/rag-search', async (req, res) => {
       if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Basándote estrictamente en los documentos académicos y videos de ${subject.name}, responde con rigor científico a: "${query}"`);
+    contents.push(`Explica desde la perspectiva filosófica existencial, de forma humana y clara, sin lenguaje enrevesado: "${query}"`);
 
     const response = await generateWithFallback(contents, null);
     user.aiConsumptionUSD += 0.10;
@@ -294,7 +324,7 @@ app.post('/api/generate-analogy', async (req, res) => {
     const subject = user.subjects.find(s => s.id === subjectId);
     if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
 
-    const contents = [`Toma el concepto psicológico o clínico "${concept}" de la materia ${subject.name} y explícalo mediante una analogía sencilla de la vida cotidiana y un caso clínico ficticio breve y fácil de asimilar.`];
+    const contents = [`Explica el concepto filosófico "${concept}" usando una analogía sencilla de la vida diaria bajo el enfoque existencial y humano.`];
     const response = await generateWithFallback(contents, null);
     user.aiConsumptionUSD += 0.08;
     await user.save();
@@ -316,7 +346,7 @@ app.post('/api/generate-matrix', async (req, res) => {
       if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Genera una matriz comparativa cruzando las principales teorías, autores o patologías de ${subject.name} en formato estructurado.`);
+    contents.push(`Genera una matriz comparativa con lenguaje humano y claro sobre los conceptos filosóficos de ${subject.name}.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -356,7 +386,7 @@ app.post('/api/generate-flashcards', async (req, res) => {
       if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Genera 6 flashcards teóricas y clínicas clave para ${subject.name}.`);
+    contents.push(`Genera 6 fichas de estudio con preguntas y respuestas filosóficas humanas y directas para ${subject.name}.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -394,7 +424,7 @@ app.post('/api/generate-mindmap', async (req, res) => {
       if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Genera un mapa mental jerárquico para ${subject.name}.`);
+    contents.push(`Genera un esquema mental claro y sencillo sobre los temas filosóficos de ${subject.name}.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -421,7 +451,7 @@ app.post('/api/generate-mindmap', async (req, res) => {
 
 app.post('/api/generate-storybook', async (req, res) => {
   try {
-    const { username, subjectId, documentId, focusTopic, complexityLevel } = req.body;
+    const { username, subjectId, documentId, focusTopic } = req.body;
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
     if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
     const subject = user.subjects.find(s => s.id === subjectId);
@@ -434,12 +464,9 @@ app.post('/api/generate-storybook', async (req, res) => {
       if (doc.textContent) contents.push(`Texto (${doc.title}):\n${doc.textContent}`);
     }
 
-    const levelDesc = complexityLevel === '3' ? 'Postgrado / Clínico experto' : (complexityLevel === '1' ? 'Divulgación simple' : 'Grado universitario estándar');
-
     contents.push(`
-      Estudiante: ${user.fullName} (${user.career}). Materia: ${subject.name}. Tema: ${focusTopic || 'Evolución teórica'}. 
-      Nivel de Complejidad: ${levelDesc}.
-      INSTRUCCIÓN: Monografía académica estricta basada en los documentos y videos de YouTube subidos. Incluye Trivia Gamificada con 3 preguntas.
+      Estudiante: ${user.fullName} (${user.career}). Materia: ${subject.name}. Tema: ${focusTopic || 'Filosofía Existencial'}.
+      INSTRUCCIÓN: Crea una monografía explicada con palabras humanas y sencillas, detallando los conceptos filosóficos sin enredos innecesarios. Incluye una trivia con 3 preguntas.
     `);
 
     const schema = {
@@ -498,4 +525,4 @@ app.post('/api/generate-storybook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor con YouTube e IA activo en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Servidor Filosófico activo en puerto ${PORT}`));
