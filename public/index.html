@@ -180,7 +180,7 @@
             </div>
           </div>
 
-          <!-- HERRAMIENTAS DE ESTUDIO -->
+          <!-- HERRAMIENTAS DE ESTUDIO Y AUDIOLIBRE -->
           <div class="glass-edu rounded-3xl p-6 space-y-4 flex flex-col justify-between border border-indigo-500/30">
             <div class="space-y-3">
               <h3 class="font-black text-sm text-teal-300">2️⃣ Herramientas de Asimilación</h3>
@@ -197,6 +197,11 @@
                 <button onclick="generateMindMap()" class="py-2.5 px-2 rounded-2xl bg-teal-600 hover:bg-teal-500 font-black text-xs text-white shadow-lg">🧠 Mapa Conceptual</button>
                 <button onclick="generateTimelineMap()" class="py-2.5 px-2 rounded-2xl bg-amber-600 hover:bg-amber-500 font-black text-xs text-white shadow-lg">🗺️ Línea de Tiempo</button>
               </div>
+              
+              <!-- 🎧 BOTÓN DE AUDIOLIBRO MUY VISIBLE -->
+              <button onclick="generateAudiobook()" class="w-full mt-2 py-3.5 rounded-2xl bg-gradient-to-r from-pink-600 to-rose-600 font-black text-sm text-white shadow-xl hover:brightness-110 transition flex items-center justify-center gap-2">
+                🎧 Generar Audiolibre de mis Libros/Archivos
+              </button>
             </div>
 
             <div class="pt-3 border-t border-indigo-500/30 space-y-2">
@@ -440,6 +445,104 @@
       const res = await fetch(`/api/storybooks/${sbId}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId }) });
       const data = await res.json();
       if (res.ok) { currentUser = data.user; renderDashboard(); }
+    }
+
+    // 🎧 GENERADOR Y REPRODUCTOR DE AUDIOLIBRO PARA LIBROS CARGADOS
+    async function generateAudiobook() {
+      const v = document.getElementById('viewerArea');
+      v.classList.add('fullscreen-mode');
+      v.classList.remove('hidden');
+      v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-rose-300 font-black text-xl">🎧 Sintetizando Audiolibre por Capítulos de tus Libros...</p></div>`;
+
+      try {
+        const res = await fetch('/api/audiobook-chapters', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value })
+        });
+        const data = await res.json();
+        if (!res.ok) return alert(data.error);
+        currentUser = data.user;
+        renderDashboard();
+        const ab = data.audiobook;
+
+        let currentChapterIdx = 0;
+
+        function playCurrentChapter() {
+          if (!('speechSynthesis' in window)) return alert('Tu navegador no soporta síntesis de voz.');
+          window.speechSynthesis.cancel();
+          const textToSpeak = `${ab.chapters[currentChapterIdx].chapterTitle}. ${ab.chapters[currentChapterIdx].chapterContent}`;
+          const utterance = new SpeechSynthesisUtterance(textToSpeak);
+          utterance.lang = 'es-ES';
+          utterance.rate = 1.0;
+          
+          utterance.onend = () => {
+            if (currentChapterIdx < ab.chapters.length - 1) {
+              currentChapterIdx++;
+              renderAudiobookUI();
+              playCurrentChapter();
+            }
+          };
+
+          window.speechSynthesis.speak(utterance);
+        }
+
+        window.jumpToChapter = (idx) => {
+          currentChapterIdx = idx;
+          renderAudiobookUI();
+          playCurrentChapter();
+        };
+
+        window.pauseAudiobook = () => { window.speechSynthesis.pause(); };
+        window.resumeAudiobook = () => { window.speechSynthesis.resume(); };
+        window.stopAudiobook = () => { window.speechSynthesis.cancel(); };
+
+        function renderAudiobookUI() {
+          v.innerHTML = `
+            <div class="max-w-4xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-rose-500 relative shadow-2xl">
+              <button onclick="closeFullScreenViewer(); window.speechSynthesis.cancel();" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs hover:bg-red-900 transition">✕ Cerrar</button>
+              
+              <div class="border-b border-indigo-500/30 pb-4 pr-16">
+                <span class="px-3 py-1 rounded-full text-xs font-black bg-rose-500 text-slate-950 uppercase">🎧 Audiolibre Interactivo (Tus Libros)</span>
+                <h2 class="text-2xl font-black mt-2 text-rose-300">${ab.audiobookTitle}</h2>
+              </div>
+
+              <!-- REPRODUCTOR CONTROLES -->
+              <div class="bg-slate-900 p-5 rounded-2xl border-2 border-rose-500/40 flex flex-wrap items-center justify-between gap-4 shadow-xl">
+                <div>
+                  <p class="text-xs text-slate-400 font-bold uppercase">Reproduciendo:</p>
+                  <p class="text-sm font-black text-white">${ab.chapters[currentChapterIdx].chapterTitle}</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button onclick="playCurrentChapter()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow">▶️ Reproducir</button>
+                  <button onclick="pauseAudiobook()" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black text-xs shadow">⏸️ Pausar</button>
+                  <button onclick="resumeAudiobook()" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs shadow">⏯️ Continuar</button>
+                  <button onclick="stopAudiobook()" class="px-4 py-2 rounded-xl bg-red-900 hover:bg-red-800 text-white font-black text-xs shadow">⏹️ Detener</button>
+                </div>
+              </div>
+
+              <!-- LISTA DE CAPÍTULOS Y TRANSCRIPCIÓN -->
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+                <div class="space-y-2 max-h-96 overflow-y-auto pr-2">
+                  <p class="text-xs font-black text-slate-400 mb-2">ÍNDICE DE CAPÍTULOS:</p>
+                  ${ab.chapters.map((ch, idx) => `
+                    <button onclick="jumpToChapter(${idx})" class="w-full text-left p-3 rounded-xl border transition text-xs font-bold ${idx === currentChapterIdx ? 'bg-rose-950/80 border-rose-400 text-white shadow' : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'}">
+                      Capítulo ${idx + 1}:${ch.chapterTitle}
+                    </button>
+                  `).join('')}
+                </div>
+                <div class="md:col-span-2 bg-slate-900 p-6 rounded-2xl border border-indigo-500/30 max-h-96 overflow-y-auto space-y-3">
+                  <p class="text-xs font-black text-rose-300 uppercase">Transcripción del Capítulo Activo:</p>
+                  <p class="text-xs text-slate-200 leading-relaxed font-medium whitespace-pre-wrap">${ab.chapters[currentChapterIdx].chapterContent}</p>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        renderAudiobookUI();
+        playCurrentChapter();
+
+      } catch (err) { alert('Error al generar audiolibre: ' + err.message); }
     }
 
     // SOLICITUD DE TAREAS Y RESÚMENES HUMANISTA-EXISTENCIAL
