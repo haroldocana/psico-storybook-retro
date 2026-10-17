@@ -15,9 +15,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 const upload = multer({ storage: multer.memoryStorage() });
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// Conexión a MongoDB Atlas (Sin bloquear el inicio del servidor)
+// Conexión a MongoDB Atlas optimizada con option bufferCommands: false
 const MONGO_URI = process.env.MONGO_URI || '';
-mongoose.connect(MONGO_URI)
+mongoose.connect(MONGO_URI, { bufferCommands: false })
   .then(() => console.log('🔥 Conectado exitosamente a MongoDB Atlas'))
   .catch(err => console.error('Error conectando a MongoDB:', err));
 
@@ -36,7 +36,15 @@ const UserSchema = new mongoose.Schema({
 
 const UserModel = mongoose.model('User', UserSchema);
 
-// Crear usuario haroldocana por defecto
+// Middleware para verificar conexión antes de cada petición a la BD
+app.use(async (req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({ error: "La base de datos se está conectando. Intenta de nuevo en unos segundos." });
+  }
+  next();
+});
+
+// Inicializar usuario haroldocana de forma segura
 async function initUser() {
   try {
     let user = await UserModel.findOne({ username: 'haroldocana' });
@@ -59,7 +67,7 @@ async function initUser() {
     console.log('Nota inicialización DB:', e.message);
   }
 }
-setTimeout(initUser, 3000);
+setTimeout(initUser, 4000);
 
 // Rutas de Autenticación
 app.post('/api/auth/login', async (req, res) => {
