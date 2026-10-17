@@ -6,202 +6,197 @@
   <title>Centro de Estudio Académico e Interdisciplinario · Universidad</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { background: #090d16; color: #f1f5f9; font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; }
-    .glass-panel { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.07); }
-    .edu-card { background: #111827; border: 1px solid #1f2937; transition: all 0.2s ease; }
-    .edu-card:hover { border-color: #38bdf8; box-shadow: 0 4px 20px -2px rgba(56, 189, 248, 0.15); }
-    .speech-bubble { background: #f8fafc; color: #0f172a; border-radius: 1rem; border-left: 4px solid #0284c7; }
+    body { background: radial-gradient(circle at top right, #0f172a, #020617 70%); color: #f8fafc; font-family: system-ui, sans-serif; min-height: 100vh; }
+    .glass { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.08); }
+    .academic-card { border: 2px solid #38bdf8; background: #0b0f19; box-shadow: 6px 6px 0px #0369a1; position: relative; }
+    .speech-bubble { background: #f0fdf4; color: #065f46; border-radius: 1.25rem; border: 2px solid #047857; position: relative; }
+    .speech-bubble:after { content: ''; position: absolute; bottom: -12px; left: 28px; border-width: 12px 12px 0; border-style: solid; border-color: #f0fdf4 transparent; display: block; width: 0; }
     .flashcard { perspective: 1000px; }
     .flashcard-inner { transition: transform 0.6s; transform-style: preserve-3d; }
     .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
     .flashcard-front, .flashcard-back { backface-visibility: hidden; position: absolute; inset: 0; }
     .flashcard-back { transform: rotateY(180deg); }
-    #viewerArea.fullscreen-mode { position: fixed; inset: 0; z-index: 100; overflow-y: auto; background: rgba(3, 7, 18, 0.98); padding: 2.5rem; }
+    #viewerArea.fullscreen-mode { position: fixed; inset: 0; z-index: 100; overflow-y: auto; background: rgba(2, 6, 23, 0.99); padding: 2rem; }
   </style>
 </head>
-<body class="text-slate-100 flex flex-col min-h-screen">
+<body class="text-slate-100">
 
   <!-- AUTH SCREEN -->
-  <div id="authScreen" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950">
-    <div class="glass-panel max-w-md w-full rounded-2xl p-8 shadow-2xl border border-slate-800">
+  <div id="authScreen" class="min-h-screen flex items-center justify-center p-4">
+    <div class="glass max-w-md w-full rounded-2xl p-8 shadow-2xl">
       <div class="text-center mb-6">
-        <span class="px-3 py-1 bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 rounded-full text-xs font-semibold tracking-wider uppercase">Plataforma Universitaria</span>
-        <h1 class="text-2xl font-bold mt-3 text-white">Centro de Estudio Académico</h1>
-        <p class="text-xs text-slate-400 mt-1">Psicología, Derecho, Medicina y Filosofía</p>
+        <span class="px-3 py-1 bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 rounded-full text-xs font-bold">MULTIDISCIPLINARIO · UNIVERSIDAD</span>
+        <h1 class="text-3xl font-extrabold mt-2 bg-gradient-to-r from-cyan-400 via-teal-300 to-indigo-400 bg-clip-text text-transparent">Plataforma Académica</h1>
+        <p class="text-xs text-slate-400 mt-1">YouTube · Monografías con Audio · Fichas · Mapas</p>
       </div>
 
-      <div class="flex bg-slate-900 p-1 rounded-xl mb-6 border border-slate-800">
-        <button onclick="switchAuthTab('login')" id="tabLogin" class="flex-1 py-2 rounded-lg text-xs font-semibold bg-cyan-600 text-white transition">Iniciar Sesión</button>
-        <button onclick="switchAuthTab('register')" id="tabRegister" class="flex-1 py-2 rounded-lg text-xs font-semibold text-slate-400 transition">Nueva Cuenta</button>
+      <div class="flex bg-slate-900/90 p-1 rounded-xl mb-5 border border-slate-800">
+        <button onclick="switchAuthTab('login')" id="tabLogin" class="flex-1 py-2 rounded-lg text-xs font-bold bg-indigo-600 text-white">Iniciar Sesión</button>
+        <button onclick="switchAuthTab('register')" id="tabRegister" class="flex-1 py-2 rounded-lg text-xs font-bold text-slate-400">Nueva Cuenta</button>
       </div>
 
-      <div id="authError" class="hidden mb-4 p-3 rounded-xl bg-red-950/80 border border-red-500/50 text-red-200 text-xs"></div>
+      <div id="authError" class="hidden mb-4 p-3 rounded-xl bg-red-950/90 border border-red-500/60 text-red-200 text-xs"></div>
 
       <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
         <div>
-          <label class="text-xs text-slate-400 font-medium">Usuario o Correo</label>
-          <input type="text" id="loginId" required value="haroldocana" class="w-full mt-1 px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-500" />
+          <label class="text-xs text-slate-400">Usuario o Correo</label>
+          <input type="text" id="loginId" required value="haroldocana" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
         </div>
         <div>
-          <label class="text-xs text-slate-400 font-medium">Contraseña</label>
-          <input type="password" id="loginPass" required value="admin123" class="w-full mt-1 px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-500" />
+          <label class="text-xs text-slate-400">Contraseña</label>
+          <input type="password" id="loginPass" required value="admin123" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
         </div>
-        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 font-semibold text-sm shadow-lg hover:brightness-110 transition">Acceder al Sistema</button>
+        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 font-bold text-sm shadow-lg">Entrar a Plataforma Universitaria</button>
       </form>
 
       <form id="registerForm" onsubmit="handleRegister(event)" class="hidden space-y-3">
         <div>
-          <label class="text-xs text-slate-400 font-medium">Nombre Completo</label>
-          <input type="text" id="regName" required placeholder="Harold Benjamín Ocaña" class="w-full mt-1 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
+          <label class="text-xs text-slate-400">Nombre Completo</label>
+          <input type="text" id="regName" required placeholder="Harold Benjamín Ocaña" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="text-xs text-slate-400 font-medium">Usuario</label>
-            <input type="text" id="regUser" required placeholder="haroldocana" class="w-full mt-1 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
+            <label class="text-xs text-slate-400">Usuario</label>
+            <input type="text" id="regUser" required placeholder="haroldocana" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
           </div>
           <div>
-            <label class="text-xs text-slate-400 font-medium">Área</label>
-            <select id="regCareer" class="w-full mt-1 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+            <label class="text-xs text-slate-400">Área</label>
+            <select id="regCareer" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
               <option value="Multidisciplinaria">Multidisciplinaria</option>
             </select>
           </div>
         </div>
         <div>
-          <label class="text-xs text-slate-400 font-medium">Correo Electrónico</label>
-          <input type="email" id="regEmail" required placeholder="correo@universidad.edu" class="w-full mt-1 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
+          <label class="text-xs text-slate-400">Correo</label>
+          <input type="email" id="regEmail" required placeholder="correo@universidad.edu" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
         </div>
         <div>
-          <label class="text-xs text-slate-400 font-medium">Contraseña</label>
-          <input type="password" id="regPass" required class="w-full mt-1 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
+          <label class="text-xs text-slate-400">Contraseña</label>
+          <input type="password" id="regPass" required class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
         </div>
-        <button type="submit" class="w-full py-3 rounded-xl bg-emerald-600 font-semibold text-sm hover:bg-emerald-500 transition">Registrar Cuenta</button>
+        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 font-bold text-sm">Registrar Cuenta</button>
       </form>
     </div>
   </div>
 
   <!-- DASHBOARD -->
   <div id="appScreen" class="hidden min-h-screen flex flex-col">
-    <header class="glass-panel sticky top-0 z-30 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 border-b border-slate-800">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-cyan-600/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 font-bold text-lg">🎓</div>
-        <div>
-          <h2 class="font-bold text-sm tracking-wide text-white">Centro de Estudio Académico e Interdisciplinario</h2>
-          <p id="userHeaderInfo" class="text-[11px] text-slate-400"></p>
+    <header class="glass sticky top-0 z-30 px-6 py-3 flex flex-wrap items-center justify-between gap-4 border-b border-slate-800">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🎓</span>
+          <h2 class="font-extrabold text-lg bg-gradient-to-r from-cyan-300 to-teal-400 bg-clip-text text-transparent">Centro de Estudio Académico</h2>
         </div>
+        <p id="userHeaderInfo" class="text-xs text-slate-400"></p>
       </div>
       <div class="flex items-center gap-4">
-        <div class="bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-1.5 text-xs flex items-center gap-2">
-          <span class="text-slate-400">Consumo IA:</span> <b id="aiBilling" class="text-cyan-400">$0.00 USD</b>
+        <div class="bg-slate-900/90 border border-slate-700 rounded-xl px-3 py-1.5 text-xs flex items-center gap-3">
+          <span>Consumo IA: <b id="aiBilling" class="text-cyan-400">$0.00 USD</b></span>
         </div>
-        <button onclick="logout()" class="px-3.5 py-1.5 rounded-lg bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/40 text-xs font-semibold transition">Cerrar Sesión</button>
+        <button onclick="logout()" class="px-3 py-1.5 rounded-lg bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/50 text-xs font-bold">Salir</button>
       </div>
     </header>
 
     <div class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <!-- PANEL LATERAL DE MATERIAS -->
       <aside class="lg:col-span-3 space-y-4">
-        <div class="glass-panel rounded-2xl p-4 border border-slate-800">
-          <div class="flex items-center justify-between mb-3 px-1">
-            <h3 class="font-semibold text-xs uppercase tracking-wider text-slate-400">📚 Materias Activas</h3>
-            <button onclick="toggleNewSubjectModal()" class="px-2.5 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold transition">+ Materia</button>
+        <div class="glass rounded-2xl p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-xs uppercase tracking-wider text-slate-400">📚 Materias</h3>
+            <button onclick="toggleNewSubjectModal()" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-bold">+ Materia</button>
           </div>
           <div id="subjectsList" class="space-y-2"></div>
         </div>
       </aside>
 
-      <!-- CONTENIDO PRINCIPAL -->
       <main class="lg:col-span-9 space-y-6">
-        <div class="glass-panel rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4 border border-slate-800">
+        <div class="glass rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <span id="activeSubjMeta" class="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider"></span>
-            <h2 id="activeSubjTitle" class="text-2xl font-bold mt-0.5 text-white">Selecciona una materia</h2>
+            <span id="activeSubjMeta" class="text-xs font-bold text-cyan-400 uppercase"></span>
+            <h2 id="activeSubjTitle" class="text-2xl font-extrabold mt-0.5">Selecciona una materia</h2>
           </div>
           <div class="flex flex-wrap items-center gap-3 text-xs">
-            <div class="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-2.5">
-              <span class="text-slate-400">Dominio:</span>
-              <div class="w-24 bg-slate-800 rounded-full h-2 overflow-hidden">
-                <div id="progressBar" class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+            <div class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-2">
+              <span>📈 Progreso:</span>
+              <div class="w-20 bg-slate-800 rounded-full h-2.5 overflow-hidden">
+                <div id="progressBar" class="bg-gradient-to-r from-cyan-500 to-teal-400 h-2.5 rounded-full" style="width: 0%"></div>
               </div>
               <span id="progressText" class="font-bold text-cyan-400">0%</span>
             </div>
-            <button onclick="deleteActiveSubject()" class="px-3 py-2 rounded-xl bg-red-950/50 hover:bg-red-900/80 text-red-300 border border-red-800/40 font-semibold transition">🗑️ Eliminar</button>
+            <button onclick="deleteActiveSubject()" class="px-3 py-1.5 rounded-xl bg-red-950/70 text-red-300 border border-red-800/50 font-bold">🗑️ Borrar</button>
           </div>
         </div>
 
-        <!-- SIMULADOR DE DEBATE ACADÉMICO -->
-        <div class="glass-panel rounded-2xl p-5 border border-cyan-500/30 shadow-lg space-y-3">
+        <!-- 🤼‍♂️ SEMINARIO Y DEBATE ACADÉMICO -->
+        <div class="glass rounded-2xl p-4 border-2 border-cyan-500/50 shadow-xl space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <span class="text-lg">🤼‍♂️</span>
-              <h3 class="font-bold text-sm text-cyan-300 uppercase tracking-wide">Seminario y Debate Académico (Interactivo)</h3>
+              <span class="text-xl">🤼‍♂️</span>
+              <h3 class="font-black text-sm text-cyan-300 uppercase">Seminario y Debate Académico (Interactivo)</h3>
             </div>
-            <button onclick="openSocraticModal()" class="text-xs px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition shadow">💬 Iniciar Seminario</button>
+            <button onclick="openSocraticModal()" class="text-xs px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold">💬 Iniciar Debate</button>
           </div>
           <div class="flex gap-2">
-            <input type="text" id="ragQueryInput" placeholder="Consulta bibliográfica transversal (ej. ¿Cómo se relacionan las normas penales con la conducta humana?)" class="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-cyan-500" />
-            <button onclick="executeRagSearch()" class="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-semibold text-xs shadow transition">Consultar</button>
+            <input type="text" id="ragQueryInput" placeholder="Consulta bibliográfica (ej. ¿Cómo se vincula la norma penal con la conducta?)" class="flex-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
+            <button onclick="executeRagSearch()" class="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold text-xs shadow-lg">Buscar</button>
           </div>
         </div>
 
-        <!-- HERRAMIENTAS Y REPOSITORIO -->
+        <!-- PANEL DE HERRAMIENTAS ACADÉMICAS -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- CARGA DE DOCUMENTOS Y YOUTUBE -->
-          <div class="glass-panel rounded-2xl p-5 space-y-4 flex flex-col justify-between border border-slate-800">
+          <div class="glass rounded-2xl p-5 space-y-4 flex flex-col justify-between">
             <div>
-              <div class="flex items-center justify-between mb-1">
-                <h3 class="font-bold text-sm text-cyan-300">1️⃣ Repositorio y Clases en Video</h3>
-                <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/40 font-medium">Multifuente</span>
+              <div class="flex items-center justify-between">
+                <h3 class="font-bold text-sm text-cyan-300">1️⃣ Carga de Documentos y YouTube</h3>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/50">Multifuente</span>
               </div>
-              <p class="text-xs text-slate-400 mb-3">Sube documentos de estudio o añade enlaces de clases de YouTube.</p>
+              <p class="text-xs text-slate-400 mt-1">Sube PDFs o enlaces de YouTube (clases magistrales).</p>
 
-              <form onsubmit="handleUploadDoc(event)" class="space-y-3">
-                <input type="text" id="docTitle" placeholder="Título descriptivo (ej. Clase Magistral Fisiología)" class="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-cyan-500" />
+              <form onsubmit="handleUploadDoc(event)" class="space-y-3 mt-3">
+                <input type="text" id="docTitle" placeholder="Título (ej. Clase Magistral)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
                 
                 <div>
-                  <label class="text-[11px] text-red-400 font-semibold">▶️ Enlace de Video de YouTube:</label>
-                  <input type="url" id="youtubeUrlInput" placeholder="https://youtu.be/..." class="w-full mt-1 px-3.5 py-2 rounded-xl bg-slate-900 border border-red-500/40 text-xs text-white focus:outline-none focus:border-red-500" />
+                  <label class="text-[11px] text-red-400 font-bold">▶️ Enlace de Video de YouTube:</label>
+                  <input type="url" id="youtubeUrlInput" placeholder="https://youtu.be/..." class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-red-500/50 text-xs text-white" />
                 </div>
 
-                <div class="p-3 rounded-xl bg-slate-900 border border-dashed border-slate-700">
-                  <input type="file" id="docFiles" multiple accept=".pdf,.pptx,.ppt,.docx,.doc,.png,.jpg,.jpeg,.webp,.txt" onchange="updateSelectedFilesList()" class="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-800 file:text-cyan-400 file:font-semibold cursor-pointer" />
-                  <div id="selectedFilesPreview" class="text-[11px] text-cyan-400 mt-1.5 font-medium"></div>
+                <div class="p-3 rounded-xl bg-slate-900/90 border border-dashed border-cyan-500/50">
+                  <input type="file" id="docFiles" multiple accept=".pdf,.pptx,.ppt,.docx,.doc,.png,.jpg,.jpeg,.webp,.txt" onchange="updateSelectedFilesList()" class="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-cyan-600 file:text-white file:font-bold cursor-pointer" />
+                  <div id="selectedFilesPreview" class="text-[11px] text-cyan-300 mt-1.5 font-medium"></div>
                 </div>
 
-                <button type="submit" id="btnUploadDoc" class="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-semibold text-xs shadow transition">📥 Procesar y Guardar en Materia</button>
+                <button type="submit" id="btnUploadDoc" class="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold text-xs shadow-lg">📥 Procesar y Guardar</button>
               </form>
             </div>
-
-            <div class="pt-4 border-t border-slate-800 mt-2">
+            <div class="pt-4 border-t border-slate-800 mt-4">
               <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-semibold text-slate-300">📁 Archivos (<span id="savedLibraryBadge" class="text-cyan-400">0</span>):</span>
-                <button id="btnClearAllDocs" onclick="clearAllSubjectDocs()" class="hidden text-[11px] px-2 py-0.5 rounded bg-red-950/80 text-red-300 font-semibold">🗑️ Vaciar</button>
+                <span class="text-xs font-bold text-slate-300">📚 Materiales (<span id="savedLibraryBadge" class="text-cyan-400">0</span>):</span>
+                <button id="btnClearAllDocs" onclick="clearAllSubjectDocs()" class="hidden text-[11px] px-2 py-0.5 rounded bg-red-950 text-red-300 font-bold">🗑️ Vaciar</button>
               </div>
-              <div id="savedDocsList" class="space-y-1.5 max-h-28 overflow-y-auto pr-1"></div>
+              <div id="savedDocsList" class="space-y-1.5 max-h-32 overflow-y-auto pr-1"></div>
             </div>
           </div>
 
-          <!-- GENERADORES DE ASIMILACIÓN -->
-          <div class="glass-panel rounded-2xl p-5 space-y-4 flex flex-col justify-between border border-slate-800">
+          <div class="glass rounded-2xl p-5 space-y-4 flex flex-col justify-between">
             <div class="space-y-3">
               <h3 class="font-bold text-sm text-teal-300">2️⃣ Generadores de Estudio</h3>
               <div>
-                <label class="text-xs text-slate-400 font-medium">Base de análisis:</label>
-                <select id="selectDocForAI" class="w-full mt-1 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-cyan-500"></select>
+                <label class="text-xs text-slate-400">Material analizado:</label>
+                <select id="selectDocForAI" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"></select>
               </div>
 
-              <input type="text" id="focusTopic" placeholder="Enfoque específico (ej. Homeostasis o Imputabilidad)" class="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-cyan-500" />
+              <input type="text" id="focusTopic" placeholder="Enfoque (ej. Teoría del Delito o Consciencia)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
 
-              <div class="grid grid-cols-2 gap-2.5 pt-1">
-                <button onclick="generateStorybook()" class="py-2.5 px-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 font-semibold text-xs text-white shadow hover:brightness-110 transition">📖 Monografía</button>
-                <button onclick="generateFlashcards()" class="py-2.5 px-2 rounded-xl bg-purple-600 hover:bg-purple-500 font-semibold text-xs shadow hover:brightness-110 transition">🃏 Fichas Teóricas</button>
-                <button onclick="generateMindMap()" class="py-2.5 px-2 rounded-xl bg-teal-600 hover:bg-teal-500 font-semibold text-xs shadow hover:brightness-110 transition">🧠 Mapa Conceptual</button>
-                <button onclick="generateTimelineMap()" class="py-2.5 px-2 rounded-xl bg-amber-600 hover:bg-amber-500 font-semibold text-xs shadow hover:brightness-110 transition">🗺️ Línea de Tiempo</button>
+              <div class="grid grid-cols-2 gap-2 pt-1">
+                <button onclick="generateStorybook()" class="py-2 px-2 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 font-bold text-xs text-white shadow">📖 Monografía</button>
+                <button onclick="generateFlashcards()" class="py-2 px-2 rounded-xl bg-purple-600 hover:bg-purple-500 font-bold text-xs shadow">🃏 Fichas Teóricas</button>
+                <button onclick="generateMindMap()" class="py-2 px-2 rounded-xl bg-teal-600 hover:bg-teal-500 font-bold text-xs shadow">🧠 Mapa Conceptual</button>
+                <button onclick="generateTimelineMap()" class="py-2 px-2 rounded-xl bg-amber-600 hover:bg-amber-500 font-bold text-xs shadow">🗺️ Línea de Tiempo</button>
               </div>
             </div>
 
             <div class="pt-3 border-t border-slate-800 space-y-2">
-              <p class="text-xs font-semibold text-slate-400">🗂️ HISTORIAL DE MONOGRAFÍAS:</p>
-              <div id="savedHistoryList" class="space-y-1.5 max-h-28 overflow-y-auto pr-1"></div>
+              <p class="text-xs font-bold text-slate-400">🗂️ HISTORIAL DE MONOGRAFÍAS:</p>
+              <div id="savedHistoryList" class="space-y-1.5 max-h-32 overflow-y-auto pr-1"></div>
             </div>
           </div>
         </div>
@@ -212,49 +207,43 @@
     </div>
   </div>
 
-  <!-- MODAL SEMINARIO Y DEBATE -->
-  <div id="modalSocratic" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4">
-    <div class="glass-panel max-w-2xl w-full rounded-2xl p-6 space-y-4 border border-indigo-500/50 shadow-2xl">
+  <!-- MODAL DEBATE -->
+  <div id="modalSocratic" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+    <div class="glass max-w-2xl w-full rounded-2xl p-6 space-y-4 border-2 border-indigo-500">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-        <h3 class="font-bold text-base text-indigo-300">🤼‍♂️ Seminario y Debate Académico</h3>
-        <button onclick="openSocraticModal()" class="text-slate-400 font-bold hover:text-white">✕</button>
+        <h3 class="font-extrabold text-base text-indigo-300">🤼‍♂️ Seminario y Debate Académico</h3>
+        <button onclick="openSocraticModal()" class="text-slate-400 font-bold">✕</button>
       </div>
       <div class="space-y-2 text-xs">
-        <label class="text-slate-400 font-medium">Experto o Autor de referencia:</label>
-        <select id="socraticPhilosopher" class="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-indigo-500">
-          <option value="Martin Heidegger">Martin Heidegger (Fenomenología y Existencia)</option>
-          <option value="Carl Rogers">Carl Rogers (Enfoque Humanista Clínico)</option>
-          <option value="Criminólogo Experto">Criminólogo / Especialista en Derecho Penal</option>
+        <label class="text-slate-400">Experto o Autor de referencia:</label>
+        <select id="socraticPhilosopher" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white">
+          <option value="Martin Heidegger">Martin Heidegger (Fenomenología)</option>
+          <option value="Carl Rogers">Carl Rogers (Enfoque Humanista)</option>
+          <option value="Criminólogo Experto">Criminólogo / Especialista en Derecho</option>
           <option value="Fisiólogo Clínico">Fisiólogo / Especialista Médico</option>
         </select>
       </div>
-      <div id="socraticChatBox" class="h-64 overflow-y-auto bg-slate-900/90 p-4 rounded-xl space-y-3 border border-slate-800 text-xs">
-        <div class="p-3 rounded-xl bg-indigo-950/60 border border-indigo-800/60 text-indigo-200">
-          🏛️ ¡Bienvenido al seminario! Propón un dilema o consulta basada en tus lecturas para iniciar el debate analítico.
+      <div id="socraticChatBox" class="h-60 overflow-y-auto bg-slate-900 p-4 rounded-xl space-y-3 border border-slate-800 text-xs">
+        <div class="p-3 rounded-xl bg-indigo-950/60 border border-indigo-800 text-indigo-200">
+          🏛️ ¡Saludos! Propón un tema o dilema para debatir analíticamente.
         </div>
       </div>
       <div class="flex gap-2">
-        <input type="text" id="socraticInput" placeholder="Escribe tu argumento o postura..." class="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500" />
-        <button onclick="sendSocraticMessage()" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-xs text-white transition">Argumentar</button>
+        <input type="text" id="socraticInput" placeholder="Escribe tu argumento..." class="flex-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
+        <button onclick="sendSocraticMessage()" class="px-4 py-2.5 rounded-xl bg-indigo-600 font-bold text-xs text-white">Argumentar</button>
       </div>
     </div>
   </div>
 
   <!-- MODAL NUEVA MATERIA -->
-  <div id="modalSubject" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-    <div class="glass-panel max-w-md w-full rounded-2xl p-6 space-y-4 border border-slate-800">
-      <h3 class="font-bold text-base text-white">Agregar Nueva Materia Académica</h3>
-      <div>
-        <label class="text-xs text-slate-400 font-medium">Nombre de la Materia</label>
-        <input type="text" id="newSubjName" placeholder="Ej. Psicopatología / Derecho Penal" class="w-full mt-1 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-500" />
-      </div>
-      <div>
-        <label class="text-xs text-slate-400 font-medium">Semestre / Horario</label>
-        <input type="text" id="newSubjSchedule" placeholder="Ej. Semestre 2" class="w-full mt-1 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-500" />
-      </div>
-      <div class="flex justify-end gap-2 pt-2">
-        <button onclick="toggleNewSubjectModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-xs text-slate-300 hover:bg-slate-700 transition">Cancelar</button>
-        <button onclick="createNewSubject()" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-semibold text-xs text-white transition">Guardar Materia</button>
+  <div id="modalSubject" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
+    <div class="glass max-w-md w-full rounded-2xl p-6 space-y-4">
+      <h3 class="font-bold text-lg">Agregar Materia Académica</h3>
+      <input type="text" id="newSubjName" placeholder="Nombre (ej. Psicopatología / Derecho Penal)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
+      <input type="text" id="newSubjSchedule" placeholder="Semestre / Horario" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
+      <div class="flex justify-end gap-2">
+        <button onclick="toggleNewSubjectModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-xs">Cancelar</button>
+        <button onclick="createNewSubject()" class="px-4 py-2 rounded-xl bg-cyan-600 font-bold text-xs">Guardar</button>
       </div>
     </div>
   </div>
@@ -287,8 +276,8 @@
       document.getElementById('authError').classList.add('hidden');
       document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
       document.getElementById('registerForm').classList.toggle('hidden', tab !== 'register');
-      document.getElementById('tabLogin').className = tab === 'login' ? 'flex-1 py-2 rounded-lg text-xs font-semibold bg-cyan-600 text-white transition' : 'flex-1 py-2 rounded-lg text-xs font-semibold text-slate-400 transition';
-      document.getElementById('tabRegister').className = tab === 'register' ? 'flex-1 py-2 rounded-lg text-xs font-semibold bg-emerald-600 text-white transition' : 'flex-1 py-2 rounded-lg text-xs font-semibold text-slate-400 transition';
+      document.getElementById('tabLogin').className = tab === 'login' ? 'flex-1 py-2 rounded-lg text-xs font-bold bg-indigo-600 text-white' : 'flex-1 py-2 rounded-lg text-xs font-bold text-slate-400';
+      document.getElementById('tabRegister').className = tab === 'register' ? 'flex-1 py-2 rounded-lg text-xs font-bold bg-emerald-600 text-white' : 'flex-1 py-2 rounded-lg text-xs font-bold text-slate-400';
     }
     function showAuthError(msg) { const el = document.getElementById('authError'); el.textContent = msg; el.classList.remove('hidden'); }
 
@@ -332,25 +321,24 @@
 
     function updateSelectedFilesList() {
       const input = document.getElementById('docFiles');
-      document.getElementById('selectedFilesPreview').textContent = input.files.length ? `✅ ${input.files.length} archivo(s) seleccionados.` : '';
+      document.getElementById('selectedFilesPreview').textContent = input.files.length ? `✅ ${input.files.length} archivo(s) listos.` : '';
     }
 
     function renderDashboard() {
-      document.getElementById('userHeaderInfo').innerHTML = `👤 <b>${currentUser.fullName}</b> · <span class="text-cyan-400">${currentUser.career || 'Multidisciplinaria'}</span>`;
+      document.getElementById('userHeaderInfo').innerHTML = `👤 <b>${currentUser.fullName}</b> · <span class="text-cyan-300">${currentUser.career || ''}</span>`;
       document.getElementById('aiBilling').textContent = `$${(currentUser.aiConsumptionUSD || 0).toFixed(2)} USD`;
 
       const list = document.getElementById('subjectsList');
       list.innerHTML = currentUser.subjects.map(s => `
-        <button onclick="selectSubject('${s.id}')" class="w-full text-left p-3 rounded-xl border transition ${s.id === activeSubjectId ? 'bg-cyan-950/40 border-cyan-500 text-white shadow' : 'bg-slate-900/50 border-slate-800 text-slate-300 hover:bg-slate-900'}">
-          <div class="font-semibold text-xs">${s.name}</div>
-          <div class="text-[10px] text-slate-400 mt-0.5">${s.schedule || ''}</div>
+        <button onclick="selectSubject('${s.id}')" class="w-full text-left p-3 rounded-xl border transition ${s.id === activeSubjectId ? 'bg-cyan-950/80 border-cyan-400' : 'bg-slate-900/60 border-slate-800'}">
+          <div class="font-bold text-sm mt-0.5">${s.name}</div>
         </button>
       `).join('');
 
       const subj = currentUser.subjects.find(s => s.id === activeSubjectId);
       if (!subj) return;
 
-      document.getElementById('activeSubjMeta').textContent = `${subj.section || 'Sección A'} · ${subj.schedule || ''}`;
+      document.getElementById('activeSubjMeta').textContent = `${subj.section || ''} · ${subj.schedule || ''}`;
       document.getElementById('activeSubjTitle').textContent = subj.name;
       
       const docCount = (subj.documents || []).length;
@@ -363,22 +351,22 @@
       document.getElementById('savedLibraryBadge').textContent = docs.length;
       document.getElementById('btnClearAllDocs').classList.toggle('hidden', docs.length === 0);
 
-      document.getElementById('savedDocsList').innerHTML = docs.length === 0 ? `<p class="text-xs text-slate-500 italic">Sin documentos cargados.</p>` : docs.map(d => `
+      document.getElementById('savedDocsList').innerHTML = docs.length === 0 ? `<p class="text-xs text-slate-500 italic">Sin documentos.</p>` : docs.map(d => `
         <div class="flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs gap-2">
-          <div class="truncate text-slate-300">📄 ${d.title}</div>
-          <button onclick="deleteSavedDoc('${d.id}')" class="text-red-400 hover:text-red-300 font-bold">🗑️</button>
+          <div class="truncate">✔ ${d.title}</div>
+          <button onclick="deleteSavedDoc('${d.id}')" class="text-red-400 font-bold">🗑️</button>
         </div>
       `).join('');
 
-      document.getElementById('selectDocForAI').innerHTML = `<option value="ALL">📚 USAR TODOS LOS ARCHIVOS (${docs.length})</option>` + docs.map(d => `<option value="${d.id}">📄 ${d.title}</option>`).join('');
+      document.getElementById('selectDocForAI').innerHTML = `<option value="ALL">📚 USAR TODOS (${docs.length})</option>` + docs.map(d => `<option value="${d.id}">📄 ${d.title}</option>`).join('');
 
       const hist = document.getElementById('savedHistoryList');
       hist.innerHTML = (subj.storybooks || []).slice().reverse().map(sb => `
         <div class="p-2 rounded-xl bg-slate-900 border border-slate-800 flex justify-between items-center text-xs">
-          <div onclick='openStorybook(${JSON.stringify(sb).replace(/'/g, "&#39;")})' class="cursor-pointer truncate flex-1 text-slate-300 hover:text-cyan-400">📖 <b>${sb.title}</b></div>
+          <div onclick='openStorybook(${JSON.stringify(sb).replace(/'/g, "&#39;")})' class="cursor-pointer truncate flex-1">📖 <b>${sb.title}</b></div>
           <button onclick="deleteSavedStorybook('${sb.id}')" class="text-red-400 ml-2">🗑️</button>
         </div>
-      `).join('') || '<p class="text-xs text-slate-500 italic">Sin monografías generadas.</p>';
+      `).join('') || '<p class="text-xs text-slate-500">Sin historial.</p>';
     }
 
     function selectSubject(id) { activeSubjectId = id; localStorage.setItem(`psico_subj_${currentUser.username}`, id); document.getElementById('viewerArea').classList.add('hidden'); renderDashboard(); }
@@ -396,7 +384,7 @@
     }
 
     async function deleteActiveSubject() {
-      if (!activeSubjectId || !confirm('¿Desea eliminar esta materia y todo su contenido?')) return;
+      if (!activeSubjectId || !confirm('¿Borrar materia?')) return;
       const res = await fetch(`/api/subjects/${activeSubjectId}`, {
         method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username })
       });
@@ -423,7 +411,7 @@
         document.getElementById('docFiles').value = ''; 
         document.getElementById('youtubeUrlInput').value = '';
         renderDashboard(); 
-        alert('¡Contenido procesado y guardado con éxito!'); 
+        alert('¡Contenido guardado con éxito!'); 
       }
     }
 
@@ -435,7 +423,7 @@
     }
 
     async function clearAllSubjectDocs() {
-      if (!confirm('¿Vaciar repositorio de esta materia?')) return;
+      if (!confirm('¿Vaciar materia?')) return;
       const res = await fetch(`/api/subjects/${activeSubjectId}/documents`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username }) });
       const data = await res.json();
       if (res.ok) { currentUser = data.user; renderDashboard(); }
@@ -484,7 +472,7 @@
       const v = document.getElementById('viewerArea');
       v.classList.add('fullscreen-mode');
       v.classList.remove('hidden');
-      v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-amber-300 font-bold text-lg">🗺️ Mapeando evolución teórica...</p></div>`;
+      v.innerHTML = `<div class="text-center animate-pulse pt-20"><p class="text-amber-300 font-bold text-lg">🗺️ Mapeando Evolución Teórica...</p></div>`;
 
       try {
         const res = await fetch('/api/generate-timeline-map', {
@@ -498,16 +486,16 @@
         const tm = data.timelineMap;
 
         v.innerHTML = `
-          <div class="max-w-5xl mx-auto glass-panel rounded-3xl p-8 space-y-6 border border-amber-500/40 relative">
-            <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs hover:bg-red-900 transition">✕ Cerrar</button>
+          <div class="max-w-6xl mx-auto glass rounded-3xl p-8 space-y-6 border-2 border-amber-500 relative">
+            <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs">✕ Cerrar</button>
             <h2 class="text-2xl font-bold text-amber-300 text-center">🗺️ ${tm.timelineTitle}</h2>
             <div class="space-y-4 pt-4">
               ${tm.eras.map((e, idx) => `
-                <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2 shadow-md">
-                  <span class="text-xs font-bold px-2.5 py-1 rounded bg-amber-500/20 text-amber-300">FASE ${idx + 1}:${e.eraName}</span>
-                  <h4 class="font-bold text-sm text-cyan-300">Autor / Referencia: ${e.mainAuthor}</h4>
-                  <p class="text-xs text-slate-300 leading-relaxed"><b>Idea Central:</b> ${e.coreIdea}</p>
-                  <p class="text-xs text-slate-400 leading-relaxed"><b>Conexión:</b> ${e.refutationOrLink}</p>
+                <div class="p-5 rounded-2xl bg-slate-900 border-2 border-cyan-500/40 space-y-2 shadow-xl">
+                  <span class="text-xs font-black px-2 py-0.5 rounded bg-cyan-500 text-slate-950">FASE ${idx + 1}:${e.eraName}</span>
+                  <h4 class="font-extrabold text-sm text-teal-300">Teórico Principal: ${e.mainAuthor}</h4>
+                  <p class="text-xs text-slate-200"><b>Idea Central:</b> ${e.coreIdea}</p>
+                  <p class="text-xs text-amber-300"><b>Conexión Histórica:</b> ${e.refutationOrLink}</p>
                 </div>
               `).join('')}
             </div>
@@ -518,11 +506,11 @@
 
     async function executeRagSearch() {
       const query = document.getElementById('ragQueryInput').value.trim();
-      if (!query) return alert('Escribe una consulta bibliográfica.');
+      if (!query) return alert('Escribe una consulta.');
       const v = document.getElementById('viewerArea');
       v.classList.add('fullscreen-mode');
       v.classList.remove('hidden');
-      v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-cyan-300 font-bold text-lg">🔍 Analizando fuentes bibliográficas...</p></div>`;
+      v.innerHTML = `<div class="text-center animate-pulse pt-20"><p class="text-cyan-300 font-bold text-lg">🔍 Analizando bibliografía con IA...</p></div>`;
 
       try {
         const res = await fetch('/api/rag-search', {
@@ -534,13 +522,13 @@
         currentUser = data.user;
         renderDashboard();
         v.innerHTML = `
-          <div class="max-w-4xl mx-auto glass-panel rounded-3xl p-8 space-y-6 border border-cyan-500/40 relative">
-            <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs hover:bg-red-900 transition">✕ Cerrar</button>
-            <div class="flex justify-between items-center pr-16">
-              <h2 class="text-2xl font-bold text-cyan-300">🔍 Análisis Bibliográfico</h2>
-              <button onclick="speakText(document.getElementById('ragAnswerText').textContent)" class="px-3.5 py-1.5 rounded-xl bg-cyan-700 hover:bg-cyan-600 font-semibold text-xs text-white transition">🔊 Escuchar</button>
+          <div class="max-w-4xl mx-auto glass rounded-3xl p-8 space-y-6 border-2 border-cyan-500 relative">
+            <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs">✕ Cerrar</button>
+            <div class="flex justify-between items-center">
+              <h2 class="text-2xl font-bold text-cyan-300">🔍 Análisis Académico</h2>
+              <button onclick="speakText(document.getElementById('ragAnswerText').textContent)" class="px-3 py-1.5 rounded-xl bg-cyan-700 font-bold text-xs">🔊 Escuchar</button>
             </div>
-            <div id="ragAnswerText" class="bg-slate-900 p-6 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed border border-slate-800 text-slate-200">${data.answer}</div>
+            <div id="ragAnswerText" class="bg-slate-900 p-6 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed border border-slate-800">${data.answer}</div>
           </div>
         `;
       } catch (err) { alert('Error: ' + err.message); }
@@ -550,7 +538,7 @@
       const v = document.getElementById('viewerArea');
       v.classList.add('fullscreen-mode');
       v.classList.remove('hidden');
-      v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-purple-300 font-bold text-lg">🃏 Generando Fichas Teóricas...</p></div>`;
+      v.innerHTML = `<div class="text-center animate-pulse pt-20"><p class="text-purple-300 font-bold text-lg">🃏 Generando Fichas Teóricas...</p></div>`;
 
       try {
         const res = await fetch('/api/generate-flashcards', {
@@ -563,19 +551,19 @@
         renderDashboard();
 
         v.innerHTML = `
-          <div class="max-w-5xl mx-auto glass-panel rounded-3xl p-8 space-y-6 border border-purple-500/40 relative">
-            <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs hover:bg-red-900 transition">✕ Cerrar</button>
-            <h2 class="text-2xl font-bold text-purple-300 text-center">🃏 Fichas Teóricas de Estudio</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+          <div class="max-w-5xl mx-auto glass rounded-3xl p-8 space-y-6 border-2 border-purple-500 relative">
+            <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs">✕ Cerrar</button>
+            <h2 class="text-2xl font-bold text-purple-300">🃏 Fichas Académicas</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
               ${data.flashcards.map((fc, i) => `
-                <div onclick="this.classList.toggle('flipped')" class="flashcard h-60 cursor-pointer relative">
+                <div onclick="this.classList.toggle('flipped')" class="flashcard h-56 cursor-pointer relative">
                   <div class="flashcard-inner w-full h-full relative rounded-2xl shadow-xl">
-                    <div class="flashcard-front bg-slate-900 border border-purple-500/40 p-5 rounded-2xl flex flex-col justify-between">
+                    <div class="flashcard-front bg-slate-900 border-2 border-purple-500/60 p-5 rounded-2xl flex flex-col justify-between">
                       <span class="text-xs font-bold text-purple-400">FICHA #${i+1}</span>
-                      <p class="text-sm font-semibold text-center text-slate-200">${fc.question}</p>
+                      <p class="text-sm font-bold text-center">${fc.question}</p>
                       <span class="text-xs text-slate-500 text-center">Click para girar 🔄</span>
                     </div>
-                    <div class="flashcard-back bg-indigo-950 border border-indigo-400/50 p-5 rounded-2xl flex flex-col justify-between">
+                    <div class="flashcard-back bg-indigo-950 border-2 border-indigo-400 p-5 rounded-2xl flex flex-col justify-between">
                       <span class="text-xs font-bold text-emerald-400">RESPUESTA</span>
                       <p class="text-xs text-slate-200 text-center leading-relaxed">${fc.answer}</p>
                       <span class="text-[11px] text-amber-300 text-center">💡 ${fc.hint}</span>
@@ -593,7 +581,7 @@
       const v = document.getElementById('viewerArea');
       v.classList.add('fullscreen-mode');
       v.classList.remove('hidden');
-      v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-teal-300 font-bold text-lg">🧠 Construyendo Mapa Conceptual...</p></div>`;
+      v.innerHTML = `<div class="text-center animate-pulse pt-20"><p class="text-teal-300 font-bold text-lg">🧠 Construyendo Mapa Conceptual...</p></div>`;
 
       try {
         const res = await fetch('/api/generate-mindmap', {
@@ -607,19 +595,20 @@
         const mm = data.mindmap;
 
         v.innerHTML = `
-          <div class="max-w-6xl mx-auto glass-panel rounded-3xl p-8 space-y-6 border border-teal-500/40 relative">
-            <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs hover:bg-red-900 transition">✕ Cerrar</button>
+          <div class="max-w-6xl mx-auto glass rounded-3xl p-8 space-y-6 border-2 border-teal-500 relative">
+            <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs">✕ Cerrar</button>
             <h2 class="text-2xl font-bold text-teal-300 text-center">🧠 Mapa Conceptual: ${mm.centralTopic}</h2>
             <div class="flex flex-col items-center space-y-6 pt-4">
-              <div class="px-6 py-3 rounded-2xl bg-gradient-to-r from-teal-600 to-cyan-600 font-bold text-white text-base shadow-lg border border-teal-300">
+              <div class="px-6 py-3 rounded-2xl bg-gradient-to-r from-teal-600 to-cyan-600 font-black text-white text-lg shadow-2xl border-2 border-teal-300">
                 ⭐ ${mm.centralTopic} ⭐
               </div>
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full pt-4">
+              <div class="text-teal-400 text-2xl font-bold">↓ Ramas Principales ↓</div>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
                 ${mm.branches.map(b => `
-                  <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 shadow-md">
-                    <h4 class="font-bold text-sm text-amber-300 border-b border-slate-800 pb-2">📌 ${b.branchName}</h4>
+                  <div class="p-5 rounded-2xl bg-slate-900 border-2 border-teal-500/40 space-y-3 shadow-xl relative">
+                    <h4 class="font-black text-sm text-amber-300 border-b border-slate-800 pb-2">📌 ${b.branchName}</h4>
                     <ul class="space-y-2 text-xs text-slate-300">
-                      ${b.subitems.map(sub => `<li class="bg-slate-950 p-2.5 rounded-xl border border-slate-800/80">• ${sub}</li>`).join('')}
+                      ${b.subitems.map(sub => `<li class="bg-slate-950 p-2 rounded-xl border border-slate-800">• ${sub}</li>`).join('')}
                     </ul>
                   </div>
                 `).join('')}
@@ -634,7 +623,7 @@
       const v = document.getElementById('viewerArea');
       v.classList.add('fullscreen-mode');
       v.classList.remove('hidden');
-      v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-cyan-300 font-bold text-lg">📖 Redactando Monografía Académica y Trivia...</p></div>`;
+      v.innerHTML = `<div class="text-center animate-pulse pt-20"><p class="text-cyan-300 font-bold text-lg">📖 Redactando Monografía y Trivia Gamificada...</p></div>`;
 
       try {
         const res = await fetch('/api/generate-storybook', {
@@ -654,73 +643,78 @@
       window.speechSynthesis.cancel();
     }
 
+    // 📖 STORYBOOK / MONOGRAFÍA CON AUDIO Y ESTILOS ORIGINALES RESTAURADOS
     function openStorybook(sb) {
       const v = document.getElementById('viewerArea');
       v.classList.add('fullscreen-mode');
       v.classList.remove('hidden');
 
       v.innerHTML = `
-        <div id="exportableStorybook" class="max-w-5xl mx-auto glass-panel rounded-3xl p-6 md:p-10 space-y-8 border border-cyan-500/40 relative shadow-2xl">
-          <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs hover:bg-red-900 transition z-20">✕ Cerrar</button>
+        <div id="exportableStorybook" class="max-w-6xl mx-auto glass rounded-3xl p-6 md:p-10 space-y-8 academic-card relative">
+          <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 hover:bg-red-900 text-red-300 font-extrabold text-xs shadow-lg z-20">✕ Cerrar</button>
 
-          <div class="flex flex-wrap justify-between items-center gap-4 border-b border-slate-800 pb-5 pr-20">
+          <div class="flex flex-wrap justify-between items-center gap-4 border-b-4 border-cyan-500 pb-4 pr-32">
             <div>
-              <span class="px-3 py-1 rounded-full text-[11px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 uppercase">Monografía Universitaria</span>
-              <h2 class="text-2xl md:text-3xl font-bold mt-2 text-white">${sb.title}</h2>
+              <span class="px-3 py-1 rounded-full text-xs font-black bg-cyan-500 text-slate-950 uppercase">Monografía Académica</span>
+              <h2 class="text-3xl font-black mt-1 bg-gradient-to-r from-cyan-300 via-teal-200 to-indigo-300 bg-clip-text text-transparent">${sb.title}</h2>
             </div>
             <div class="flex gap-2">
-              <button onclick="speakText('${sb.summary.replace(/'/g, "")}')" class="px-3.5 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-600 font-semibold text-xs text-white transition">🔊 Escuchar</button>
-              <button onclick="exportToWord('${sb.title}', document.getElementById('exportableStorybook').innerHTML)" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-xs text-white transition">📥 Descargar .doc</button>
+              <button onclick="speakText('${sb.summary.replace(/'/g, "")}')" class="px-3 py-2 rounded-xl bg-cyan-700 font-bold text-xs shadow-lg">🔊 Escuchar</button>
+              <button onclick="exportToWord('${sb.title}', document.getElementById('exportableStorybook').innerHTML)" class="px-4 py-2 rounded-xl bg-indigo-600 font-extrabold text-xs shadow-lg">📥 .doc</button>
             </div>
           </div>
 
-          <div class="speech-bubble p-6 shadow-md">
-            <p class="text-slate-900 font-bold mb-1.5 text-sm">Resumen Conceptual:</p>
-            <p class="text-slate-800 text-xs md:text-sm leading-relaxed">${sb.summary}</p>
+          <div class="speech-bubble p-6 text-sm font-bold shadow-2xl flex items-center gap-6">
+            <div>
+              <p class="text-emerald-900 font-black mb-1 text-base">Resumen Conceptual:</p>
+              <p class="text-emerald-950 font-medium leading-relaxed text-sm">${sb.summary}</p>
+            </div>
           </div>
 
-          <div class="bg-slate-950 rounded-2xl p-6 border border-slate-800 space-y-4">
-            <h3 class="font-bold text-sm text-cyan-400 uppercase tracking-wide">⏳ Línea de Evolución Teórica</h3>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div class="bg-slate-950/95 rounded-2xl p-6 border-4 border-cyan-500 shadow-2xl space-y-4">
+            <h3 class="font-black text-base text-cyan-300 uppercase">⏳ Línea de Evolución Teórica</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
               ${(sb.timeline || []).map(t => `
-                <div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
-                  <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300">FASE ${t.step}</span>
-                  <h4 class="font-bold text-xs mt-2 text-amber-300">${t.title}</h4>
-                  <p class="text-[11px] text-slate-300 mt-1 leading-relaxed">${t.description}</p>
+                <div class="p-4 rounded-xl bg-slate-900 border-2 border-cyan-500/60 shadow-lg">
+                  <span class="text-[10px] font-black px-2 py-0.5 rounded bg-cyan-500 text-slate-950">FASE ${t.step}</span>
+                  <h4 class="font-extrabold text-sm mt-2 text-amber-300">${t.title}</h4>
+                  <p class="text-xs text-slate-300 mt-2">${t.description}</p>
                 </div>
               `).join('')}
             </div>
           </div>
 
-          <div class="space-y-4">
-            <h3 class="font-bold text-sm text-teal-300 uppercase tracking-wide">📚 Análisis por Autor / Módulo</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="space-y-6">
+            <h3 class="font-black text-base text-teal-300 uppercase">📚 Exposición Teórica por Autores e Intervinientes</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               ${(sb.scenes || []).map(sc => `
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+                <div class="academic-card rounded-2xl p-6 space-y-4 flex flex-col justify-between shadow-xl">
                   <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                    <span class="text-xs font-bold text-cyan-300">${sc.characterName}</span>
-                    <button onclick="speakText('${sc.storyDialogue.replace(/'/g, "")}')" class="text-[11px] px-2.5 py-1 bg-slate-800 text-cyan-300 rounded font-semibold hover:bg-slate-700 transition">🔊 Audio</button>
+                    <span class="text-xs font-black px-2.5 py-1 rounded bg-cyan-500/20 text-cyan-300">AUTOR: ${sc.characterName}</span>
+                    <button onclick="speakText('${sc.storyDialogue.replace(/'/g, "")}')" class="text-xs px-2 py-0.5 bg-cyan-900 text-cyan-200 rounded font-bold">🔊 Audio</button>
                   </div>
-                  <p class="text-xs text-slate-300 leading-relaxed"><b>Concepto:</b> ${sc.academicConcept}</p>
-                  <p class="text-xs text-slate-400 italic leading-relaxed">"${sc.storyDialogue}"</p>
+                  <div class="speech-bubble p-4 text-xs font-bold leading-relaxed shadow-md">
+                    <p class="text-emerald-950 font-black mb-1 text-sm">📘 Concepto Clave: ${sc.academicConcept}</p>
+                    <p class="text-emerald-900 italic font-semibold text-xs leading-relaxed">"${sc.storyDialogue}"</p>
+                  </div>
                 </div>
               `).join('')}
             </div>
           </div>
 
-          <!-- TRIVIA GAMIFICADA -->
-          <div class="bg-slate-950 rounded-2xl p-6 border border-amber-500/40 space-y-4">
+          <!-- TRIVIA / QUIZ GAMIFICADO -->
+          <div class="bg-slate-950/95 rounded-2xl p-6 border-4 border-amber-500 space-y-4 shadow-2xl">
             <div class="flex items-center gap-2">
-              <span class="text-xl">🏆</span>
-              <h3 class="font-bold text-sm text-amber-300 uppercase tracking-wide">Evaluación de Retención (Trivia)</h3>
+              <span class="text-2xl">🏆</span>
+              <h3 class="font-black text-base text-amber-300 uppercase">Trivia Gamificada (Evaluación de Retención)</h3>
             </div>
-            <div class="space-y-3">
+            <div class="space-y-4">
               ${(sb.quiz || []).map((q, idx) => `
                 <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
                   <p class="text-xs font-bold text-slate-200">Pregunta ${idx + 1}:${q.question}</p>
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     ${(q.options || []).map((opt, oIdx) => `
-                      <button onclick="alert('${oIdx === q.correctIndex ? '🏆 ¡CORRECTO! +100 XP' : '❌ Incorrecto. '} ' + ${JSON.stringify(q.heroExplanation).replace(/'/g, "\\'")})" class="text-left text-xs p-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 transition">${opt}</button>
+                      <button onclick="alert('${oIdx === q.correctIndex ? '🏆 ¡CORRECTO! +100 XP' : '❌ Incorrecto. '} ' + ${JSON.stringify(q.heroExplanation).replace(/'/g, "\\'")})" class="text-left text-xs p-2.5 rounded-xl bg-slate-950 hover:bg-cyan-950 border border-slate-700">${opt}</button>
                     `).join('')}
                   </div>
                 </div>
