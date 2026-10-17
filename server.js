@@ -70,8 +70,8 @@ const UserModel = mongoose.model('User', UserSchema);
 
 const getInitialSubjectsForCareer = (career) => {
   return [
-    { id: "lpc-ep2", name: "Escuelas Psicológicas II", section: "Sección A", schedule: "Semestre 2", defaultHero: "PSICO_CLINICA", documents: [], storybooks: [], exams: [] },
-    { id: "lpc-pe2", name: "Psicología Evolutiva II", section: "Sección A", schedule: "Semestre 2", defaultHero: "PSICO_CLINICA", documents: [], storybooks: [], exams: [] }
+    { id: "lpc-ep2", name: "Escuelas Psicológicas II", section: "Sección A", schedule: "Semestre 2", defaultHero: "HISTORIA_PSICOLOGIA", documents: [], storybooks: [], exams: [] },
+    { id: "lpc-pe2", name: "Psicología Evolutiva II", section: "Sección A", schedule: "Semestre 2", defaultHero: "EVOLUCION_HUMANA", documents: [], storybooks: [], exams: [] }
   ];
 };
 
@@ -89,9 +89,7 @@ async function ensureDefaultUser() {
       });
       await user.save();
     }
-  } catch (e) {
-    console.error('Error asegurando usuario por defecto:', e.message);
-  }
+  } catch (e) {}
 }
 
 const MONGO_URI = (process.env.MONGO_URI || '').trim();
@@ -100,18 +98,13 @@ async function connectDB() {
   try {
     await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 6000 });
     await ensureDefaultUser();
-  } catch (err) {
-    console.error('Error conectando a MongoDB:', err.message);
-  }
+  } catch (err) {}
 }
 connectDB();
 
 app.use('/api', async (req, res, next) => {
   if (mongoose.connection.readyState !== 1) {
     await connectDB();
-    if (mongoose.connection.readyState !== 1) {
-      // Fallback si la DB tarda en responder para que el usuario pueda entrar igual
-    }
   }
   next();
 });
@@ -134,12 +127,10 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { identifier, password } = req.body;
     const cleanId = (identifier || '').trim().toLowerCase();
-    
     await ensureDefaultUser();
-
     const user = await UserModel.findOne({ $or: [{ username: cleanId }, { email: cleanId }] });
     if (!user || user.password !== password) {
-      return res.status(401).json({ error: "Usuario o contraseña incorrectos. (Usa haroldocana / admin123)" });
+      return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
     }
     res.json({ user: await serializeUser(user) });
   } catch (err) {
@@ -153,7 +144,6 @@ app.post('/api/auth/register', async (req, res) => {
     const cleanUsername = (username || '').trim().toLowerCase();
     const existing = await UserModel.findOne({ username: cleanUsername });
     if (existing) return res.status(400).json({ error: "El usuario ya existe." });
-    
     const newUser = new UserModel({
       username: cleanUsername, fullName, email: (email || `${cleanUsername}@universidad.edu`).toLowerCase(),
       password, career: career || 'Psicología Clínica', subjects: getInitialSubjectsForCareer(career)
@@ -166,13 +156,8 @@ app.post('/api/auth/register', async (req, res) => {
 app.get('/api/auth/session/:username', async (req, res) => {
   try {
     const cleanU = (req.params.username || '').trim().toLowerCase();
-    if (cleanU === 'haroldocana') await ensureDefaultUser();
-    
+    await ensureDefaultUser();
     let user = await UserModel.findOne({ username: cleanU });
-    if (!user && cleanU === 'haroldocana') {
-      await ensureDefaultUser();
-      user = await UserModel.findOne({ username: 'haroldocana' });
-    }
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
     res.json({ user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -180,10 +165,10 @@ app.get('/api/auth/session/:username', async (req, res) => {
 
 app.post('/api/subjects', async (req, res) => {
   try {
-    const { username, name, section, schedule, defaultHero } = req.body;
+    const { username, name, section, schedule } = req.body;
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
     if (!user) return res.status(401).json({ error: "Sesión no válida" });
-    const newSubj = { id: 'subj-' + Date.now(), name, section: section || 'Sección A', schedule: schedule || 'Actual', defaultHero: defaultHero || 'PSICO_CLINICA', documents: [], storybooks: [], exams: [] };
+    const newSubj = { id: 'subj-' + Date.now(), name, section: section || 'Sección A', schedule: schedule || 'Actual', defaultHero: 'HISTORIA_PSICOLOGIA', documents: [], storybooks: [], exams: [] };
     user.subjects.push(newSubj);
     user.markModified('subjects');
     await user.save();
@@ -275,7 +260,7 @@ app.post('/api/rag-search', async (req, res) => {
       if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Basándote en los documentos de ${subject.name}, responde con rigor académico a: "${query}"`);
+    contents.push(`Basándote estrictamente en los documentos académicos de ${subject.name}, responde con rigor científico a: "${query}"`);
 
     const response = await generateWithFallback(contents, null);
     user.aiConsumptionUSD += 0.10;
@@ -298,7 +283,7 @@ app.post('/api/generate-flashcards', async (req, res) => {
       if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Genera 6 flashcards clave (pregunta/respuesta) para ${subject.name}.`);
+    contents.push(`Genera 6 flashcards teóricas y clínicas clave para ${subject.name} basadas en los textos.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -336,7 +321,7 @@ app.post('/api/generate-mindmap', async (req, res) => {
       if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Genera un mapa mental jerárquico para ${subject.name}.`);
+    contents.push(`Genera un mapa mental jerárquico de la evolución teórica para ${subject.name}.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -361,9 +346,10 @@ app.post('/api/generate-mindmap', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// GENERADOR DE STORYBOOK ESTRICTAMENTE ACADÉMICO Y EVOLUTIVO
 app.post('/api/generate-storybook', async (req, res) => {
   try {
-    const { username, subjectId, documentId, focusTopic, universe } = req.body;
+    const { username, subjectId, documentId, focusTopic } = req.body;
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
     if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
     const subject = user.subjects.find(s => s.id === subjectId);
@@ -376,19 +362,33 @@ app.post('/api/generate-storybook', async (req, res) => {
       if (doc.textContent) contents.push(`Texto (${doc.title}):\n${doc.textContent}`);
     }
 
-    contents.push(`Estudiante: ${user.fullName} (${user.career}). Materia: ${subject.name}. Tema: ${focusTopic || 'General'}. Universo pedagógico: ${universe}. Genera Storybook clínico/académico con avatares de personajes expertos (Freud, Rogers, Piaget, Beck o héroes), línea de tiempo evolutiva y quiz.`);
+    contents.push(`
+      Estudiante: ${user.fullName} (${user.career}). Materia: ${subject.name}. Tema central: ${focusTopic || 'Evolución teórica y clínica'}.
+      INSTRUCCIÓN ESTRICTA: 
+      - Cero referencias a caricaturas, héroes de ficción u otros universos infantiles.
+      - Genera un Storybook/Monografía Académica Interactiva basada EXCLUSIVAMENTE en los documentos subidos.
+      - Organiza el contenido en orden cronológico e histórico según la evolución de la psicología y los teóricos/autores que intervinieron en cada etapa (ej. Freud, Piaget, Vygotsky, Rogers, Erikson, etc.).
+      - Cada escena debe estar narrada por el autor o investigador correspondiente explicando su aportación científica con rigor universitario.
+      - Incluye una línea de tiempo evolutiva causal y un quiz de evaluación científica.
+    `);
 
     const schema = {
       type: Type.OBJECT,
       properties: {
-        title: { type: Type.STRING }, universe: { type: Type.STRING }, summary: { type: Type.STRING },
+        title: { type: Type.STRING },
+        universe: { type: Type.STRING },
+        summary: { type: Type.STRING },
         scenes: {
           type: Type.ARRAY,
           items: {
             type: Type.OBJECT,
             properties: {
-              sceneNumber: { type: Type.INTEGER }, characterName: { type: Type.STRING }, academicConcept: { type: Type.STRING },
-              storyDialogue: { type: Type.STRING }, memoryTrick: { type: Type.STRING }, animationEffect: { type: Type.STRING }
+              sceneNumber: { type: Type.INTEGER },
+              characterName: { type: Type.STRING },
+              academicConcept: { type: Type.STRING },
+              storyDialogue: { type: Type.STRING },
+              memoryTrick: { type: Type.STRING },
+              animationEffect: { type: Type.STRING }
             },
             required: ["sceneNumber", "characterName", "academicConcept", "storyDialogue", "memoryTrick", "animationEffect"]
           }
@@ -428,4 +428,4 @@ app.post('/api/generate-storybook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor Total activo en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Servidor Académico activo en puerto ${PORT}`));
