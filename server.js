@@ -311,7 +311,7 @@ async function getFullDocumentsForSubject(username, subject, documentId) {
   return allDocs.filter(d => d.id === documentId);
 }
 
-// 🎧 ENDPOINT AUDIOLIBRO (LECTURA DE PDFs USANDO IA MULTIMODAL)
+// 🎧 ENDPOINT AUDIOLIBRO (LECTURA EXTENSA DE PDFs Y RESUMEN DESCARGABLE)
 app.post('/api/audiobook-chapters', async (req, res) => {
   try {
     const { username, subjectId, documentId } = req.body;
@@ -325,12 +325,13 @@ app.post('/api/audiobook-chapters', async (req, res) => {
     const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
     
     const contents = [
-      `Analiza el siguiente documento (ya sea mediante el texto extraído o leyendo el archivo adjunto directamente) y divídelo en capítulos o lecciones lógicas para un audiolibre educativo con enfoque humanista-existencial. Cada capítulo debe tener un título claro y un texto redactado fluidamente para ser escuchado en voz alta:`
+      `Analiza el siguiente documento de principio a fin de manera exhaustiva.
+       INSTRUCCIÓN CRÍTICA 1 (AUDIOLIBRO COMPLETO): Extrae y desarrolla el contenido de la obra de la forma más extensa, completa y detallada posible. Divide la obra completa en capítulos muy largos (chapterContent). NO hagas resúmenes cortos en los capítulos; transcribe o desarrolla ampliamente los argumentos principales de todo el libro para que el estudiante pueda escuchar la obra completa.
+       INSTRUCCIÓN CRÍTICA 2 (RESUMEN DESCARGABLE): Adicionalmente, genera un resumen analítico con los puntos clave, lecciones más importantes e ideas centrales del libro (bookSummary) para que el estudiante pueda descargarlo como documento de estudio.`
     ];
 
     let hasContent = false;
     for (const doc of docs) {
-      // Si el documento es un PDF u otra imagen, pasamos el base64 directo a Gemini
       if (doc.base64Data) {
         contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
         hasContent = true;
@@ -349,6 +350,7 @@ app.post('/api/audiobook-chapters', async (req, res) => {
       type: Type.OBJECT,
       properties: {
         audiobookTitle: { type: Type.STRING },
+        bookSummary: { type: Type.STRING },
         chapters: {
           type: Type.ARRAY,
           items: {
@@ -358,11 +360,11 @@ app.post('/api/audiobook-chapters', async (req, res) => {
           }
         }
       },
-      required: ["audiobookTitle", "chapters"]
+      required: ["audiobookTitle", "bookSummary", "chapters"]
     };
 
     const response = await generateWithFallback(contents, schema);
-    user.aiConsumptionUSD += 0.15;
+    user.aiConsumptionUSD += 0.25; // Ligero aumento por el procesamiento extenso
     await user.save();
     res.json({ audiobook: JSON.parse(response.text), user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
