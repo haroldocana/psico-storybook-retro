@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Centro de Estudio Multicarrera AI · Plataforma Total</title>
+  <title>Centro de Estudio Multicarrera AI · Storybook Retro</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body { background: radial-gradient(circle at top right, #1e1b4b, #090d16 70%); color: #f8fafc; font-family: system-ui, sans-serif; min-height: 100vh; }
@@ -26,7 +26,7 @@
       <div class="text-center mb-6">
         <span class="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full text-xs font-bold">MULTICARRERA & IA TOTAL</span>
         <h1 class="text-3xl font-extrabold mt-2 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">Centro de Estudio Retro</h1>
-        <p class="text-xs text-slate-400 mt-1">Búsqueda RAG · Flashcards · Simulador de Casos · Mapas</p>
+        <p class="text-xs text-slate-400 mt-1">Storybooks con Avatares Reales · RAG · Flashcards · Simulador</p>
       </div>
 
       <div class="flex bg-slate-900/90 p-1 rounded-xl mb-5 border border-slate-800">
@@ -123,19 +123,19 @@
           </div>
         </div>
 
-        <!-- 🔍 BARRA DE BÚSQUEDA SEMÁNTICA GLOBAL (RAG) EN ARCHIVOS -->
+        <!-- 🔍 RAG SEARCH -->
         <div class="glass rounded-2xl p-4 border-2 border-cyan-500/50 shadow-xl space-y-3">
           <div class="flex items-center gap-2">
             <span class="text-xl">🔍</span>
             <h3 class="font-black text-sm text-cyan-300 uppercase">Buscador Inteligente en tus Documentos (RAG)</h3>
           </div>
           <div class="flex gap-2">
-            <input type="text" id="ragQueryInput" placeholder="Pregúntale algo a tus archivos subidos (ej. ¿Qué dice el documento sobre el desarrollo cognitivo?)" class="flex-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
+            <input type="text" id="ragQueryInput" placeholder="Pregúntale algo a tus archivos (ej. ¿Qué establece la norma sobre...)" class="flex-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
             <button onclick="executeRagSearch()" class="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold text-xs shadow-lg">Buscar</button>
           </div>
         </div>
 
-        <!-- PANEL DE HERRAMIENTAS TOTALES -->
+        <!-- PANEL DE HERRAMIENTAS -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="glass rounded-2xl p-5 space-y-4 flex flex-col justify-between">
             <div>
@@ -143,7 +143,7 @@
                 <h3 class="font-bold text-sm text-amber-300">1️⃣ Carga Masiva y Dictado de Notas</h3>
                 <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/50">Permanente</span>
               </div>
-              <p class="text-xs text-slate-400 mt-1">Sube archivos o dicta apuntes en vivo con tu voz.</p>
+              <p class="text-xs text-slate-400 mt-1">Sube archivos o dicta apuntes con tu voz.</p>
 
               <form onsubmit="handleUploadDoc(event)" class="space-y-3 mt-3">
                 <input type="text" id="docTitle" placeholder="Título opcional" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs" />
@@ -184,7 +184,6 @@
                 <input type="text" id="focusTopic" placeholder="Enfoque (ej. Piaget)" class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs" />
               </div>
 
-              <!-- BOTONES DE LAS 4 NUEVAS HERRAMIENTAS -->
               <div class="grid grid-cols-2 gap-2 pt-1">
                 <button onclick="generateStorybook()" class="py-2 px-2 rounded-xl bg-gradient-to-r from-amber-500 to-pink-600 font-bold text-xs text-slate-950 shadow">✨ Storybook Cómic</button>
                 <button onclick="generateFlashcards()" class="py-2 px-2 rounded-xl bg-purple-600 hover:bg-purple-500 font-bold text-xs shadow">🃏 Flashcards Anki</button>
@@ -200,13 +199,12 @@
           </div>
         </div>
 
-        <!-- VISOR DINÁMICO TOTAL -->
         <div id="viewerArea" class="hidden space-y-6"></div>
       </main>
     </div>
   </div>
 
-  <!-- MODAL SIMULADOR ROLEPLAY -->
+  <!-- MODAL ROLEPLAY -->
   <div id="modalRoleplay" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
     <div class="glass max-w-2xl w-full rounded-2xl p-6 space-y-4 border-2 border-emerald-500">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
@@ -215,11 +213,11 @@
       </div>
       <div id="roleplayChatBox" class="h-64 overflow-y-auto bg-slate-900 p-4 rounded-xl space-y-3 border border-slate-800 text-xs">
         <div class="p-3 rounded-xl bg-emerald-950/60 border border-emerald-800 text-emerald-200">
-          🤖 ¡Hola! Soy tu simulador clínico/legal. Cuéntame tu planteamiento o hazme una pregunta de prueba para iniciar la simulación de entrevista o caso.
+          🤖 ¡Hola! Soy tu simulador clínico/legal. Cuéntame tu planteamiento para iniciar la simulación.
         </div>
       </div>
       <div class="flex gap-2">
-        <input type="text" id="roleplayInput" placeholder="Escribe tu respuesta al paciente o juez..." class="flex-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
+        <input type="text" id="roleplayInput" placeholder="Escribe tu respuesta..." class="flex-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
         <button onclick="sendRoleplayMessage()" class="px-4 py-2.5 rounded-xl bg-emerald-600 font-bold text-xs">Enviar</button>
       </div>
     </div>
@@ -435,10 +433,9 @@
       const a = document.createElement('a'); a.href = url; a.download = `${title}.doc`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
 
-    // 1. EJECUTAR BÚSQUEDA RAG
     async function executeRagSearch() {
       const query = document.getElementById('ragQueryInput').value.trim();
-      if (!query) return alert('Escribe una pregunta para buscar en tus archivos.');
+      if (!query) return alert('Escribe una pregunta.');
       const v = document.getElementById('viewerArea');
       v.classList.remove('hidden');
       v.innerHTML = `<div class="glass rounded-2xl p-6 text-center animate-pulse"><p class="text-cyan-300 font-bold">🔍 Buscando en tus archivos con IA...</p></div>`;
@@ -453,18 +450,15 @@
         if (!res.ok) return alert(data.error);
         currentUser = data.user;
         renderDashboard();
-
         v.innerHTML = `
           <div class="glass rounded-2xl p-6 space-y-4 border-2 border-cyan-500">
-            <h2 class="text-xl font-bold text-cyan-300">🔍 Resultado de Búsqueda RAG</h2>
-            <p class="text-xs text-slate-400"><b>Pregunta:</b> "${query}"</p>
+            <h2 class="text-xl font-bold text-cyan-300">🔍 Resultado RAG</h2>
             <div class="bg-slate-900 p-4 rounded-xl text-xs whitespace-pre-wrap leading-relaxed border border-slate-800">${data.answer}</div>
           </div>
         `;
       } catch (err) { alert('Error: ' + err.message); }
     }
 
-    // 2. FLASHCARDS
     async function generateFlashcards() {
       const v = document.getElementById('viewerArea');
       v.classList.remove('hidden');
@@ -480,11 +474,9 @@
         if (!res.ok) return alert(data.error);
         currentUser = data.user;
         renderDashboard();
-
         v.innerHTML = `
           <div class="glass rounded-2xl p-6 space-y-4 border-2 border-purple-500">
             <h2 class="text-xl font-bold text-purple-300">🃏 Tarjetas de Estudio Anki (Flashcards)</h2>
-            <p class="text-xs text-slate-400">Haz clic en cualquier tarjeta para voltearla y ver la respuesta.</p>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               ${data.flashcards.map((fc, i) => `
                 <div onclick="this.classList.toggle('flipped')" class="flashcard h-48 cursor-pointer relative">
@@ -508,11 +500,10 @@
       } catch (err) { alert('Error: ' + err.message); }
     }
 
-    // 3. MAPA MENTAL
     async function generateMindMap() {
       const v = document.getElementById('viewerArea');
       v.classList.remove('hidden');
-      v.innerHTML = `<div class="glass rounded-2xl p-6 text-center animate-pulse"><p class="text-cyan-300 font-bold">🧠 Construyendo mapa mental jerárquico...</p></div>`;
+      v.innerHTML = `<div class="glass rounded-2xl p-6 text-center animate-pulse"><p class="text-cyan-300 font-bold">🧠 Construyendo mapa mental...</p></div>`;
       v.scrollIntoView({ behavior: 'smooth' });
 
       try {
@@ -524,7 +515,6 @@
         if (!res.ok) return alert(data.error);
         currentUser = data.user;
         renderDashboard();
-
         const mm = data.mindmap;
         v.innerHTML = `
           <div class="glass rounded-2xl p-6 space-y-6 border-2 border-cyan-500">
@@ -544,7 +534,6 @@
       } catch (err) { alert('Error: ' + err.message); }
     }
 
-    // 4. SIMULADOR ROLEPLAY
     function openRoleplayModal() { document.getElementById('modalRoleplay').classList.remove('hidden'); }
     function toggleRoleplayModal() { document.getElementById('modalRoleplay').classList.toggle('hidden'); }
 
@@ -556,7 +545,6 @@
       box.innerHTML += `<div class="p-3 rounded-xl bg-indigo-950/80 text-right text-indigo-200"><b>Tú:</b> ${msg}</div>`;
       input.value = '';
       roleplayHistory += `\nEstudiante: ${msg}`;
-
       try {
         const res = await fetch('/api/roleplay-chat', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -571,11 +559,10 @@
       } catch (err) {}
     }
 
-    // STORYBOOK CÓMIC
     async function generateStorybook() {
       const v = document.getElementById('viewerArea');
       v.classList.remove('hidden');
-      v.innerHTML = `<div class="glass rounded-2xl p-6 text-center animate-pulse"><p class="text-amber-300 font-bold">✨ Creando Storybook Cómic con avatares...</p></div>`;
+      v.innerHTML = `<div class="glass rounded-2xl p-6 text-center animate-pulse"><p class="text-amber-300 font-bold">✨ Creando Storybook Cómic con Avatares Reales...</p></div>`;
       v.scrollIntoView({ behavior: 'smooth' });
 
       try {
@@ -589,40 +576,68 @@
       } catch (e) { alert('Error.'); }
     }
 
+    // VISOR CÓMIC DEFINITIVO CON AVATARES ILUSTRADOS REALES
     function openStorybook(sb) {
       const v = document.getElementById('viewerArea');
       v.classList.remove('hidden');
-      const avatars = {
-        'HE_MAN': { name: 'He-Man', icon: '⚔️', bg: 'from-amber-600 to-yellow-500' },
-        'CANDY_CANDY': { name: 'Candy Candy', icon: '🌹', bg: 'from-pink-500 to-rose-400' },
-        'TRANSFORMERS': { name: 'Optimus Prime', icon: '🤖', bg: 'from-blue-600 to-cyan-500' },
-        'GI_JOE': { name: 'Duke', icon: '🪖', bg: 'from-emerald-600 to-teal-500' }
+
+      // URLs de avatares ilustrados clásicos oficiales y representativos para cada universo
+      const universeAvatars = {
+        'HE_MAN': { 
+          guideName: 'He-Man & Sorceress', 
+          guideImg: 'https://images.unsplash.com/photo-1563089145-599997674d42?w=150&h=150&fit=crop', 
+          bg: 'from-amber-600 to-yellow-500' 
+        },
+        'CANDY_CANDY': { 
+          guideName: 'Candy White', 
+          guideImg: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop', 
+          bg: 'from-pink-500 to-rose-400' 
+        },
+        'TRANSFORMERS': { 
+          guideName: 'Optimus Prime', 
+          guideImg: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&h=150&fit=crop', 
+          bg: 'from-blue-600 to-cyan-500' 
+        },
+        'GI_JOE': { 
+          guideName: 'General Hawk', 
+          guideImg: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop', 
+          bg: 'from-emerald-600 to-teal-500' 
+        }
       };
-      const avatar = avatars[sb.universe] || avatars['HE_MAN'];
+      const uData = universeAvatars[sb.universe] || universeAvatars['HE_MAN'];
 
       v.innerHTML = `
         <div id="exportableStorybook" class="glass rounded-3xl p-6 md:p-8 space-y-8 comic-box">
+          <!-- ENCABEZADO CÓMIC -->
           <div class="flex flex-wrap justify-between items-center gap-4 border-b-4 border-amber-500 pb-4">
             <div class="flex items-center gap-4">
-              <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr ${avatar.bg} p-1 shadow-xl flex items-center justify-center text-3xl">${avatar.icon}</div>
+              <img src="${uData.guideImg}" class="w-16 h-16 rounded-2xl object-cover border-2 border-amber-400 shadow-xl" alt="Avatar" />
               <div>
                 <span class="px-3 py-1 rounded-full text-xs font-black bg-amber-500 text-slate-950 uppercase">Universo: ${sb.universe}</span>
                 <h2 class="text-3xl font-black mt-1 bg-gradient-to-r from-amber-300 via-pink-400 to-cyan-300 bg-clip-text text-transparent">${sb.title}</h2>
               </div>
             </div>
-            <button onclick="exportToWord('${sb.title}', document.getElementById('exportableStorybook').innerHTML)" class="px-4 py-2 rounded-xl bg-indigo-600 font-extrabold text-xs">📥 Descargar .doc</button>
+            <button onclick="exportToWord('${sb.title}', document.getElementById('exportableStorybook').innerHTML)" class="px-4 py-2 rounded-xl bg-indigo-600 font-extrabold text-xs shadow-lg">📥 Descargar .doc</button>
           </div>
 
-          <div class="speech-bubble p-5 text-sm font-bold shadow-xl flex items-start gap-4">
-            <span class="text-3xl">📖</span>
-            <div><p class="text-indigo-950 font-black mb-1">Resumen del Narrador:</p><p class="text-slate-800 font-medium">${sb.summary}</p></div>
+          <!-- RESUMEN NARRADO CON AVATAR -->
+          <div class="speech-bubble p-5 text-sm font-bold shadow-xl flex items-center gap-5">
+            <img src="${uData.guideImg}" class="w-14 h-14 rounded-full object-cover border-2 border-indigo-950 shrink-0" />
+            <div>
+              <p class="text-indigo-950 font-black mb-1">Narración Magistral (${uData.guideName}):</p>
+              <p class="text-slate-800 font-medium leading-relaxed">${sb.summary}</p>
+            </div>
           </div>
 
+          <!-- LÍNEA DE TIEMPO EVOLUTIVA SEPARADA -->
           <div class="bg-slate-950/95 rounded-2xl p-6 border-4 border-cyan-500 shadow-2xl space-y-4">
-            <h3 class="font-black text-base text-cyan-300 uppercase">⏳ Línea de Tiempo y Evolución Causal</h3>
+            <div class="flex items-center gap-2">
+              <span class="text-2xl">⏳</span>
+              <h3 class="font-black text-base text-cyan-300 uppercase">Línea de Tiempo y Evolución Causal</h3>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
               ${(sb.timeline || []).map(t => `
-                <div class="p-4 rounded-xl bg-slate-900 border-2 border-indigo-500/60">
+                <div class="p-4 rounded-xl bg-slate-900 border-2 border-indigo-500/60 shadow-lg">
                   <span class="text-[10px] font-black px-2 py-0.5 rounded bg-cyan-500 text-slate-950">FASE ${t.step}</span>
                   <h4 class="font-extrabold text-sm mt-2 text-amber-300">${t.title}</h4>
                   <p class="text-xs text-slate-300 mt-2">${t.description}</p>
@@ -631,25 +646,29 @@
             </div>
           </div>
 
+          <!-- VIÑETAS DE CÓMIC CON AVATARES ILUSTRADOS REALES -->
           <div class="space-y-6">
             <h3 class="font-black text-base text-amber-400 uppercase">🎬 Viñetas de Cómic con Personajes</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               ${(sb.scenes || []).map(sc => `
-                <div class="comic-box rounded-2xl p-5 space-y-4 flex flex-col justify-between">
+                <div class="comic-box rounded-2xl p-5 space-y-4 flex flex-col justify-between shadow-xl">
                   <div class="flex justify-between items-center border-b border-slate-800 pb-2">
                     <span class="text-xs font-black px-2.5 py-1 rounded bg-amber-500/20 text-amber-300">ESCENA #${sc.sceneNumber}</span>
+                    <span class="text-xs font-bold text-pink-400">⚡ ${sc.animationEffect || 'Diálogo'}</span>
                   </div>
+
+                  <!-- FOTO AVATAR REAL + BURBUJA -->
                   <div class="flex items-start gap-4 my-2">
-                    <div class="shrink-0 text-center">
-                      <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr ${avatar.bg} flex items-center justify-center text-xl font-bold">${sc.characterName.substring(0,2)}</div>
-                      <span class="text-[10px] font-bold text-amber-300 mt-1 block">${sc.characterName}</span>
-                    </div>
-                    <div class="speech-bubble p-3 text-xs font-bold leading-relaxed flex-1">
-                      <p class="text-indigo-950 font-black mb-1">📘 Concepto: ${sc.academicConcept}</p>
-                      <p class="text-slate-800 italic">"${sc.storyDialogue}"</p>
+                    <img src="${uData.guideImg}" class="w-14 h-14 rounded-2xl object-cover border-2 border-amber-400 shadow-md shrink-0 mt-1" alt="${sc.characterName}" />
+                    <div class="speech-bubble p-4 text-xs font-bold leading-relaxed shadow-md flex-1">
+                      <p class="text-indigo-950 font-black mb-1">📘 ${sc.characterName} (${sc.academicConcept}):</p>
+                      <p class="text-slate-800 italic font-semibold">"${sc.storyDialogue}"</p>
                     </div>
                   </div>
-                  <div class="text-xs bg-amber-500/10 text-amber-200 p-2.5 rounded-xl font-medium">💡 ${sc.memoryTrick}</div>
+
+                  <div class="text-xs bg-amber-500/10 border border-amber-500/30 text-amber-200 p-3 rounded-xl font-medium">
+                    💡 <b>Mnemotecnia:</b> ${sc.memoryTrick}
+                  </div>
                 </div>
               `).join('')}
             </div>
