@@ -21,13 +21,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 
 async function generateWithFallback(contents, responseSchema) {
-  const modelsToTry = [
-    DEFAULT_GEMINI_MODEL,
-    'gemini-3.8-flash',
-    'gemini-4-argon',
-    'gemini-3.0-flash'
-  ];
-
+  const modelsToTry = [DEFAULT_GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-4-argon', 'gemini-3.0-flash'];
   let lastErr = null;
   for (const modelName of modelsToTry) {
     try {
@@ -77,20 +71,16 @@ const UserModel = mongoose.model('User', UserSchema);
 const getInitialSubjectsForCareer = (career) => {
   if (career === 'Medicina') {
     return [
-      { id: 'med-1', name: 'Fisiología Humana', section: 'Sección A', schedule: 'Semestre 2', defaultHero: 'TRANSFORMERS', documents: [], storybooks: [], exams: [] },
-      { id: 'med-2', name: 'Anatomía Macroscópica', section: 'Sección A', schedule: 'Semestre 2', defaultHero: 'GI_JOE', documents: [], storybooks: [], exams: [] }
+      { id: 'med-1', name: 'Fisiología Humana', section: 'Sección A', schedule: 'Semestre 2', defaultHero: 'TRANSFORMERS', documents: [], storybooks: [], exams: [] }
     ];
   } else if (career === 'Abogacía') {
     return [
-      { id: 'der-1', name: 'Derecho Civil I', section: 'Sección A', schedule: 'Semestre 2', defaultHero: 'HE_MAN', documents: [], storybooks: [], exams: [] },
-      { id: 'der-2', name: 'Derecho Procesal Penal', section: 'Sección A', schedule: 'Semestre 2', defaultHero: 'GI_JOE', documents: [], storybooks: [], exams: [] }
+      { id: 'der-1', name: 'Derecho Civil I', section: 'Sección A', schedule: 'Semestre 2', defaultHero: 'HE_MAN', documents: [], storybooks: [], exams: [] }
     ];
   } else {
     return [
       { id: "lpc-ep2", name: "Escuelas Psicológicas II", section: "Sección A", schedule: "Semestre 2, 2026", defaultHero: "HE_MAN", documents: [], storybooks: [], exams: [] },
-      { id: "lpc-pe2", name: "Psicología Evolutiva II", section: "Sección A", schedule: "Semestre 2, 2026", defaultHero: "CANDY_CANDY", documents: [], storybooks: [], exams: [] },
-      { id: "lpc-ti1", name: "Técnicas de Investigación", section: "Sección A", schedule: "Sáb 17 Oct", defaultHero: "GI_JOE", documents: [], storybooks: [], exams: [] },
-      { id: "lpc-nc1", name: "Neurociencia Cognitiva", section: "Sección A", schedule: "Semestre 2, 2026", defaultHero: "TRANSFORMERS", documents: [], storybooks: [], exams: [] }
+      { id: "lpc-pe2", name: "Psicología Evolutiva II", section: "Sección A", schedule: "Semestre 2, 2026", defaultHero: "CANDY_CANDY", documents: [], storybooks: [], exams: [] }
     ];
   }
 };
@@ -109,9 +99,7 @@ async function initUser() {
       });
       await user.save();
     }
-  } catch (e) {
-    console.error('Error inicializando usuario:', e.message);
-  }
+  } catch (e) {}
 }
 
 const MONGO_URI = (process.env.MONGO_URI || '').trim();
@@ -120,18 +108,14 @@ async function connectDB() {
   try {
     await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 6000 });
     await initUser();
-  } catch (err) {
-    console.error('Error conectando a MongoDB:', err.message);
-  }
+  } catch (err) {}
 }
 connectDB();
 
 app.use('/api', async (req, res, next) => {
   if (mongoose.connection.readyState !== 1) {
     await connectDB();
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ error: "Base de datos conectándose, intenta de nuevo en unos segundos." });
-    }
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ error: "Base de datos conectándose..." });
   }
   next();
 });
@@ -139,29 +123,14 @@ app.use('/api', async (req, res, next) => {
 async function serializeUser(user) {
   const obj = user.toObject();
   delete obj.password;
-
-  const savedDocs = await DocumentModel.find(
-    { username: obj.username },
-    { base64Data: 0, textContent: 0 }
-  ).lean();
-
+  const savedDocs = await DocumentModel.find({ username: obj.username }, { base64Data: 0, textContent: 0 }).lean();
   obj.subjects = (obj.subjects || []).map(s => {
-    const embeddedDocs = (s.documents || []).map(d => ({
-      id: d.id, title: d.title, fileName: d.fileName, mimeType: d.mimeType, uploadedAt: d.uploadedAt
-    }));
-
-    const collectionDocs = savedDocs
-      .filter(cd => cd.subjectId === s.id)
-      .map(cd => ({
-        id: cd.docId, title: cd.title, fileName: cd.fileName, mimeType: cd.mimeType, uploadedAt: cd.uploadedAt
-      }));
-
+    const embeddedDocs = (s.documents || []).map(d => ({ id: d.id, title: d.title, fileName: d.fileName, mimeType: d.mimeType, uploadedAt: d.uploadedAt }));
+    const collectionDocs = savedDocs.filter(cd => cd.subjectId === s.id).map(cd => ({ id: cd.docId, title: cd.title, fileName: cd.fileName, mimeType: cd.mimeType, uploadedAt: cd.uploadedAt }));
     const map = new Map();
     [...embeddedDocs, ...collectionDocs].forEach(item => map.set(item.id, item));
-
     return { ...s, documents: Array.from(map.values()) };
   });
-
   return obj;
 }
 
@@ -169,21 +138,15 @@ app.post('/api/auth/register', async (req, res) => {
   try {
     const { fullName, username, email, password, career } = req.body;
     const cleanUsername = (username || '').trim().toLowerCase();
-    const selectedCareer = career || 'Psicología Clínica';
-
     const existing = await UserModel.findOne({ username: cleanUsername });
     if (existing) return res.status(400).json({ error: "El usuario ya existe." });
-
     const newUser = new UserModel({
       username: cleanUsername, fullName, email: (email || `${cleanUsername}@universidad.edu`).toLowerCase(),
-      password, career: selectedCareer, subjects: getInitialSubjectsForCareer(selectedCareer)
+      password, career: career || 'Psicología Clínica', subjects: getInitialSubjectsForCareer(career)
     });
-
     await newUser.save();
     res.json({ user: await serializeUser(newUser) });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/auth/login', async (req, res) => {
@@ -191,13 +154,10 @@ app.post('/api/auth/login', async (req, res) => {
     const { identifier, password } = req.body;
     const cleanId = (identifier || '').trim().toLowerCase();
     if (cleanId === 'haroldocana') await initUser();
-
     const user = await UserModel.findOne({ $or: [{ username: cleanId }, { email: cleanId }] });
     if (!user || user.password !== password) return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
     res.json({ user: await serializeUser(user) });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.get('/api/auth/session/:username', async (req, res) => {
@@ -205,9 +165,7 @@ app.get('/api/auth/session/:username', async (req, res) => {
     const user = await UserModel.findOne({ username: (req.params.username || '').trim().toLowerCase() });
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
     res.json({ user: await serializeUser(user) });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/subjects', async (req, res) => {
@@ -215,36 +173,27 @@ app.post('/api/subjects', async (req, res) => {
     const { username, name, section, schedule, defaultHero } = req.body;
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
     if (!user) return res.status(401).json({ error: "Sesión no válida" });
-
-    const newSubj = {
-      id: 'subj-' + Date.now(), name, section: section || 'Sección A', schedule: schedule || 'Semestre Actual',
-      defaultHero: defaultHero || 'CANDY_CANDY', documents: [], storybooks: [], exams: []
-    };
+    const newSubj = { id: 'subj-' + Date.now(), name, section: section || 'Sección A', schedule: schedule || 'Actual', defaultHero: defaultHero || 'CANDY_CANDY', documents: [], storybooks: [], exams: [] };
     user.subjects.push(newSubj);
     user.markModified('subjects');
     await user.save();
     res.json({ user: await serializeUser(user), newSubjectId: newSubj.id });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.delete('/api/subjects/:subjectId', async (req, res) => {
   try {
     const { username } = req.body;
     const cleanUsername = (username || '').toLowerCase();
-    const { subjectId } = req.params;
-    await DocumentModel.deleteMany({ username: cleanUsername, subjectId });
+    await DocumentModel.deleteMany({ username: cleanUsername, subjectId: req.params.subjectId });
     const user = await UserModel.findOne({ username: cleanUsername });
     if (user) {
-      user.subjects = user.subjects.filter(s => s.id !== subjectId);
+      user.subjects = user.subjects.filter(s => s.id !== req.params.subjectId);
       user.markModified('subjects');
       await user.save();
     }
     res.json({ user: await serializeUser(user) });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/documents', upload.any(), async (req, res) => {
@@ -253,144 +202,181 @@ app.post('/api/documents', upload.any(), async (req, res) => {
     const cleanUsername = (username || '').toLowerCase();
     const user = await UserModel.findOne({ username: cleanUsername });
     if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
-
     const subject = user.subjects.find(s => s.id === subjectId);
     if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
 
     const files = req.files || [];
-    const createdIds = [];
     const dateStr = new Date().toLocaleDateString('es-GT');
-
     if (files.length > 0) {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const docId = `doc-${Date.now()}-${i}`;
-        const finalTitle = files.length === 1 && docTitle ? docTitle : (docTitle ? `${docTitle} (${file.originalname})` : file.originalname);
-
-        const newDocRecord = new DocumentModel({
-          docId, username: cleanUsername, subjectId, title: finalTitle,
+        const newDoc = new DocumentModel({
+          docId: `doc-${Date.now()}-${i}`, username: cleanUsername, subjectId,
+          title: docTitle ? `${docTitle} (${file.originalname})` : file.originalname,
           fileName: file.originalname, mimeType: file.mimetype,
           base64Data: file.buffer.toString("base64"), textContent: (i === 0 && customText) ? customText : '', uploadedAt: dateStr
         });
-        await newDocRecord.save();
-        createdIds.push(docId);
+        await newDoc.save();
       }
-    } else if (customText && customText.trim() !== '') {
-      const docId = `doc-${Date.now()}-txt`;
-      const newDocRecord = new DocumentModel({
-        docId, username: cleanUsername, subjectId, title: docTitle || 'Apuntes Dictados / Texto',
-        fileName: 'Apuntes.txt', mimeType: 'text/plain', base64Data: null, textContent: customText, uploadedAt: dateStr
+    } else if (customText?.trim()) {
+      const newDoc = new DocumentModel({
+        docId: `doc-${Date.now()}-txt`, username: cleanUsername, subjectId,
+        title: docTitle || 'Apuntes Dictados', fileName: 'Apuntes.txt', mimeType: 'text/plain',
+        base64Data: null, textContent: customText, uploadedAt: dateStr
       });
-      await newDocRecord.save();
-      createdIds.push(docId);
-    } else {
-      return res.status(400).json({ error: "Selecciona archivos o ingresa texto." });
+      await newDoc.save();
     }
-
-    res.json({ user: await serializeUser(user), uploadedCount: createdIds.length });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    res.json({ user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.delete('/api/documents/:docId', async (req, res) => {
   try {
     const { username, subjectId } = req.body;
-    const cleanUsername = (username || '').toLowerCase();
-    const { docId } = req.params;
-    await DocumentModel.deleteOne({ docId, username: cleanUsername });
-    const user = await UserModel.findOne({ username: cleanUsername });
+    await DocumentModel.deleteOne({ docId: req.params.docId, username: (username || '').toLowerCase() });
+    const user = await UserModel.findOne({ username: username.toLowerCase() });
     if (user) {
       const subj = user.subjects.find(s => s.id === subjectId);
-      if (subj) {
-        subj.documents = subj.documents.filter(d => d.id !== docId);
-        user.markModified('subjects');
-        await user.save();
-      }
+      if (subj) { subj.documents = subj.documents.filter(d => d.id !== req.params.docId); user.markModified('subjects'); await user.save(); }
     }
     res.json({ user: await serializeUser(user) });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.delete('/api/storybooks/:sbId', async (req, res) => {
-  try {
-    const { username, subjectId } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (user) {
-      const subj = user.subjects.find(s => s.id === subjectId);
-      if (subj) {
-        subj.storybooks = subj.storybooks.filter(sb => sb.id !== req.params.sbId);
-        user.markModified('subjects');
-        await user.save();
-      }
-    }
-    res.json({ user: await serializeUser(user) });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.delete('/api/exams/:examId', async (req, res) => {
-  try {
-    const { username, subjectId } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (user) {
-      const subj = user.subjects.find(s => s.id === subjectId);
-      if (subj) {
-        subj.exams = subj.exams.filter(ex => ex.id !== req.params.examId);
-        user.markModified('subjects');
-        await user.save();
-      }
-    }
-    res.json({ user: await serializeUser(user) });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 async function getFullDocumentsForSubject(username, subject, documentId) {
   const savedDocs = await DocumentModel.find({ username: username.toLowerCase(), subjectId: subject.id }).lean();
   const embeddedDocs = (subject.documents || []).filter(d => d.base64Data || d.textContent);
-  const allDocs = [...embeddedDocs, ...savedDocs.map(cd => ({
-    id: cd.docId, title: cd.title, fileName: cd.fileName, mimeType: cd.mimeType, base64Data: cd.base64Data, textContent: cd.textContent
-  }))];
+  const allDocs = [...embeddedDocs, ...savedDocs.map(cd => ({ id: cd.docId, title: cd.title, fileName: cd.fileName, mimeType: cd.mimeType, base64Data: cd.base64Data, textContent: cd.textContent }))];
   if (!documentId || documentId === 'ALL') return allDocs;
   return allDocs.filter(d => d.id === documentId);
 }
 
-// 7. TRADUCCIÓN ACADÉMICA INSTANTÁNEA DE DOCUMENTOS O LIBROS
-app.post('/api/translate-document', async (req, res) => {
+// 1. BÚSQUEDA SEMÁNTICA GLOBAL (RAG) EN BIBLIOTECA
+app.post('/api/rag-search', async (req, res) => {
   try {
-    const { username, subjectId, documentId, targetLanguage } = req.body;
+    const { username, subjectId, query } = req.body;
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
     if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
     const subject = user.subjects.find(s => s.id === subjectId);
     if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
 
-    const docsToTranslate = await getFullDocumentsForSubject(user.username, subject, documentId);
-    if (docsToTranslate.length === 0) return res.status(400).json({ error: "No hay documentos para traducir." });
+    const allDocs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
+    if (allDocs.length === 0) return res.status(400).json({ error: "No hay archivos en la biblioteca para buscar." });
 
     const contents = [];
-    for (const doc of docsToTranslate) {
+    for (const doc of allDocs) {
       if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
-      if (doc.textContent) contents.push(`Texto (${doc.title}):\n${doc.textContent}`);
+      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-
-    contents.push(`Realiza una traducción académica rigurosa al idioma "${targetLanguage || 'Español'}" de los materiales adjuntos para la carrera de ${user.career} (${subject.name}), manteniendo la terminología técnica exacta.`);
+    contents.push(`Basándote estrictamente en los documentos anteriores de la materia ${subject.name}, responde de forma precisa y citando la fuente a la siguiente pregunta del estudiante: "${query}"`);
 
     const response = await generateWithFallback(contents, null);
-    user.aiConsumptionUSD += 0.20;
+    user.aiConsumptionUSD += 0.10;
     await user.save();
-
-    res.json({ translation: response.text, user: await serializeUser(user) });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    res.json({ answer: response.text, user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 5. GENERAR STORYBOOK
+// 2. GENERADOR DE FLASHCARDS (ANKI)
+app.post('/api/generate-flashcards', async (req, res) => {
+  try {
+    const { username, subjectId, documentId } = req.body;
+    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
+    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
+    const subject = user.subjects.find(s => s.id === subjectId);
+    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
+
+    const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
+    const contents = [];
+    for (const doc of docs) {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
+    }
+    contents.push(`Genera 6 flashcards o tarjetas de memoria clave (pregunta/respuesta corta) para repasar los conceptos fundamentales de ${subject.name}.`);
+
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        flashcards: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: { question: { type: Type.STRING }, answer: { type: Type.STRING }, hint: { type: Type.STRING } },
+            required: ["question", "answer", "hint"]
+          }
+        }
+      },
+      required: ["flashcards"]
+    };
+
+    const response = await generateWithFallback(contents, schema);
+    user.aiConsumptionUSD += 0.15;
+    await user.save();
+    res.json({ flashcards: JSON.parse(response.text).flashcards, user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// 3. MAPA MENTAL JERÁRQUICO
+app.post('/api/generate-mindmap', async (req, res) => {
+  try {
+    const { username, subjectId, documentId } = req.body;
+    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
+    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
+    const subject = user.subjects.find(s => s.id === subjectId);
+    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
+
+    const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
+    const contents = [];
+    for (const doc of docs) {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
+    }
+    contents.push(`Genera un mapa mental jerárquico estructurado (Tema Central, Ramas Principales y Subramas) para ${subject.name}.`);
+
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        centralTopic: { type: Type.STRING },
+        branches: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: { branchName: { type: Type.STRING }, subitems: { type: Type.ARRAY, items: { type: Type.STRING } } },
+            required: ["branchName", "subitems"]
+          }
+        }
+      },
+      required: ["centralTopic", "branches"]
+    };
+
+    const response = await generateWithFallback(contents, schema);
+    user.aiConsumptionUSD += 0.15;
+    await user.save();
+    res.json({ mindmap: JSON.parse(response.text), user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// 4. SIMULADOR DE CASOS CLÍNICOS / LEGALES (ROLEPLAY)
+app.post('/api/roleplay-chat', async (req, res) => {
+  try {
+    const { username, subjectId, message, history } = req.body;
+    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
+    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
+    const subject = user.subjects.find(s => s.id === subjectId);
+
+    const contents = [
+      `Eres un simulador de casos prácticos universitarios para la materia "${subject?.name || 'Estudio'}". Si la carrera es de Psicología/Medicina, actúas como un paciente con sintomatología clínica compleja o un caso de estudio. Si es Abogacía, actúas como un juez o cliente en un caso legal. Responde al estudiante: "${message}"`
+    ];
+    if (history) contents.unshift(history);
+
+    const response = await generateWithFallback(contents, null);
+    user.aiConsumptionUSD += 0.05;
+    await user.save();
+    res.json({ reply: response.text, user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GENERAR STORYBOOK
 app.post('/api/generate-storybook', async (req, res) => {
   try {
     const { username, subjectId, documentId, focusTopic, universe } = req.body;
@@ -406,7 +392,7 @@ app.post('/api/generate-storybook', async (req, res) => {
       if (doc.textContent) contents.push(`Texto (${doc.title}):\n${doc.textContent}`);
     }
 
-    contents.push(`Estudiante: ${user.fullName} (${user.career}). Materia: ${subject.name}. Tema: ${focusTopic || 'General'}. Universo: ${universe}. Genera Storybook de 5 escenas, línea de tiempo causal y quiz de 3 preguntas.`);
+    contents.push(`Estudiante: ${user.fullName} (${user.career}). Materia: ${subject.name}. Tema: ${focusTopic || 'General'}. Universo: ${universe}. Genera Storybook de 5 escenas detalladas, línea de tiempo evolutiva independiente y quiz.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -418,9 +404,9 @@ app.post('/api/generate-storybook', async (req, res) => {
             type: Type.OBJECT,
             properties: {
               sceneNumber: { type: Type.INTEGER }, characterName: { type: Type.STRING }, academicConcept: { type: Type.STRING },
-              storyDialogue: { type: Type.STRING }, memoryTrick: { type: Type.STRING }, visualPromptRetro: { type: Type.STRING }, animationEffect: { type: Type.STRING }
+              storyDialogue: { type: Type.STRING }, memoryTrick: { type: Type.STRING }, animationEffect: { type: Type.STRING }
             },
-            required: ["sceneNumber", "characterName", "academicConcept", "storyDialogue", "memoryTrick", "visualPromptRetro", "animationEffect"]
+            required: ["sceneNumber", "characterName", "academicConcept", "storyDialogue", "memoryTrick", "animationEffect"]
           }
         },
         timeline: {
@@ -454,12 +440,10 @@ app.post('/api/generate-storybook', async (req, res) => {
     await user.save();
 
     res.json({ storybook: newStorybook, user: await serializeUser(user) });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 6. GENERAR EXAMEN
+// GENERAR EXAMEN
 app.post('/api/generate-exam', async (req, res) => {
   try {
     const { username, subjectId, documentId, universe } = req.body;
@@ -474,7 +458,6 @@ app.post('/api/generate-exam', async (req, res) => {
       if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`Material (${doc.title}):\n${doc.textContent}`);
     }
-
     contents.push(`Genera un examen universitario de 5 preguntas sobre ${subject.name} con tono ${universe}.`);
 
     const schema = {
@@ -504,10 +487,8 @@ app.post('/api/generate-exam', async (req, res) => {
     await user.save();
 
     res.json({ exam: newExam, user: await serializeUser(user) });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor activo en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Servidor Total activo en puerto ${PORT}`));
