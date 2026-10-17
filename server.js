@@ -262,7 +262,80 @@ async function getFullDocumentsForSubject(username, subject, documentId) {
   return allDocs.filter(d => d.id === documentId);
 }
 
-// MÓDULO DE SOLICITUD DE TAREAS Y DOCUMENTACIÓN FILOSÓFICA (MÉTODO CONTINENTAL / EXISTENCIAL EN PALABRAS HUMANAS)
+// 2. SIMULADOR DE DEBATE SOCRÁTICO
+app.post('/api/socratic-debate', async (req, res) => {
+  try {
+    const { username, subjectId, philosopher, message, history } = req.body;
+    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
+    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
+    const subject = user.subjects.find(s => s.id === subjectId);
+    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
+
+    const allDocs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
+    const contents = [];
+    for (const doc of allDocs) {
+      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
+    }
+
+    contents.push(`
+      Actúa como el filósofo o pensador: "${philosopher}". 
+      Estás en un seminario o debate socrático con un estudiante universitario. 
+      Historial del debate: ${history || 'Inicio de la conversación'}.
+      Última intervención del estudiante: "${message}".
+      Responde manteniendo tu postura filosófica, hazle una pregunta desafiante para poner a prueba su pensamiento crítico, y explícate en palabras humanas y claras.
+    `);
+
+    const response = await generateWithFallback(contents, null);
+    user.aiConsumptionUSD += 0.08;
+    await user.save();
+    res.json({ reply: response.text, user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// 3. LÍNEA DE TIEMPO HISTÓRICA CRUZADA
+app.post('/api/generate-timeline-map', async (req, res) => {
+  try {
+    const { username, subjectId, documentId } = req.body;
+    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
+    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
+    const subject = user.subjects.find(s => s.id === subjectId);
+    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
+
+    const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
+    const contents = [];
+    for (const doc of docs) {
+      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
+    }
+    contents.push(`Genera una línea de tiempo histórica cruzada y mapa de corrientes filosóficas basada en los documentos, mostrando cómo un autor refuta o complementa al anterior.`);
+
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        timelineTitle: { type: Type.STRING },
+        eras: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              eraName: { type: Type.STRING },
+              mainAuthor: { type: Type.STRING },
+              coreIdea: { type: Type.STRING },
+              refutationOrLink: { type: Type.STRING }
+            },
+            required: ["eraName", "mainAuthor", "coreIdea", "refutationOrLink"]
+          }
+        }
+      },
+      required: ["timelineTitle", "eras"]
+    };
+
+    const response = await generateWithFallback(contents, schema);
+    user.aiConsumptionUSD += 0.20;
+    await user.save();
+    res.json({ timelineMap: JSON.parse(response.text), user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.post('/api/human-homework', async (req, res) => {
   try {
     const { username, subjectId, taskPrompt } = req.body;
@@ -274,17 +347,10 @@ app.post('/api/human-homework', async (req, res) => {
     const allDocs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
     const contents = [];
     for (const doc of allDocs) {
-      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
 
-    contents.push(`
-      Actúa como un profesor de Filosofía que utiliza el método continental y existencial.
-      INSTRUCCIÓN ESTRICTA: 
-      - Explica los conceptos filosóficos (como el ser, la existencia, la angustia, el Dasein, Heidegger, etc.) usando palabras humanas, cotidianas y de puro entendimiento. Cero tecnicismos fríos o lenguaje rebuscado.
-      - Conecta las ideas con lo que vive el ser humano en su realidad.
-      - Responde a la solicitud de tarea o información del estudiante: "${taskPrompt}"
-    `);
+    contents.push(`Explica de forma humana, existencial y clara para una tarea universitaria: "${taskPrompt}"`);
 
     const response = await generateWithFallback(contents, null);
     user.aiConsumptionUSD += 0.12;
@@ -304,10 +370,9 @@ app.post('/api/rag-search', async (req, res) => {
     const allDocs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
     const contents = [];
     for (const doc of allDocs) {
-      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Explica desde la perspectiva filosófica existencial, de forma humana y clara, sin lenguaje enrevesado: "${query}"`);
+    contents.push(`Explica desde la perspectiva existencial de forma humana: "${query}"`);
 
     const response = await generateWithFallback(contents, null);
     user.aiConsumptionUSD += 0.10;
@@ -324,7 +389,7 @@ app.post('/api/generate-analogy', async (req, res) => {
     const subject = user.subjects.find(s => s.id === subjectId);
     if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
 
-    const contents = [`Explica el concepto filosófico "${concept}" usando una analogía sencilla de la vida diaria bajo el enfoque existencial y humano.`];
+    const contents = `Explica el concepto "${concept}" usando una analogía sencilla bajo el enfoque existencial y humano.`;
     const response = await generateWithFallback(contents, null);
     user.aiConsumptionUSD += 0.08;
     await user.save();
@@ -343,10 +408,9 @@ app.post('/api/generate-matrix', async (req, res) => {
     const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
     const contents = [];
     for (const doc of docs) {
-      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Genera una matriz comparativa con lenguaje humano y claro sobre los conceptos filosóficos de ${subject.name}.`);
+    contents.push(`Genera una matriz comparativa con lenguaje humano sobre ${subject.name}.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -383,10 +447,9 @@ app.post('/api/generate-flashcards', async (req, res) => {
     const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
     const contents = [];
     for (const doc of docs) {
-      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Genera 6 fichas de estudio con preguntas y respuestas filosóficas humanas y directas para ${subject.name}.`);
+    contents.push(`Genera 6 fichas de estudio con preguntas y respuestas humanas sobre ${subject.name}.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -421,10 +484,9 @@ app.post('/api/generate-mindmap', async (req, res) => {
     const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
     const contents = [];
     for (const doc of docs) {
-      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Genera un esquema mental claro y sencillo sobre los temas filosóficos de ${subject.name}.`);
+    contents.push(`Genera un esquema mental claro sobre ${subject.name}.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -460,14 +522,10 @@ app.post('/api/generate-storybook', async (req, res) => {
     const selectedDocs = await getFullDocumentsForSubject(user.username, subject, documentId);
     const contents = [];
     for (const doc of selectedDocs) {
-      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`Texto (${doc.title}):\n${doc.textContent}`);
     }
 
-    contents.push(`
-      Estudiante: ${user.fullName} (${user.career}). Materia: ${subject.name}. Tema: ${focusTopic || 'Filosofía Existencial'}.
-      INSTRUCCIÓN: Crea una monografía explicada con palabras humanas y sencillas, detallando los conceptos filosóficos sin enredos innecesarios. Incluye una trivia con 3 preguntas.
-    `);
+    contents.push(`Crea una monografía explicada con palabras humanas sobre ${subject.name}. Incluye trivia.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -525,4 +583,4 @@ app.post('/api/generate-storybook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor Filosófico activo en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Servidor activo en puerto ${PORT}`));
