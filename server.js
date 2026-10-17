@@ -152,9 +152,7 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
     }
     res.json({ user: await serializeUser(user) });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/auth/register', async (req, res) => {
@@ -313,30 +311,25 @@ async function getFullDocumentsForSubject(username, subject, documentId) {
   return allDocs.filter(d => d.id === documentId);
 }
 
-// 🎧 ENDPOINT PARA AUDIOLIBRO INTERACTIVO DE LIBROS CARGADOS
+// 🎧 ENDPOINT AUDIOLIBRO ESPECÍFICO
 app.post('/api/audiobook-chapters', async (req, res) => {
   try {
     const { username, subjectId, documentId } = req.body;
+    if (!documentId || documentId === 'ALL') return res.status(400).json({ error: "Por favor, selecciona un libro o documento específico del menú para generar el audiolibre." });
+    
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
     if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
     const subject = user.subjects.find(s => s.id === subjectId);
     if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
 
     const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
-    let combinedText = '';
-    for (const doc of docs) {
-      if (doc.textContent) {
-        combinedText += `\n\n--- Documento: ${doc.title} ---\n${doc.textContent}`;
-      }
-    }
-
-    if (!combinedText.trim()) {
-      return res.status(400).json({ error: "No hay texto suficiente en los documentos seleccionados para generar el audiolibre." });
+    if (!docs.length || !docs[0].textContent) {
+      return res.status(400).json({ error: "El libro seleccionado no tiene texto extraíble." });
     }
 
     const contents = [
-      `Toma el siguiente material de estudio y divídelo en capítulos o lecciones lógicas para un audiolibre educativo con enfoque humanista-existencial. Cada capítulo debe tener un título claro y un texto redactado fluidamente para ser escuchado en voz alta con claridad y sin tecnicismos innecesarios:`,
-      combinedText
+      `Toma el siguiente libro/documento y divídelo en capítulos lógicos para un audiolibre educativo. Cada capítulo debe tener un título claro y un texto redactado fluidamente para ser escuchado en voz alta:`,
+      docs[0].textContent
     ];
 
     const schema = {
@@ -347,10 +340,7 @@ app.post('/api/audiobook-chapters', async (req, res) => {
           type: Type.ARRAY,
           items: {
             type: Type.OBJECT,
-            properties: {
-              chapterTitle: { type: Type.STRING },
-              chapterContent: { type: Type.STRING }
-            },
+            properties: { chapterTitle: { type: Type.STRING }, chapterContent: { type: Type.STRING } },
             required: ["chapterTitle", "chapterContent"]
           }
         }
@@ -365,7 +355,28 @@ app.post('/api/audiobook-chapters', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 📝 MÓDULO DE SOLICITUD DE TAREAS Y RESÚMENES (ENFOQUE HUMANISTA-EXISTENCIAL)
+// 🏛️ ENDPOINT: ORÁCULO FENOMENOLÓGICO (HUSSERL Y HEIDEGGER EXCLUSIVO)
+app.post('/api/phenomenology-query', async (req, res) => {
+  try {
+    const { username, query } = req.body;
+    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
+    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
+
+    const contents = [
+      `Actúa como un purista y máximo académico de la Fenomenología y el Existencialismo continental. 
+       REGLA ABSOLUTA: Te centrarás ESTRICTAMENTE en Edmund Husserl y Martin Heidegger. NO usarás, mencionarás ni aplicarás NADA de filosofía analítica, empirismo anglosajón, positivismo lógico (ni Russell, ni Wittgenstein, ni Locke). Todo es puramente continental.
+       Explica la siguiente consulta del estudiante usando palabras humanas, profundas y comprensibles para la psicología clínica.
+       Consulta: "${query}"`
+    ];
+
+    const response = await generateWithFallback(contents, null);
+    user.aiConsumptionUSD += 0.10;
+    await user.save();
+    res.json({ answer: response.text, user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// 📝 SOLICITUD DE TAREAS Y RESÚMENES (HUMANISTA-EXISTENCIAL)
 app.post('/api/university-homework', async (req, res) => {
   try {
     const { username, subjectId, promptTask } = req.body;
@@ -382,11 +393,9 @@ app.post('/api/university-homework', async (req, res) => {
     }
 
     contents.push(`
-      Actúa como mentor y profesor universitario experto en la carrera de "${user.career}", impartiendo la materia "${subject.name}".
-      INSTRUCCIÓN ESTRICTA Y METODOLÓGICA:
-      - Realiza el resumen o resolución solicitado por el estudiante basándote en los documentos del repositorio.
-      - ENFOQUE OBLIGATORIO: Utiliza un método humanista-existencial (enfocado en la vivencia subjetiva, el sentido, la libertad, la responsabilidad y la experiencia humana real) y un tono profesional pero 100% en palabras humanas, cálidas y de puro entendimiento, PROHIBIDO el uso de jerga fría o tecnicismos excesivos sin explicación.
-      - Solicitud del estudiante: "${promptTask}"
+      Actúa como profesor universitario en la carrera de "${user.career}".
+      ENFOQUE OBLIGATORIO: Utiliza un método humanista-existencial y un tono profesional pero 100% en palabras humanas y de puro entendimiento, PROHIBIDO usar tecnicismos fríos sin explicarlos.
+      Resuelve esto: "${promptTask}"
     `);
 
     const response = await generateWithFallback(contents, null);
@@ -401,18 +410,10 @@ app.post('/api/socratic-debate', async (req, res) => {
     const { username, subjectId, philosopher, message, history } = req.body;
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
     if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
-    const subject = user.subjects.find(s => s.id === subjectId);
-    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
-
-    const allDocs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
-    const contents = [];
-    for (const doc of allDocs) {
-      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
-    }
-
-    contents.push(`Actúa como el experto: "${philosopher}". Carrera del estudiante: ${user.career}. Historial: ${history}. Intervención: "${message}". Responde con enfoque humanista-existencial, de forma humana y clara.`);
-
+    
+    const contents = [`Actúa como el experto: "${philosopher}". Historial: ${history}. Intervención: "${message}". Responde con enfoque humanista-existencial.`];
     const response = await generateWithFallback(contents, null);
+    
     user.aiConsumptionUSD += 0.08;
     await user.save();
     res.json({ reply: response.text, user: await serializeUser(user) });
@@ -425,34 +426,16 @@ app.post('/api/generate-timeline-map', async (req, res) => {
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
     if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
     const subject = user.subjects.find(s => s.id === subjectId);
-    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
-
+    
     const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
     const contents = [];
-    for (const doc of docs) {
-      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
-    }
-    contents.push(`Genera una línea de tiempo para ${subject.name} con perspectiva humana y existencial.`);
+    for (const doc of docs) { if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`); }
+    contents.push(`Genera una línea de tiempo para ${subject.name} con perspectiva humana.`);
 
-    const schema = {
-      type: Type.OBJECT,
-      properties: {
-        timelineTitle: { type: Type.STRING },
-        eras: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: { eraName: { type: Type.STRING }, mainAuthor: { type: Type.STRING }, coreIdea: { type: Type.STRING }, refutationOrLink: { type: Type.STRING } },
-            required: ["eraName", "mainAuthor", "coreIdea", "refutationOrLink"]
-          }
-        }
-      },
-      required: ["timelineTitle", "eras"]
-    };
-
+    const schema = { type: Type.OBJECT, properties: { timelineTitle: { type: Type.STRING }, eras: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { eraName: { type: Type.STRING }, mainAuthor: { type: Type.STRING }, coreIdea: { type: Type.STRING }, refutationOrLink: { type: Type.STRING } }, required: ["eraName", "mainAuthor", "coreIdea", "refutationOrLink"] } } }, required: ["timelineTitle", "eras"] };
     const response = await generateWithFallback(contents, schema);
-    user.aiConsumptionUSD += 0.20;
-    await user.save();
+    
+    user.aiConsumptionUSD += 0.20; await user.save();
     res.json({ timelineMap: JSON.parse(response.text), user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -461,36 +444,17 @@ app.post('/api/generate-mindmap', async (req, res) => {
   try {
     const { username, subjectId, documentId } = req.body;
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
     const subject = user.subjects.find(s => s.id === subjectId);
-    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
-
+    
     const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
     const contents = [];
-    for (const doc of docs) {
-      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
-    }
-    contents.push(`Genera un mapa conceptual detallado en palabras humanas para ${subject.name}.`);
+    for (const doc of docs) { if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`); }
+    contents.push(`Genera un mapa conceptual para ${subject.name}.`);
 
-    const schema = {
-      type: Type.OBJECT,
-      properties: {
-        centralTopic: { type: Type.STRING },
-        branches: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: { branchName: { type: Type.STRING }, subitems: { type: Type.ARRAY, items: { type: Type.STRING } } },
-            required: ["branchName", "subitems"]
-          }
-        }
-      },
-      required: ["centralTopic", "branches"]
-    };
-
+    const schema = { type: Type.OBJECT, properties: { centralTopic: { type: Type.STRING }, branches: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { branchName: { type: Type.STRING }, subitems: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["branchName", "subitems"] } } }, required: ["centralTopic", "branches"] };
     const response = await generateWithFallback(contents, schema);
-    user.aiConsumptionUSD += 0.15;
-    await user.save();
+    
+    user.aiConsumptionUSD += 0.15; await user.save();
     res.json({ mindmap: JSON.parse(response.text), user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -499,20 +463,15 @@ app.post('/api/rag-search', async (req, res) => {
   try {
     const { username, subjectId, query } = req.body;
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
     const subject = user.subjects.find(s => s.id === subjectId);
-    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
-
+    
     const allDocs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
     const contents = [];
-    for (const doc of allDocs) {
-      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
-    }
-    contents.push(`Explica con enfoque humanista-existencial y de forma humana y clara: "${query}"`);
+    for (const doc of allDocs) { if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`); }
+    contents.push(`Explica con enfoque existencial: "${query}"`);
 
     const response = await generateWithFallback(contents, null);
-    user.aiConsumptionUSD += 0.10;
-    await user.save();
+    user.aiConsumptionUSD += 0.10; await user.save();
     res.json({ answer: response.text, user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -521,35 +480,17 @@ app.post('/api/generate-flashcards', async (req, res) => {
   try {
     const { username, subjectId, documentId } = req.body;
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
     const subject = user.subjects.find(s => s.id === subjectId);
-    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
-
+    
     const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
     const contents = [];
-    for (const doc of docs) {
-      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
-    }
-    contents.push(`Genera 6 fichas de estudio con lenguaje humano sobre ${subject.name}.`);
+    for (const doc of docs) { if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`); }
+    contents.push(`Genera 6 fichas de estudio con lenguaje humano.`);
 
-    const schema = {
-      type: Type.OBJECT,
-      properties: {
-        flashcards: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: { question: { type: Type.STRING }, answer: { type: Type.STRING }, hint: { type: Type.STRING } },
-            required: ["question", "answer", "hint"]
-          }
-        }
-      },
-      required: ["flashcards"]
-    };
-
+    const schema = { type: Type.OBJECT, properties: { flashcards: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, answer: { type: Type.STRING }, hint: { type: Type.STRING } }, required: ["question", "answer", "hint"] } } }, required: ["flashcards"] };
     const response = await generateWithFallback(contents, schema);
-    user.aiConsumptionUSD += 0.15;
-    await user.save();
+    
+    user.aiConsumptionUSD += 0.15; await user.save();
     res.json({ flashcards: JSON.parse(response.text).flashcards, user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -558,68 +499,21 @@ app.post('/api/generate-storybook', async (req, res) => {
   try {
     const { username, subjectId, documentId, focusTopic } = req.body;
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
     const subject = user.subjects.find(s => s.id === subjectId);
-    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
 
     const selectedDocs = await getFullDocumentsForSubject(user.username, subject, documentId);
     const contents = [];
-    for (const doc of selectedDocs) {
-      if (doc.textContent) contents.push(`Texto (${doc.title}):\n${doc.textContent}`);
-    }
+    for (const doc of selectedDocs) { if (doc.textContent) contents.push(`Texto (${doc.title}):\n${doc.textContent}`); }
+    contents.push(`Crea una monografía académica con enfoque humanista sobre ${subject.name}. Incluye resumen, línea de tiempo, escenas por autores, y trivia gamificada.`);
 
-    contents.push(`Crea una monografía académica con enfoque humanista-existencial y palabras humanas sobre ${subject.name} (Carrera: ${user.career}). Incluye resumen, línea de tiempo, escenas por autores, y trivia gamificada con 3 preguntas.`);
-
-    const schema = {
-      type: Type.OBJECT,
-      properties: {
-        title: { type: Type.STRING },
-        universe: { type: Type.STRING },
-        summary: { type: Type.STRING },
-        scenes: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              sceneNumber: { type: Type.INTEGER },
-              characterName: { type: Type.STRING },
-              academicConcept: { type: Type.STRING },
-              storyDialogue: { type: Type.STRING },
-              memoryTrick: { type: Type.STRING },
-              animationEffect: { type: Type.STRING }
-            },
-            required: ["sceneNumber", "characterName", "academicConcept", "storyDialogue", "memoryTrick", "animationEffect"]
-          }
-        },
-        timeline: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: { step: { type: Type.INTEGER }, title: { type: Type.STRING }, description: { type: Type.STRING } },
-            required: ["step", "title", "description"]
-          }
-        },
-        quiz: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctIndex: { type: Type.INTEGER }, heroExplanation: { type: Type.STRING } },
-            required: ["question", "options", "correctIndex", "heroExplanation"]
-          }
-        }
-      },
-      required: ["title", "universe", "summary", "scenes", "timeline", "quiz"]
-    };
-
+    const schema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, universe: { type: Type.STRING }, summary: { type: Type.STRING }, scenes: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { sceneNumber: { type: Type.INTEGER }, characterName: { type: Type.STRING }, academicConcept: { type: Type.STRING }, storyDialogue: { type: Type.STRING }, memoryTrick: { type: Type.STRING }, animationEffect: { type: Type.STRING } }, required: ["sceneNumber", "characterName", "academicConcept", "storyDialogue", "memoryTrick", "animationEffect"] } }, timeline: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { step: { type: Type.INTEGER }, title: { type: Type.STRING }, description: { type: Type.STRING } }, required: ["step", "title", "description"] } }, quiz: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctIndex: { type: Type.INTEGER }, heroExplanation: { type: Type.STRING } }, required: ["question", "options", "correctIndex", "heroExplanation"] } } }, required: ["title", "universe", "summary", "scenes", "timeline", "quiz"] };
+    
     const response = await generateWithFallback(contents, schema);
     const sbData = JSON.parse(response.text);
 
-    user.aiConsumptionUSD += 0.25;
-    user.storybooksCreated += 1;
+    user.aiConsumptionUSD += 0.25; user.storybooksCreated += 1;
     const newStorybook = { id: 'sb-' + Date.now(), createdAt: new Date().toLocaleString('es-GT'), sourceDocTitle: selectedDocs.map(d => d.title).join(' + ') || focusTopic, ...sbData };
-    subject.storybooks.push(newStorybook);
-    user.markModified('subjects');
-    await user.save();
+    subject.storybooks.push(newStorybook); user.markModified('subjects'); await user.save();
 
     res.json({ storybook: newStorybook, user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
