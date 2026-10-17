@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Centro de Estudio Filosófico · Universidad</title>
+  <title>Centro de Estudio de Psicología Clínica · Universidad</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body { background: radial-gradient(circle at top right, #0f172a, #020617 70%); color: #f8fafc; font-family: system-ui, sans-serif; min-height: 100vh; }
@@ -25,9 +25,9 @@
   <div id="authScreen" class="min-h-screen flex items-center justify-center p-4">
     <div class="glass max-w-md w-full rounded-2xl p-8 shadow-2xl">
       <div class="text-center mb-6">
-        <span class="px-3 py-1 bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 rounded-full text-xs font-bold">FILOSOFÍA & EXISTENCIALISMO</span>
+        <span class="px-3 py-1 bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 rounded-full text-xs font-bold">LICENCIATURA EN PSICOLOGÍA CLÍNICA</span>
         <h1 class="text-3xl font-extrabold mt-2 bg-gradient-to-r from-cyan-400 via-teal-300 to-indigo-400 bg-clip-text text-transparent">Plataforma Académica</h1>
-        <p class="text-xs text-slate-400 mt-1">Debate Socrático · Monografía con Audio · YouTube</p>
+        <p class="text-xs text-slate-400 mt-1">YouTube & Videos · Monografías · Trivias · Debate Socrático</p>
       </div>
 
       <div class="flex bg-slate-900/90 p-1 rounded-xl mb-5 border border-slate-800">
@@ -84,8 +84,8 @@
     <header class="glass sticky top-0 z-30 px-6 py-3 flex flex-wrap items-center justify-between gap-4 border-b border-slate-800">
       <div>
         <div class="flex items-center gap-2">
-          <span class="text-xl">🏛️</span>
-          <h2 class="font-extrabold text-lg bg-gradient-to-r from-cyan-300 to-teal-400 bg-clip-text text-transparent">Centro de Estudio Filosófico</h2>
+          <span class="text-xl">🧠</span>
+          <h2 class="font-extrabold text-lg bg-gradient-to-r from-cyan-300 to-teal-400 bg-clip-text text-transparent">Centro de Estudio de Psicología Clínica</h2>
         </div>
         <p id="userHeaderInfo" class="text-xs text-slate-400"></p>
       </div>
@@ -131,12 +131,12 @@
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <span class="text-xl">🤼‍♂️</span>
-              <h3 class="font-black text-sm text-cyan-300 uppercase">Simulador de Debate Socrático (Diálogo con Filósofos)</h3>
+              <h3 class="font-black text-sm text-cyan-300 uppercase">Simulador de Debate Académico y Teórico</h3>
             </div>
             <button onclick="openSocraticModal()" class="text-xs px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold">💬 Iniciar Debate</button>
           </div>
           <div class="flex gap-2">
-            <input type="text" id="ragQueryInput" placeholder="Consulta bibliográfica (ej. ¿Qué es el Dasein según Heidegger?)" class="flex-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
+            <input type="text" id="ragQueryInput" placeholder="Consulta bibliográfica (ej. ¿Qué postula Heidegger sobre el Dasein?)" class="flex-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
             <button onclick="executeRagSearch()" class="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold text-xs shadow-lg">Buscar</button>
           </div>
         </div>
@@ -146,13 +146,13 @@
           <div class="glass rounded-2xl p-5 space-y-4 flex flex-col justify-between">
             <div>
               <div class="flex items-center justify-between">
-                <h3 class="font-bold text-sm text-cyan-300">1️⃣ Carga de Textos y YouTube</h3>
+                <h3 class="font-bold text-sm text-cyan-300">1️⃣ Carga de Documentos y YouTube</h3>
                 <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/50">Multifuente</span>
               </div>
-              <p class="text-xs text-slate-400 mt-1">Sube PDFs o enlaces de YouTube (como el de Heidegger).</p>
+              <p class="text-xs text-slate-400 mt-1">Sube PDFs o enlaces de YouTube (como clases magistrales).</p>
 
               <form onsubmit="handleUploadDoc(event)" class="space-y-3 mt-3">
-                <input type="text" id="docTitle" placeholder="Título (ej. Heidegger - Ser y Tiempo)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
+                <input type="text" id="docTitle" placeholder="Título (ej. Clase Magistral Heidegger)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
                 
                 <div>
                   <label class="text-[11px] text-red-400 font-bold">▶️ Enlace de Video de YouTube:</label>
@@ -178,13 +178,13 @@
 
           <div class="glass rounded-2xl p-5 space-y-4 flex flex-col justify-between">
             <div class="space-y-3">
-              <h3 class="font-bold text-sm text-teal-300">2️⃣ Herramientas Filosóficas</h3>
+              <h3 class="font-bold text-sm text-teal-300">2️⃣ Herramientas Clínicas y de Asimilación</h3>
               <div>
                 <label class="text-xs text-slate-400">Material analizado:</label>
                 <select id="selectDocForAI" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"></select>
               </div>
 
-              <input type="text" id="focusTopic" placeholder="Enfoque (ej. El problema del Ser)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
+              <input type="text" id="focusTopic" placeholder="Enfoque (ej. Angustia y Existencia)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
 
               <div class="grid grid-cols-2 gap-2 pt-1">
                 <button onclick="generateStorybook()" class="py-2 px-2 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 font-bold text-xs text-white shadow">📖 Monografía</button>
@@ -211,20 +211,20 @@
   <div id="modalSocratic" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
     <div class="glass max-w-2xl w-full rounded-2xl p-6 space-y-4 border-2 border-indigo-500">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-        <h3 class="font-extrabold text-base text-indigo-300">🤼‍♂️ Simulador de Debate Socrático</h3>
+        <h3 class="font-extrabold text-base text-indigo-300">🤼‍♂️ Simulador de Debate Académico</h3>
         <button onclick="openSocraticModal()" class="text-slate-400 font-bold">✕</button>
       </div>
       <div class="space-y-2 text-xs">
-        <label class="text-slate-400">Filósofo con quien deseas debatir:</label>
+        <label class="text-slate-400">Autor o teólogo con quien deseas debatir:</label>
         <select id="socraticPhilosopher" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white">
           <option value="Martin Heidegger">Martin Heidegger (Ser, Dasein y Angustia)</option>
           <option value="Jean-Paul Sartre">Jean-Paul Sartre (Libertad y Nada)</option>
-          <option value="Edmund Husserl">Edmund Husserl (Fenomenología)</option>
+          <option value="Carl Rogers">Carl Rogers (Enfoque Humanista)</option>
         </select>
       </div>
       <div id="socraticChatBox" class="h-60 overflow-y-auto bg-slate-900 p-4 rounded-xl space-y-3 border border-slate-800 text-xs">
         <div class="p-3 rounded-xl bg-indigo-950/60 border border-indigo-800 text-indigo-200">
-          🏛️ ¡Saludos! Soy tu simulador filosófico. Pregúntame sobre el texto o propón un tema para debatir.
+          🏛️ ¡Saludos! Soy tu simulador académico. Pregúntame sobre el texto o propón un tema para debatir.
         </div>
       </div>
       <div class="flex gap-2">
@@ -237,8 +237,8 @@
   <!-- MODAL NUEVA MATERIA -->
   <div id="modalSubject" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
     <div class="glass max-w-md w-full rounded-2xl p-6 space-y-4">
-      <h3 class="font-bold text-lg">Agregar Materia Filosófica</h3>
-      <input type="text" id="newSubjName" placeholder="Nombre (ej. Fenomenología)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
+      <h3 class="font-bold text-lg">Agregar Materia de Psicología</h3>
+      <input type="text" id="newSubjName" placeholder="Nombre (ej. Psicopatología)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
       <input type="text" id="newSubjSchedule" placeholder="Semestre / Horario" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
       <div class="flex justify-end gap-2">
         <button onclick="toggleNewSubjectModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-xs">Cancelar</button>
@@ -472,7 +472,7 @@
       const v = document.getElementById('viewerArea');
       v.classList.add('fullscreen-mode');
       v.classList.remove('hidden');
-      v.innerHTML = `<div class="text-center animate-pulse pt-20"><p class="text-amber-300 font-bold text-lg">🗺️ Mapeando Corrientes Filosóficas...</p></div>`;
+      v.innerHTML = `<div class="text-center animate-pulse pt-20"><p class="text-amber-300 font-bold text-lg">🗺️ Mapeando Corrientes Teóricas...</p></div>`;
 
       try {
         const res = await fetch('/api/generate-timeline-map', {
@@ -493,9 +493,9 @@
               ${tm.eras.map((e, idx) => `
                 <div class="p-5 rounded-2xl bg-slate-900 border-2 border-cyan-500/40 space-y-2 shadow-xl">
                   <span class="text-xs font-black px-2 py-0.5 rounded bg-cyan-500 text-slate-950">FASE ${idx + 1}:${e.eraName}</span>
-                  <h4 class="font-extrabold text-sm text-teal-300">Pensador Principal: ${e.mainAuthor}</h4>
+                  <h4 class="font-extrabold text-sm text-teal-300">Teórico Principal: ${e.mainAuthor}</h4>
                   <p class="text-xs text-slate-200"><b>Idea Central:</b> ${e.coreIdea}</p>
-                  <p class="text-xs text-amber-300"><b>Conexión / Refutación Histórica:</b> ${e.refutationOrLink}</p>
+                  <p class="text-xs text-amber-300"><b>Conexión / Enlace:</b> ${e.refutationOrLink}</p>
                 </div>
               `).join('')}
             </div>
@@ -525,7 +525,7 @@
           <div class="max-w-4xl mx-auto glass rounded-3xl p-8 space-y-6 border-2 border-cyan-500 relative">
             <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs">✕ Cerrar</button>
             <div class="flex justify-between items-center">
-              <h2 class="text-2xl font-bold text-cyan-300">🔍 Análisis Filosófico</h2>
+              <h2 class="text-2xl font-bold text-cyan-300">🔍 Análisis Bibliográfico</h2>
               <button onclick="speakText(document.getElementById('ragAnswerText').textContent)" class="px-3 py-1.5 rounded-xl bg-cyan-700 font-bold text-xs">🔊 Escuchar</button>
             </div>
             <div id="ragAnswerText" class="bg-slate-900 p-6 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed border border-slate-800">${data.answer}</div>
@@ -554,7 +554,7 @@
         v.innerHTML = `
           <div class="max-w-5xl mx-auto glass rounded-3xl p-8 space-y-6 border-2 border-purple-500 relative">
             <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs">✕ Cerrar</button>
-            <h2 class="text-2xl font-bold text-purple-300">🃏 Fichas Filosóficas</h2>
+            <h2 class="text-2xl font-bold text-purple-300">🃏 Fichas Teóricas y Clínicas</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
               ${data.flashcards.map((fc, i) => `
                 <div onclick="this.classList.toggle('flipped')" class="flashcard h-56 cursor-pointer relative">
@@ -565,7 +565,7 @@
                       <span class="text-xs text-slate-500 text-center">Click para girar 🔄</span>
                     </div>
                     <div class="flashcard-back bg-indigo-950 border-2 border-indigo-400 p-5 rounded-2xl flex flex-col justify-between">
-                      <span class="text-xs font-bold text-emerald-400">RESPUESTA</span>
+                      <span class="text-xs font-bold text-emerald-400">RESPUESTA CIENTÍFICA</span>
                       <p class="text-xs text-slate-200 text-center leading-relaxed">${fc.answer}</p>
                       <span class="text-[11px] text-amber-300 text-center">💡 ${fc.hint}</span>
                     </div>
@@ -666,13 +666,13 @@
 
           <div class="speech-bubble p-6 text-sm font-bold shadow-2xl flex items-center gap-6">
             <div>
-              <p class="text-emerald-900 font-black mb-1 text-base">Resumen Conceptual y Filosófico:</p>
+              <p class="text-emerald-900 font-black mb-1 text-base">Resumen Histórico y Científico:</p>
               <p class="text-emerald-950 font-medium leading-relaxed text-sm">${sb.summary}</p>
             </div>
           </div>
 
           <div class="bg-slate-950/95 rounded-2xl p-6 border-4 border-cyan-500 shadow-2xl space-y-4">
-            <h3 class="font-black text-base text-cyan-300 uppercase">⏳ Línea de Pensamiento</h3>
+            <h3 class="font-black text-base text-cyan-300 uppercase">⏳ Línea de Tiempo de la Evolución Teórica</h3>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
               ${(sb.timeline || []).map(t => `
                 <div class="p-4 rounded-xl bg-slate-900 border-2 border-cyan-500/60 shadow-lg">
@@ -685,17 +685,37 @@
           </div>
 
           <div class="space-y-6">
-            <h3 class="font-black text-base text-teal-300 uppercase">📚 Exposición de Ideas por Autores</h3>
+            <h3 class="font-black text-base text-teal-300 uppercase">📚 Exposición Teórica por Autores e Intervinientes</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               ${(sb.scenes || []).map(sc => `
                 <div class="academic-card rounded-2xl p-6 space-y-4 flex flex-col justify-between shadow-xl">
                   <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                    <span class="text-xs font-black px-2.5 py-1 rounded bg-cyan-500/20 text-cyan-300">AUTOR: ${sc.characterName}</span>
+                    <span class="text-xs font-black px-2.5 py-1 rounded bg-cyan-500/20 text-cyan-300">MÓDULO #${sc.sceneNumber} ·${sc.characterName}</span>
                     <button onclick="speakText('${sc.storyDialogue.replace(/'/g, "")}')" class="text-xs px-2 py-0.5 bg-cyan-900 text-cyan-200 rounded font-bold">🔊 Audio</button>
                   </div>
                   <div class="speech-bubble p-4 text-xs font-bold leading-relaxed shadow-md">
                     <p class="text-emerald-950 font-black mb-1 text-sm">📘 Concepto Clave: ${sc.academicConcept}</p>
                     <p class="text-emerald-900 italic font-semibold text-xs leading-relaxed">"${sc.storyDialogue}"</p>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- TRIVIA / QUIZ GAMIFICADO -->
+          <div class="bg-slate-950/95 rounded-2xl p-6 border-4 border-amber-500 space-y-4 shadow-2xl">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl">🏆</span>
+              <h3 class="font-black text-base text-amber-300 uppercase">Trivia Gamificada (Evaluación de Retención)</h3>
+            </div>
+            <div class="space-y-4">
+              ${(sb.quiz || []).map((q, idx) => `
+                <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                  <p class="text-xs font-bold text-slate-200">Pregunta ${idx + 1}:${q.question}</p>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    ${(q.options || []).map((opt, oIdx) => `
+                      <button onclick="alert('${oIdx === q.correctIndex ? '🏆 ¡CORRECTO! +100 XP (Nivel Clínico Avanzado desbloqueado)' : '❌ Incorrecto. '} ' + ${JSON.stringify(q.heroExplanation).replace(/'/g, "\\'")})" class="text-left text-xs p-2.5 rounded-xl bg-slate-950 hover:bg-cyan-950 border border-slate-700">${opt}</button>
+                    `).join('')}
                   </div>
                 </div>
               `).join('')}
