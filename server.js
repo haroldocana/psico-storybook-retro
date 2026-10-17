@@ -8,29 +8,27 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '25mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const upload = multer({ storage: multer.memoryStorage() });
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// Tus 6 materias oficiales de Psicología (Semestre 2, 2026)
+// Tus 6 materias oficiales de Psicología (con Biblioteca de Documentos, Lista de Storybooks y Exámenes)
 const getInitialPsychologySubjects = () => [
-  { id: "lpc-ep2", name: "Escuelas Psicológicas II", section: "Sección A", schedule: "Semestre 2, 2026", defaultHero: "HE_MAN", storybooks: [] },
-  { id: "lpc-pe2", name: "Psicología Evolutiva II", section: "Sección A", schedule: "Semestre 2, 2026", defaultHero: "CANDY_CANDY", storybooks: [] },
-  { id: "lpc-ti1", name: "Técnicas de Investigación", section: "Sección A", schedule: "Sáb 17 Oct - 08:00 AM", defaultHero: "GI_JOE", storybooks: [] },
-  { id: "lpc-fil2", name: "Filosofía II", section: "Sección A", schedule: "Semestre 2, 2026", defaultHero: "HE_MAN", storybooks: [] },
-  { id: "lpc-soc", name: "Sociología", section: "Sección A", schedule: "Sáb 17 Oct - 10:30 AM", defaultHero: "OSITOS_CARINOSITOS", storybooks: [] },
-  { id: "lpc-nc1", name: "Neurociencia Cognitiva", section: "Sección A", schedule: "Semestre 2, 2026", defaultHero: "TRANSFORMERS", storybooks: [] }
+  { id: "lpc-ep2", name: "Escuelas Psicológicas II", section: "Sección A", schedule: "Semestre 2, 2026", defaultHero: "HE_MAN", documents: [], storybooks: [], exams: [] },
+  { id: "lpc-pe2", name: "Psicología Evolutiva II", section: "Sección A", schedule: "Semestre 2, 2026", defaultHero: "CANDY_CANDY", documents: [], storybooks: [], exams: [] },
+  { id: "lpc-ti1", name: "Técnicas de Investigación", section: "Sección A", schedule: "Sáb 17 Oct - 08:00 AM", defaultHero: "GI_JOE", documents: [], storybooks: [], exams: [] },
+  { id: "lpc-fil2", name: "Filosofía II", section: "Sección A", schedule: "Semestre 2, 2026", defaultHero: "HE_MAN", documents: [], storybooks: [], exams: [] },
+  { id: "lpc-soc", name: "Sociología", section: "Sección A", schedule: "Sáb 17 Oct - 10:30 AM", defaultHero: "OSITOS_CARINOSITOS", documents: [], storybooks: [], exams: [] },
+  { id: "lpc-nc1", name: "Neurociencia Cognitiva", section: "Sección A", schedule: "Semestre 2, 2026", defaultHero: "TRANSFORMERS", documents: [], storybooks: [], exams: [] }
 ];
 
-// Base de Datos Multi-Usuario con tu usuario haroldocana configurado
 const usersDB = {
   "haroldocana": {
     username: "haroldocana",
     fullName: "Harold Benjamín Ocaña Guillén",
     email: "haroldocana@psicologia.edu",
-    githubRepo: "https://github.com/haroldocana/psico-storybook-retro",
     password: "admin123",
     career: "Licenciatura en Psicología Clínica (LPC)",
     subscriptionActive: true,
@@ -38,6 +36,7 @@ const usersDB = {
     aiConsumptionUSD: 0.00,
     totalTokensUsed: 0,
     storybooksCreated: 0,
+    examsCreated: 0,
     subjects: getInitialPsychologySubjects()
   }
 };
@@ -49,7 +48,26 @@ function findUser(identifier) {
   );
 }
 
-// 1. Registro de nuevos usuarios ($6.00 USD/mes + consumo IA)
+// Sanitizar usuario antes de enviar al frontend (sin enviar los buffers pesados de PDFs)
+function serializeUser(user) {
+  const { password: _, ...rest } = user;
+  return {
+    ...rest,
+    subjects: user.subjects.map(s => ({
+      ...s,
+      documents: s.documents.map(d => ({
+        id: d.id,
+        title: d.title,
+        fileName: d.fileName,
+        mimeType: d.mimeType,
+        uploadedAt: d.uploadedAt,
+        hasText: !!d.textContent
+      }))
+    }))
+  };
+}
+
+// 1. REGISTRO DE USUARIO
 app.post('/api/auth/register', (req, res) => {
   const { fullName, username, email, password, career, loadPsychologyTemplate } = req.body;
   const cleanUsername = (username || '').trim().toLowerCase();
@@ -72,27 +90,24 @@ app.post('/api/auth/register', (req, res) => {
     aiConsumptionUSD: 0.00,
     totalTokensUsed: 0,
     storybooksCreated: 0,
+    examsCreated: 0,
     subjects: loadPsychologyTemplate !== false ? getInitialPsychologySubjects() : []
   };
 
-  const { password: _, ...safeUser } = usersDB[cleanUsername];
-  res.json({ user: safeUser });
+  res.json({ user: serializeUser(usersDB[cleanUsername]) });
 });
 
-// 2. Login con usuario (haroldocana) o correo
+// 2. LOGIN
 app.post('/api/auth/login', (req, res) => {
   const { identifier, password } = req.body;
   const foundUser = findUser(identifier);
-
   if (!foundUser || foundUser.password !== password) {
     return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
   }
-
-  const { password: _, ...safeUser } = foundUser;
-  res.json({ user: safeUser });
+  res.json({ user: serializeUser(foundUser) });
 });
 
-// 3. Crear más materias dinámicamente en el catálogo del usuario
+// 3. CREAR NUEVA MATERIA
 app.post('/api/subjects', (req, res) => {
   const { username, name, section, schedule, defaultHero } = req.body;
   const user = findUser(username);
@@ -104,16 +119,45 @@ app.post('/api/subjects', (req, res) => {
     section: section || 'Sección A',
     schedule: schedule || 'Semestre 2, 2026',
     defaultHero: defaultHero || 'CANDY_CANDY',
-    storybooks: []
+    documents: [],
+    storybooks: [],
+    exams: []
   };
   user.subjects.push(newSubject);
-  res.json({ subject: newSubject });
+  res.json({ user: serializeUser(user), newSubjectId: newSubject.id });
 });
 
-// 4. Generar Storybook Animado + Quiz con Gemini API
-app.post('/api/generate-storybook', upload.single('document'), async (req, res) => {
+// 4. SUBIR DOCUMENTO A LA BIBLIOTECA DE UNA MATERIA (Para reutilizarlo cuantas veces quieras)
+app.post('/api/documents', upload.single('document'), (req, res) => {
+  const { username, subjectId, docTitle, customText } = req.body;
+  const user = findUser(username);
+  if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
+
+  const subject = user.subjects.find(s => s.id === subjectId);
+  if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
+
+  if (!req.file && !customText) {
+    return res.status(400).json({ error: "Debes adjuntar un PDF o pegar el contenido del tema." });
+  }
+
+  const newDoc = {
+    id: 'doc-' + Date.now(),
+    title: docTitle || (req.file ? req.file.originalname : 'Apuntes de Clase'),
+    fileName: req.file ? req.file.originalname : 'Apuntes_Texto.txt',
+    mimeType: req.file ? req.file.mimetype : 'text/plain',
+    base64Data: req.file ? req.file.buffer.toString("base64") : null,
+    textContent: customText || '',
+    uploadedAt: new Date().toLocaleDateString('es-GT')
+  };
+
+  subject.documents.push(newDoc);
+  res.json({ user: serializeUser(user), documentId: newDoc.id });
+});
+
+// 5. GENERAR STORYBOOK DESDE LOS DOCUMENTOS DE LA MATERIA
+app.post('/api/generate-storybook', async (req, res) => {
   try {
-    const { username, subjectId, topicTitle, universe, customText } = req.body;
+    const { username, subjectId, documentId, focusTopic, universe } = req.body;
     const user = findUser(username);
     if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
 
@@ -121,34 +165,46 @@ app.post('/api/generate-storybook', upload.single('document'), async (req, res) 
     if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
 
     const contents = [];
-    if (req.file) {
-      contents.push({
-        inlineData: {
-          data: req.file.buffer.toString("base64"),
-          mimeType: req.file.mimetype
-        }
-      });
+    let selectedDocs = [];
+
+    if (documentId === 'ALL') {
+      selectedDocs = subject.documents;
+    } else {
+      const foundDoc = subject.documents.find(d => d.id === documentId);
+      if (foundDoc) selectedDocs.push(foundDoc);
+    }
+
+    for (const doc of selectedDocs) {
+      if (doc.base64Data) {
+        contents.push({
+          inlineData: { data: doc.base64Data, mimeType: doc.mimeType }
+        });
+      }
+      if (doc.textContent) {
+        contents.push(`Documento (${doc.title}):\n${doc.textContent}`);
+      }
     }
 
     const prompt = `
       Eres el Motor Pedagógico Retro-Manga del Centro de Estudio Universitario de ${user.fullName}.
-      Carrera: "${user.career}". Materia: "${subject.name}". Tema: "${topicTitle}".
+      Carrera: "${user.career}". Materia: "${subject.name}".
+      Enfoque o tema solicitado: "${focusTopic || 'Explicación completa del documento'}".
       Universo elegido: "${universe}".
 
-      PERSONALIDADES:
+      ESTILOS DE ENSEÑANZA:
       - CANDY_CANDY: Manga shōjo clásico dramático y empático (casos clínicos, apego, desarrollo humano).
-      - TRANSFORMERS: Cybertron G1 (Optimus Prime, Perceptor, Ratchet). Procesos neurocognitivos, biológicos y lógicos como circuitos y sistemas que se transforman.
-      - GI_JOE: Comando táctico años 80 (Duke, Scarlett). Metodologías de investigación, psicometría y terapias como misiones contra trampas de Cobra. Termina con "¡Y saber es la mitad de la batalla!".
+      - TRANSFORMERS: Cybertron G1 (Optimus Prime, Perceptor, Ratchet). Neurociencia, procesos cognitivos y sistemas como circuitos y matrices.
+      - GI_JOE: Comando táctico años 80 (Duke, Scarlett). Metodologías de investigación y protocolos como misiones contra trampas de Cobra ("¡Y saber es la mitad de la batalla!").
       - HE_MAN: Épico de Eternia (He-Man, Sorceress vs Skeletor). Filosofía, historia y escuelas psicológicas como secretos del Castillo Grayskull.
-      - OSITOS_CARINOSITOS: Cálido y comunitario (Quiéreme Mucho). Sociología, empatía y regulación emocional iluminando con el Rayo Cariñosito.
+      - OSITOS_CARINOSITOS: Empático y comunitario (Quiéreme Mucho). Sociología, dinámica de grupos y regulación emocional con el Rayo Cariñosito.
 
-      INSTRUCCIÓN:
-      Transforma el documento o apuntes en un Storybook animado de 4 escenas con alto rigor universitario + 1 Segmento de Prueba (Quiz) de 3 preguntas de opción múltiple con retroalimentación del héroe.
-      ${customText ? `Contenido de estudio adicional: ${customText}` : ''}
+      OBJETIVO PEDAGÓGICO:
+      Crea un Storybook interactivo de 5 escenas profundas que expliquen el documento paso a paso.
+      Por cada escena incluye una MNEMOTECNIA o TRUCO DE MEMORIA para que el estudiante nunca olvide el concepto en el examen.
+      Incluye también un mini-quiz rápido de 3 preguntas de verificación de lectura.
     `;
 
     contents.push(prompt);
-
     const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
     const response = await ai.models.generateContent({
@@ -171,10 +227,11 @@ app.post('/api/generate-storybook', upload.single('document'), async (req, res) 
                   characterName: { type: Type.STRING },
                   academicConcept: { type: Type.STRING },
                   storyDialogue: { type: Type.STRING },
+                  memoryTrick: { type: Type.STRING },
                   visualPromptRetro: { type: Type.STRING },
                   animationEffect: { type: Type.STRING }
                 },
-                required: ["sceneNumber", "characterName", "academicConcept", "storyDialogue", "visualPromptRetro", "animationEffect"]
+                required: ["sceneNumber", "characterName", "academicConcept", "storyDialogue", "memoryTrick", "visualPromptRetro", "animationEffect"]
               }
             },
             quiz: {
@@ -196,8 +253,8 @@ app.post('/api/generate-storybook', upload.single('document'), async (req, res) 
       }
     });
 
-    const storybookData = JSON.parse(response.text);
-    const totalTokens = (response.usageMetadata?.promptTokenCount || 1500) + (response.usageMetadata?.candidatesTokenCount || 1200);
+    const sbData = JSON.parse(response.text);
+    const totalTokens = (response.usageMetadata?.promptTokenCount || 1500) + (response.usageMetadata?.candidatesTokenCount || 1500);
     const chargeUSD = 0.25;
 
     user.aiConsumptionUSD += chargeUSD;
@@ -206,21 +263,107 @@ app.post('/api/generate-storybook', upload.single('document'), async (req, res) 
 
     const newStorybook = {
       id: 'sb-' + Date.now(),
-      createdAt: new Date().toISOString(),
+      createdAt: new Date().toLocaleString('es-GT'),
+      sourceDocTitle: selectedDocs.map(d => d.title).join(', ') || focusTopic,
       tokensUsed: totalTokens,
       billedUSD: chargeUSD,
-      ...storybookData
+      ...sbData
     };
 
     subject.storybooks.push(newStorybook);
-
-    const { password: _, ...safeUser } = user;
-    res.json({ storybook: newStorybook, user: safeUser });
+    res.json({ storybook: newStorybook, user: serializeUser(user) });
   } catch (err) {
-    console.error('Error generando Storybook:', err);
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 6. GENERAR SIMULADOR DE EXAMEN ACUMULATIVO DE LA MATERIA (Parcial / Final)
+app.post('/api/generate-exam', async (req, res) => {
+  try {
+    const { username, subjectId, documentId, difficulty, universe } = req.body;
+    const user = findUser(username);
+    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
+
+    const subject = user.subjects.find(s => s.id === subjectId);
+    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
+
+    const contents = [];
+    const docsToUse = documentId === 'ALL'
+      ? subject.documents
+      : subject.documents.filter(d => d.id === documentId);
+
+    for (const doc of docsToUse) {
+      if (doc.base64Data) {
+        contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+      }
+      if (doc.textContent) {
+        contents.push(`Documento (${doc.title}):\n${doc.textContent}`);
+      }
+    }
+
+    const prompt = `
+      Actúa como Evaluador Académico Universitario de la carrera "${user.career}" para la materia "${subject.name}".
+      Estilo de retroalimentación: Universo "${universe}".
+      Nivel de dificultad: "${difficulty || 'Casos Clínicos y Teoría Universitaria'}".
+
+      Genera un Examen Completo de Entrenamiento de 5 preguntas rigurosas basadas en los documentos de la materia.
+      Incluye preguntas teóricas y casos prácticos aplicados.
+    `;
+
+    contents.push(prompt);
+    const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+
+    const response = await ai.models.generateContent({
+      model: modelName,
+      contents,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            examTitle: { type: Type.STRING },
+            universe: { type: Type.STRING },
+            questions: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  question: { type: Type.STRING },
+                  options: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  correctIndex: { type: Type.INTEGER },
+                  heroExplanation: { type: Type.STRING }
+                },
+                required: ["question", "options", "correctIndex", "heroExplanation"]
+              }
+            }
+          },
+          required: ["examTitle", "universe", "questions"]
+        }
+      }
+    });
+
+    const examData = JSON.parse(response.text);
+    const totalTokens = (response.usageMetadata?.promptTokenCount || 1200) + (response.usageMetadata?.candidatesTokenCount || 1000);
+    const chargeUSD = 0.15; // Examen cuesta $0.15 USD
+
+    user.aiConsumptionUSD += chargeUSD;
+    user.totalTokensUsed += totalTokens;
+    user.examsCreated += 1;
+
+    const newExam = {
+      id: 'ex-' + Date.now(),
+      createdAt: new Date().toLocaleString('es-GT'),
+      tokensUsed: totalTokens,
+      ...examData
+    };
+
+    subject.exams.push(newExam);
+    res.json({ exam: newExam, user: serializeUser(user) });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor activo en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`Centro de Estudio activo en puerto ${PORT}`));
