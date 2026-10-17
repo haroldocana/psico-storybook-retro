@@ -62,21 +62,38 @@ const UserSchema = new mongoose.Schema({
   subscriptionActive: { type: Boolean, default: true },
   aiConsumptionUSD: { type: Number, default: 0 },
   storybooksCreated: { type: Number, default: 0 },
-  examsCreated: { type: Number, default: 0 },
   subjects: Array
 });
 
 const UserModel = mongoose.model('User', UserSchema);
 
-// MATERIAS MULTIDISCIPLINARIAS (PSICOLOGÍA, DERECHO, MEDICINA, FILOSOFÍA)
-const getInitialSubjectsForCareer = (career) => {
-  return [
-    { id: "lpc-ep2", name: "Escuelas Psicológicas II", section: "Sección A", schedule: "Semestre 2", documents: [], storybooks: [], exams: [] },
-    { id: "lpc-pe2", name: "Psicología Evolutiva II", section: "Sección A", schedule: "Semestre 2", documents: [], storybooks: [], exams: [] },
-    { id: "der-penal", name: "Derecho Penal y Criminología", section: "Sección A", schedule: "Semestre 2", documents: [], storybooks: [], exams: [] },
-    { id: "med-fisio", name: "Fisiología Humana y Médica", section: "Sección A", schedule: "Semestre 2", documents: [], storybooks: [], exams: [] },
-    { id: "filo-cont", name: "Filosofía Contemporánea y Existencialismo", section: "Sección A", schedule: "Semestre 2", documents: [], storybooks: [], exams: [] }
-  ];
+const getSubjectsForCareer = (career) => {
+  switch (career) {
+    case 'Derecho y Abogacía':
+      return [
+        { id: 'der-penal', name: 'Derecho Penal y Teórico', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] },
+        { id: 'der-civil', name: 'Derecho Civil y Contratos', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] },
+        { id: 'der-crim', name: 'Criminología y Victimología', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] }
+      ];
+    case 'Medicina':
+      return [
+        { id: 'med-fisio', name: 'Fisiología Humana', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] },
+        { id: 'med-anato', name: 'Anatomía y Neuroanatomía', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] },
+        { id: 'med-pato', name: 'Patología General', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] }
+      ];
+    case 'Filosofía':
+      return [
+        { id: 'filo-cont', name: 'Filosofía Contemporánea y Existencialismo', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] },
+        { id: 'filo-meta', name: 'Metafísica y Ontología del Ser', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] }
+      ];
+    case 'Psicología Clínica':
+    default:
+      return [
+        { id: 'lpc-ep2', name: 'Escuelas Psicológicas II', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] },
+        { id: 'lpc-pe2', name: 'Psicología Evolutiva II', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] },
+        { id: 'lpc-neuro', name: 'Neurociencia Cognitiva y Comportamiento', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] }
+      ];
+  }
 };
 
 async function ensureDefaultUser() {
@@ -88,8 +105,8 @@ async function ensureDefaultUser() {
         fullName: 'Harold Benjamín Ocaña Guillén',
         email: 'haroldocana@universidad.edu',
         password: 'admin123',
-        career: 'Psicología Clínica y Multidisciplinaria',
-        subjects: getInitialSubjectsForCareer('Psicología Clínica')
+        career: 'Psicología Clínica',
+        subjects: getSubjectsForCareer('Psicología Clínica')
       });
       await user.save();
     }
@@ -107,9 +124,7 @@ async function connectDB() {
 connectDB();
 
 app.use('/api', async (req, res, next) => {
-  if (mongoose.connection.readyState !== 1) {
-    await connectDB();
-  }
+  if (mongoose.connection.readyState !== 1) await connectDB();
   next();
 });
 
@@ -148,9 +163,11 @@ app.post('/api/auth/register', async (req, res) => {
     const cleanUsername = (username || '').trim().toLowerCase();
     const existing = await UserModel.findOne({ username: cleanUsername });
     if (existing) return res.status(400).json({ error: "El usuario ya existe." });
+    
+    const selectedCareer = career || 'Psicología Clínica';
     const newUser = new UserModel({
       username: cleanUsername, fullName, email: (email || `${cleanUsername}@universidad.edu`).toLowerCase(),
-      password, career: career || 'Psicología Clínica', subjects: getInitialSubjectsForCareer(career)
+      password, career: selectedCareer, subjects: getSubjectsForCareer(selectedCareer)
     });
     await newUser.save();
     res.json({ user: await serializeUser(newUser) });
@@ -172,7 +189,7 @@ app.post('/api/subjects', async (req, res) => {
     const { username, name, section, schedule } = req.body;
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
     if (!user) return res.status(401).json({ error: "Sesión no válida" });
-    const newSubj = { id: 'subj-' + Date.now(), name, section: section || 'Sección A', schedule: schedule || 'Actual', documents: [], storybooks: [], exams: [] };
+    const newSubj = { id: 'subj-' + Date.now(), name, section: section || 'Sección A', schedule: schedule || 'Semestre Actual', documents: [], storybooks: [], exams: [] };
     user.subjects.push(newSubj);
     user.markModified('subjects');
     await user.save();
@@ -208,13 +225,13 @@ app.post('/api/documents', upload.any(), async (req, res) => {
     const dateStr = new Date().toLocaleDateString('es-GT');
 
     if (youtubeUrl && youtubeUrl.includes('youtu')) {
-      const ytContents = [`Extrae y explica con palabras humanas, claras y rigurosas el contenido de la clase magistral de YouTube: ${youtubeUrl}`];
+      const ytContents = [`Extrae y explica con claridad el contenido de la clase en video de YouTube para la carrera ${user.career}: ${youtubeUrl}`];
       const ytRes = await generateWithFallback(ytContents, null);
 
       const newDoc = new DocumentModel({
         docId: `doc-yt-${Date.now()}`, username: cleanUsername, subjectId,
-        title: docTitle || `Clase YouTube (${youtubeUrl})`, fileName: 'YouTube_Clase.txt', mimeType: 'text/plain',
-        base64Data: null, textContent: `Resumen de YouTube:\n${ytRes.text}`, uploadedAt: dateStr
+        title: docTitle || `Video Clase YouTube`, fileName: 'YouTube_Clase.txt', mimeType: 'text/plain',
+        base64Data: null, textContent: `Resumen de Clase YouTube:\n${ytRes.text}`, uploadedAt: dateStr
       });
       await newDoc.save();
     }
@@ -258,7 +275,6 @@ app.delete('/api/documents/:docId', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ELIMINAR UN STORYBOOK GUARDADO EN EL HISTORIAL
 app.delete('/api/storybooks/:sbId', async (req, res) => {
   try {
     const { username, subjectId } = req.body;
@@ -275,7 +291,6 @@ app.delete('/api/storybooks/:sbId', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// VACIAR TODOS LOS DOCUMENTOS DE UNA MATERIA
 app.delete('/api/subjects/:subjectId/documents', async (req, res) => {
   try {
     const { username } = req.body;
@@ -284,11 +299,7 @@ app.delete('/api/subjects/:subjectId/documents', async (req, res) => {
     const user = await UserModel.findOne({ username: cleanUsername });
     if (user) {
       const subj = user.subjects.find(s => s.id === req.params.subjectId);
-      if (subj) {
-        subj.documents = [];
-        user.markModified('subjects');
-        await user.save();
-      }
+      if (subj) { subj.documents = []; user.markModified('subjects'); await user.save(); }
     }
     res.json({ user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -302,7 +313,37 @@ async function getFullDocumentsForSubject(username, subject, documentId) {
   return allDocs.filter(d => d.id === documentId);
 }
 
-// SIMULADOR DE DEBATE ACADÉMICO / JURÍDICO / CLÍNICO
+// 📝 MÓDULO DE SOLICITUD DE TAREAS Y RESÚMENES (ENFOQUE HUMANISTA-EXISTENCIAL Y SIN TECNICISMOS)
+app.post('/api/university-homework', async (req, res) => {
+  try {
+    const { username, subjectId, promptTask } = req.body;
+    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
+    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
+    const subject = user.subjects.find(s => s.id === subjectId);
+    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
+
+    const allDocs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
+    const contents = [];
+    for (const doc of allDocs) {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
+    }
+
+    contents.push(`
+      Actúa como mentor y profesor universitario experto en la carrera de "${user.career}", impartiendo la materia "${subject.name}".
+      INSTRUCCIÓN ESTRICTA Y METODOLÓGICA:
+      - Realiza el resumen o resolución solicitado por el estudiante basándote en los documentos del repositorio.
+      - ENFOQUE OBLIGATORIO: Utiliza un método humanista-existencial (enfocado en la vivencia subjetiva, el sentido, la libertad, la responsabilidad y la experiencia humana real) y un tono profesional pero 100% en palabras humanas, cálidas y de puro entendimiento, PROHIBIDO el uso de jerga fría o tecnicismos excesivos sin explicación.
+      - Solicitud del estudiante: "${promptTask}"
+    `);
+
+    const response = await generateWithFallback(contents, null);
+    user.aiConsumptionUSD += 0.12;
+    await user.save();
+    res.json({ result: response.text, user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.post('/api/socratic-debate', async (req, res) => {
   try {
     const { username, subjectId, philosopher, message, history } = req.body;
@@ -317,13 +358,7 @@ app.post('/api/socratic-debate', async (req, res) => {
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
 
-    contents.push(`
-      Actúa como el experto o autor: "${philosopher}". 
-      Estás en un seminario universitario multidisciplinario. 
-      Historial del debate: ${history || 'Inicio'}.
-      Última intervención del estudiante: "${message}".
-      Responde manteniendo tu postura profesional, hazle una pregunta desafiante para poner a prueba su pensamiento crítico, y explícate en palabras humanas y claras.
-    `);
+    contents.push(`Actúa como el experto: "${philosopher}". Carrera del estudiante: ${user.career}. Historial: ${history}. Intervención: "${message}". Responde con enfoque humanista-existencial, de forma humana y clara.`);
 
     const response = await generateWithFallback(contents, null);
     user.aiConsumptionUSD += 0.08;
@@ -332,7 +367,6 @@ app.post('/api/socratic-debate', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// LÍNEA DE TIEMPO HISTÓRICA / JURÍDICA / CIENTÍFICA
 app.post('/api/generate-timeline-map', async (req, res) => {
   try {
     const { username, subjectId, documentId } = req.body;
@@ -346,7 +380,7 @@ app.post('/api/generate-timeline-map', async (req, res) => {
     for (const doc of docs) {
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Genera una línea de tiempo histórica o mapa de evolución teórica basada en los documentos para ${subject.name}.`);
+    contents.push(`Genera una línea de tiempo para ${subject.name} con perspectiva humana y existencial.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -356,12 +390,7 @@ app.post('/api/generate-timeline-map', async (req, res) => {
           type: Type.ARRAY,
           items: {
             type: Type.OBJECT,
-            properties: {
-              eraName: { type: Type.STRING },
-              mainAuthor: { type: Type.STRING },
-              coreIdea: { type: Type.STRING },
-              refutationOrLink: { type: Type.STRING }
-            },
+            properties: { eraName: { type: Type.STRING }, mainAuthor: { type: Type.STRING }, coreIdea: { type: Type.STRING }, refutationOrLink: { type: Type.STRING } },
             required: ["eraName", "mainAuthor", "coreIdea", "refutationOrLink"]
           }
         }
@@ -376,7 +405,6 @@ app.post('/api/generate-timeline-map', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// MAPA CONCEPTUAL
 app.post('/api/generate-mindmap', async (req, res) => {
   try {
     const { username, subjectId, documentId } = req.body;
@@ -390,7 +418,7 @@ app.post('/api/generate-mindmap', async (req, res) => {
     for (const doc of docs) {
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Genera un mapa conceptual estructurado con un tema central y ramas detalladas para ${subject.name}.`);
+    contents.push(`Genera un mapa conceptual detallado en palabras humanas para ${subject.name}.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -400,10 +428,7 @@ app.post('/api/generate-mindmap', async (req, res) => {
           type: Type.ARRAY,
           items: {
             type: Type.OBJECT,
-            properties: {
-              branchName: { type: Type.STRING },
-              subitems: { type: Type.ARRAY, items: { type: Type.STRING } }
-            },
+            properties: { branchName: { type: Type.STRING }, subitems: { type: Type.ARRAY, items: { type: Type.STRING } } },
             required: ["branchName", "subitems"]
           }
         }
@@ -431,7 +456,7 @@ app.post('/api/rag-search', async (req, res) => {
     for (const doc of allDocs) {
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Explica de forma humana y clara para la materia ${subject.name}: "${query}"`);
+    contents.push(`Explica con enfoque humanista-existencial y de forma humana y clara: "${query}"`);
 
     const response = await generateWithFallback(contents, null);
     user.aiConsumptionUSD += 0.10;
@@ -453,7 +478,7 @@ app.post('/api/generate-flashcards', async (req, res) => {
     for (const doc of docs) {
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Genera 6 fichas de estudio con preguntas y respuestas humanas sobre ${subject.name}.`);
+    contents.push(`Genera 6 fichas de estudio con lenguaje humano sobre ${subject.name}.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -477,7 +502,6 @@ app.post('/api/generate-flashcards', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 📖 STORYBOOK / MONOGRAFÍA ACADÉMICA RESTAURADA AL 100%
 app.post('/api/generate-storybook', async (req, res) => {
   try {
     const { username, subjectId, documentId, focusTopic } = req.body;
@@ -492,7 +516,7 @@ app.post('/api/generate-storybook', async (req, res) => {
       if (doc.textContent) contents.push(`Texto (${doc.title}):\n${doc.textContent}`);
     }
 
-    contents.push(`Crea una monografía académica explicada con palabras humanas sobre ${subject.name}. Incluye resumen, línea de tiempo, escenas por autores o teóricos, y trivia gamificada con 3 preguntas.`);
+    contents.push(`Crea una monografía académica con enfoque humanista-existencial y palabras humanas sobre ${subject.name}. Incluye resumen, línea de tiempo, escenas por autores, y trivia gamificada con 3 preguntas.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -550,4 +574,4 @@ app.post('/api/generate-storybook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor multidisciplinario con Storybook activo en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Servidor universitario activo en puerto ${PORT}`));
