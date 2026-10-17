@@ -114,18 +114,38 @@ async function ensureDefaultUser() {
 }
 
 const MONGO_URI = (process.env.MONGO_URI || '').trim();
+
+// MANEJO ROBUSTO DE LA CONEXIÓN A BASE DE DATOS
 async function connectDB() {
-  if (!MONGO_URI || mongoose.connection.readyState === 1) return;
+  if (!MONGO_URI) {
+    console.error("❌ ERROR: MONGO_URI no está definido en las variables de entorno.");
+    throw new Error("Base de datos no configurada");
+  }
+  if (mongoose.connection.readyState === 1) return;
+  
   try {
-    await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 6000 });
+    console.log("⏳ Conectando a MongoDB...");
+    // Forzamos un timeout de 5 segundos para que no se quede cargando infinito
+    await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 5000 });
+    console.log("✅ MongoDB conectado correctamente.");
     await ensureDefaultUser();
-  } catch (err) {}
+  } catch (err) {
+    console.error("❌ Error de conexión a MongoDB:", err.message);
+    throw err;
+  }
 }
+
 connectDB();
 
 app.use('/api', async (req, res, next) => {
-  if (mongoose.connection.readyState !== 1) await connectDB();
-  next();
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      await connectDB();
+    }
+    next();
+  } catch (error) {
+    return res.status(500).json({ error: "Error Crítico: No hay conexión con la base de datos. Verifica tu MONGO_URI o los permisos de IP." });
+  }
 });
 
 async function serializeUser(user) {
@@ -364,7 +384,7 @@ app.post('/api/audiobook-chapters', async (req, res) => {
     };
 
     const response = await generateWithFallback(contents, schema);
-    user.aiConsumptionUSD += 0.25; // Ligero aumento por el procesamiento extenso
+    user.aiConsumptionUSD += 0.25;
     await user.save();
     res.json({ audiobook: JSON.parse(response.text), user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
