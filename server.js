@@ -68,13 +68,14 @@ const UserSchema = new mongoose.Schema({
 
 const UserModel = mongoose.model('User', UserSchema);
 
-// RESTAURACIÓN DE TODAS LAS MATERIAS Y CARRERAS ORIGINALES
+// MATERIAS MULTIDISCIPLINARIAS (PSICOLOGÍA, ABOGACÍA, MEDICINA, FILOSOFÍA)
 const getInitialSubjectsForCareer = (career) => {
   return [
     { id: "lpc-ep2", name: "Escuelas Psicológicas II", section: "Sección A", schedule: "Semestre 2", documents: [], storybooks: [], exams: [] },
     { id: "lpc-pe2", name: "Psicología Evolutiva II", section: "Sección A", schedule: "Semestre 2", documents: [], storybooks: [], exams: [] },
-    { id: "lpc-neuro", name: "Neurociencia Cognitiva", section: "Sección A", schedule: "Semestre 2", documents: [], storybooks: [], exams: [] },
-    { id: "filo-cont", name: "Filosofía y Existencialismo", section: "Sección A", schedule: "Semestre 2", documents: [], storybooks: [], exams: [] }
+    { id: "der-penal", name: "Derecho Penal y Criminología", section: "Sección A", schedule: "Semestre 2", documents: [], storybooks: [], exams: [] },
+    { id: "med-fisio", name: "Fisiología Humana y Médica", section: "Sección A", schedule: "Semestre 2", documents: [], storybooks: [], exams: [] },
+    { id: "filo-cont", name: "Filosofía Contemporánea y Existencialismo", section: "Sección A", schedule: "Semestre 2", documents: [], storybooks: [], exams: [] }
   ];
 };
 
@@ -85,9 +86,9 @@ async function ensureDefaultUser() {
       user = new UserModel({
         username: 'haroldocana',
         fullName: 'Harold Benjamín Ocaña Guillén',
-        email: 'haroldocana@psicologia.edu',
+        email: 'haroldocana@universidad.edu',
         password: 'admin123',
-        career: 'Psicología Clínica',
+        career: 'Psicología Clínica y Multidisciplinaria',
         subjects: getInitialSubjectsForCareer('Psicología Clínica')
       });
       await user.save();
@@ -207,13 +208,13 @@ app.post('/api/documents', upload.any(), async (req, res) => {
     const dateStr = new Date().toLocaleDateString('es-GT');
 
     if (youtubeUrl && youtubeUrl.includes('youtu')) {
-      const ytContents = [`Extrae y explica con palabras humanas, claras y sin enredos filosóficos el contenido de la clase magistral de YouTube: ${youtubeUrl}`];
+      const ytContents = [`Extrae y explica con palabras humanas, claras y rigurosas el contenido de la clase magistral de YouTube para esta disciplina: ${youtubeUrl}`];
       const ytRes = await generateWithFallback(ytContents, null);
 
       const newDoc = new DocumentModel({
         docId: `doc-yt-${Date.now()}`, username: cleanUsername, subjectId,
         title: docTitle || `Clase YouTube (${youtubeUrl})`, fileName: 'YouTube_Clase.txt', mimeType: 'text/plain',
-        base64Data: null, textContent: `Resumen Académico de YouTube:\n${ytRes.text}`, uploadedAt: dateStr
+        base64Data: null, textContent: `Resumen de YouTube:\n${ytRes.text}`, uploadedAt: dateStr
       });
       await newDoc.save();
     }
@@ -265,7 +266,7 @@ async function getFullDocumentsForSubject(username, subject, documentId) {
   return allDocs.filter(d => d.id === documentId);
 }
 
-// SIMULADOR DE DEBATE SOCRÁTICO
+// SIMULADOR DE DEBATE ACADÉMICO / JURÍDICO / CLÍNICO
 app.post('/api/socratic-debate', async (req, res) => {
   try {
     const { username, subjectId, philosopher, message, history } = req.body;
@@ -281,11 +282,11 @@ app.post('/api/socratic-debate', async (req, res) => {
     }
 
     contents.push(`
-      Actúa como el autor, filósofo o teórico: "${philosopher}". 
-      Estás en un seminario con un estudiante universitario. 
+      Actúa como el experto o autor: "${philosopher}". 
+      Estás en un seminario universitario multidisciplinario (Psicología, Derecho, Medicina o Filosofía). 
       Historial del debate: ${history || 'Inicio'}.
       Última intervención del estudiante: "${message}".
-      Responde manteniendo tu postura, hazle una pregunta desafiante para poner a prueba su pensamiento crítico, y explícate en palabras humanas y claras.
+      Responde manteniendo tu postura profesional, hazle una pregunta desafiante para poner a prueba su pensamiento crítico, y explícate en palabras humanas y claras.
     `);
 
     const response = await generateWithFallback(contents, null);
@@ -295,7 +296,7 @@ app.post('/api/socratic-debate', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// LÍNEA DE TIEMPO HISTÓRICA CRUZADA
+// LÍNEA DE TIEMPO HISTÓRICA / JURÍDICA / CIENTÍFICA
 app.post('/api/generate-timeline-map', async (req, res) => {
   try {
     const { username, subjectId, documentId } = req.body;
@@ -309,7 +310,7 @@ app.post('/api/generate-timeline-map', async (req, res) => {
     for (const doc of docs) {
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Genera una línea de tiempo histórica cruzada y mapa de corrientes teóricas basada en los documentos.`);
+    contents.push(`Genera una línea de tiempo histórica o mapa de evolución teórica basada en los documentos para ${subject.name}.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -339,7 +340,7 @@ app.post('/api/generate-timeline-map', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// MAPA CONCEPTUAL INTERACTIVO
+// MAPA CONCEPTUAL
 app.post('/api/generate-mindmap', async (req, res) => {
   try {
     const { username, subjectId, documentId } = req.body;
@@ -394,7 +395,7 @@ app.post('/api/rag-search', async (req, res) => {
     for (const doc of allDocs) {
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Explica de forma humana y clara: "${query}"`);
+    contents.push(`Explica de forma humana y clara para la materia ${subject.name}: "${query}"`);
 
     const response = await generateWithFallback(contents, null);
     user.aiConsumptionUSD += 0.10;
@@ -440,7 +441,7 @@ app.post('/api/generate-flashcards', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// RESTAURACIÓN DEL ENDPOINT DE STORYBOOK COMPLETO CON TRIVIA Y ESCENAS
+// STORYBOOK / MONOGRAFÍA ACADÉMICA COMPLETA CON AUDIO Y TRIVIA
 app.post('/api/generate-storybook', async (req, res) => {
   try {
     const { username, subjectId, documentId, focusTopic } = req.body;
@@ -455,7 +456,7 @@ app.post('/api/generate-storybook', async (req, res) => {
       if (doc.textContent) contents.push(`Texto (${doc.title}):\n${doc.textContent}`);
     }
 
-    contents.push(`Crea una monografía académica explicada con palabras humanas sobre ${subject.name}. Incluye resumen, línea de tiempo, escenas por autores e intervinientes, y trivia gamificada con 3 preguntas.`);
+    contents.push(`Crea una monografía académica explicada con palabras humanas sobre ${subject.name}. Incluye resumen, línea de tiempo, escenas por autores o teóricos, y trivia gamificada con 3 preguntas.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -513,4 +514,4 @@ app.post('/api/generate-storybook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor activo en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Servidor multidisciplinario activo en puerto ${PORT}`));
