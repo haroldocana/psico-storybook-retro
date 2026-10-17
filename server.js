@@ -68,7 +68,7 @@ const UserSchema = new mongoose.Schema({
 
 const UserModel = mongoose.model('User', UserSchema);
 
-// MATERIAS MULTIDISCIPLINARIAS (PSICOLOGÍA, ABOGACÍA, MEDICINA, FILOSOFÍA)
+// MATERIAS MULTIDISCIPLINARIAS (PSICOLOGÍA, DERECHO, MEDICINA, FILOSOFÍA)
 const getInitialSubjectsForCareer = (career) => {
   return [
     { id: "lpc-ep2", name: "Escuelas Psicológicas II", section: "Sección A", schedule: "Semestre 2", documents: [], storybooks: [], exams: [] },
@@ -208,7 +208,7 @@ app.post('/api/documents', upload.any(), async (req, res) => {
     const dateStr = new Date().toLocaleDateString('es-GT');
 
     if (youtubeUrl && youtubeUrl.includes('youtu')) {
-      const ytContents = [`Extrae y explica con palabras humanas, claras y rigurosas el contenido de la clase magistral de YouTube para esta disciplina: ${youtubeUrl}`];
+      const ytContents = [`Extrae y explica con palabras humanas, claras y rigurosas el contenido de la clase magistral de YouTube: ${youtubeUrl}`];
       const ytRes = await generateWithFallback(ytContents, null);
 
       const newDoc = new DocumentModel({
@@ -258,6 +258,42 @@ app.delete('/api/documents/:docId', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ELIMINAR UN STORYBOOK GUARDADO EN EL HISTORIAL
+app.delete('/api/storybooks/:sbId', async (req, res) => {
+  try {
+    const { username, subjectId } = req.body;
+    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
+    if (user) {
+      const subj = user.subjects.find(s => s.id === subjectId);
+      if (subj) {
+        subj.storybooks = (subj.storybooks || []).filter(sb => sb.id !== req.params.sbId);
+        user.markModified('subjects');
+        await user.save();
+      }
+    }
+    res.json({ user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// VACIAR TODOS LOS DOCUMENTOS DE UNA MATERIA
+app.delete('/api/subjects/:subjectId/documents', async (req, res) => {
+  try {
+    const { username } = req.body;
+    const cleanUsername = (username || '').toLowerCase();
+    await DocumentModel.deleteMany({ username: cleanUsername, subjectId: req.params.subjectId });
+    const user = await UserModel.findOne({ username: cleanUsername });
+    if (user) {
+      const subj = user.subjects.find(s => s.id === req.params.subjectId);
+      if (subj) {
+        subj.documents = [];
+        user.markModified('subjects');
+        await user.save();
+      }
+    }
+    res.json({ user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 async function getFullDocumentsForSubject(username, subject, documentId) {
   const savedDocs = await DocumentModel.find({ username: username.toLowerCase(), subjectId: subject.id }).lean();
   const embeddedDocs = (subject.documents || []).filter(d => d.base64Data || d.textContent);
@@ -283,7 +319,7 @@ app.post('/api/socratic-debate', async (req, res) => {
 
     contents.push(`
       Actúa como el experto o autor: "${philosopher}". 
-      Estás en un seminario universitario multidisciplinario (Psicología, Derecho, Medicina o Filosofía). 
+      Estás en un seminario universitario multidisciplinario. 
       Historial del debate: ${history || 'Inicio'}.
       Última intervención del estudiante: "${message}".
       Responde manteniendo tu postura profesional, hazle una pregunta desafiante para poner a prueba su pensamiento crítico, y explícate en palabras humanas y claras.
@@ -441,7 +477,7 @@ app.post('/api/generate-flashcards', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// STORYBOOK / MONOGRAFÍA ACADÉMICA COMPLETA CON AUDIO Y TRIVIA
+// 📖 STORYBOOK / MONOGRAFÍA ACADÉMICA RESTAURADA AL 100%
 app.post('/api/generate-storybook', async (req, res) => {
   try {
     const { username, subjectId, documentId, focusTopic } = req.body;
@@ -514,4 +550,4 @@ app.post('/api/generate-storybook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor multidisciplinario activo en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Servidor multidisciplinario con Storybook activo en puerto ${PORT}`));
