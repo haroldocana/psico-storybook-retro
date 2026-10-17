@@ -311,7 +311,7 @@ async function getFullDocumentsForSubject(username, subject, documentId) {
   return allDocs.filter(d => d.id === documentId);
 }
 
-// 🎧 ENDPOINT AUDIOLIBRO ESPECÍFICO
+// 🎧 ENDPOINT AUDIOLIBRO (LECTURA DE PDFs USANDO IA MULTIMODAL)
 app.post('/api/audiobook-chapters', async (req, res) => {
   try {
     const { username, subjectId, documentId } = req.body;
@@ -323,14 +323,27 @@ app.post('/api/audiobook-chapters', async (req, res) => {
     if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
 
     const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
-    if (!docs.length || !docs[0].textContent) {
-      return res.status(400).json({ error: "El libro seleccionado no tiene texto extraíble." });
+    
+    const contents = [
+      `Analiza el siguiente documento (ya sea mediante el texto extraído o leyendo el archivo adjunto directamente) y divídelo en capítulos o lecciones lógicas para un audiolibre educativo con enfoque humanista-existencial. Cada capítulo debe tener un título claro y un texto redactado fluidamente para ser escuchado en voz alta:`
+    ];
+
+    let hasContent = false;
+    for (const doc of docs) {
+      // Si el documento es un PDF u otra imagen, pasamos el base64 directo a Gemini
+      if (doc.base64Data) {
+        contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+        hasContent = true;
+      }
+      if (doc.textContent) {
+        contents.push(`\n--- Texto del documento ---\n${doc.textContent}`);
+        hasContent = true;
+      }
     }
 
-    const contents = [
-      `Toma el siguiente libro/documento y divídelo en capítulos lógicos para un audiolibre educativo. Cada capítulo debe tener un título claro y un texto redactado fluidamente para ser escuchado en voz alta:`,
-      docs[0].textContent
-    ];
+    if (!hasContent) {
+      return res.status(400).json({ error: "El libro seleccionado está vacío o no contiene datos válidos." });
+    }
 
     const schema = {
       type: Type.OBJECT,
@@ -376,7 +389,7 @@ app.post('/api/phenomenology-query', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 📝 SOLICITUD DE TAREAS Y RESÚMENES (HUMANISTA-EXISTENCIAL)
+// 📝 SOLICITUD DE TAREAS Y RESÚMENES (HUMANISTA-EXISTENCIAL) LEYENDO PDFs DIRECTAMENTE
 app.post('/api/university-homework', async (req, res) => {
   try {
     const { username, subjectId, promptTask } = req.body;
@@ -386,17 +399,23 @@ app.post('/api/university-homework', async (req, res) => {
     if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
 
     const allDocs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
-    const contents = [];
+    const contents = [
+      `Actúa como mentor y profesor universitario experto en la carrera de "${user.career}", impartiendo la materia "${subject.name}".
+      INSTRUCCIÓN ESTRICTA Y METODOLÓGICA:
+      - Realiza el resumen o resolución solicitado basándote en los documentos del repositorio (adjuntos a continuación).
+      - ENFOQUE OBLIGATORIO: Utiliza un método humanista-existencial (enfocado en la vivencia subjetiva, el sentido, la libertad y la experiencia humana real) y un tono profesional pero 100% en palabras humanas, cálidas y de puro entendimiento, PROHIBIDO el uso de jerga fría sin explicación.
+      - Solicitud del estudiante: "${promptTask}"`
+    ];
+    
+    let hasContent = false;
     for (const doc of allDocs) {
-      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
-      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
+      if (doc.base64Data) { contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }); hasContent = true; }
+      if (doc.textContent) { contents.push(`[${doc.title}]:\n${doc.textContent}`); hasContent = true; }
     }
-
-    contents.push(`
-      Actúa como profesor universitario en la carrera de "${user.career}".
-      ENFOQUE OBLIGATORIO: Utiliza un método humanista-existencial y un tono profesional pero 100% en palabras humanas y de puro entendimiento, PROHIBIDO usar tecnicismos fríos sin explicarlos.
-      Resuelve esto: "${promptTask}"
-    `);
+    
+    if (!hasContent) {
+      return res.status(400).json({ error: "Debes subir al menos un PDF o texto en el repositorio para que la IA pueda resolver la tarea."});
+    }
 
     const response = await generateWithFallback(contents, null);
     user.aiConsumptionUSD += 0.12;
@@ -410,10 +429,18 @@ app.post('/api/socratic-debate', async (req, res) => {
     const { username, subjectId, philosopher, message, history } = req.body;
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
     if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
+    const subject = user.subjects.find(s => s.id === subjectId);
+    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
+
+    const allDocs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
+    const contents = [`Actúa como el experto: "${philosopher}". Carrera del estudiante: ${user.career}. Historial: ${history}. Intervención: "${message}". Responde con enfoque humanista-existencial, leyendo los documentos adjuntos si es necesario.`];
     
-    const contents = [`Actúa como el experto: "${philosopher}". Historial: ${history}. Intervención: "${message}". Responde con enfoque humanista-existencial.`];
+    for (const doc of allDocs) {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
+    }
+
     const response = await generateWithFallback(contents, null);
-    
     user.aiConsumptionUSD += 0.08;
     await user.save();
     res.json({ reply: response.text, user: await serializeUser(user) });
@@ -428,9 +455,14 @@ app.post('/api/generate-timeline-map', async (req, res) => {
     const subject = user.subjects.find(s => s.id === subjectId);
     
     const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
-    const contents = [];
-    for (const doc of docs) { if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`); }
-    contents.push(`Genera una línea de tiempo para ${subject.name} con perspectiva humana.`);
+    const contents = [`Genera una línea de tiempo para ${subject.name} con perspectiva humana usando los documentos adjuntos.`];
+    
+    let hasContent = false;
+    for (const doc of docs) { 
+      if (doc.base64Data) { contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }); hasContent = true; }
+      if (doc.textContent) { contents.push(`[${doc.title}]:\n${doc.textContent}`); hasContent = true; }
+    }
+    if (!hasContent) return res.status(400).json({ error: "Documento vacío." });
 
     const schema = { type: Type.OBJECT, properties: { timelineTitle: { type: Type.STRING }, eras: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { eraName: { type: Type.STRING }, mainAuthor: { type: Type.STRING }, coreIdea: { type: Type.STRING }, refutationOrLink: { type: Type.STRING } }, required: ["eraName", "mainAuthor", "coreIdea", "refutationOrLink"] } } }, required: ["timelineTitle", "eras"] };
     const response = await generateWithFallback(contents, schema);
@@ -447,9 +479,14 @@ app.post('/api/generate-mindmap', async (req, res) => {
     const subject = user.subjects.find(s => s.id === subjectId);
     
     const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
-    const contents = [];
-    for (const doc of docs) { if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`); }
-    contents.push(`Genera un mapa conceptual para ${subject.name}.`);
+    const contents = [`Genera un mapa conceptual para ${subject.name} usando los documentos adjuntos.`];
+    
+    let hasContent = false;
+    for (const doc of docs) { 
+      if (doc.base64Data) { contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }); hasContent = true; }
+      if (doc.textContent) { contents.push(`[${doc.title}]:\n${doc.textContent}`); hasContent = true; }
+    }
+    if (!hasContent) return res.status(400).json({ error: "Documento vacío." });
 
     const schema = { type: Type.OBJECT, properties: { centralTopic: { type: Type.STRING }, branches: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { branchName: { type: Type.STRING }, subitems: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["branchName", "subitems"] } } }, required: ["centralTopic", "branches"] };
     const response = await generateWithFallback(contents, schema);
@@ -466,9 +503,12 @@ app.post('/api/rag-search', async (req, res) => {
     const subject = user.subjects.find(s => s.id === subjectId);
     
     const allDocs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
-    const contents = [];
-    for (const doc of allDocs) { if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`); }
-    contents.push(`Explica con enfoque existencial: "${query}"`);
+    const contents = [`Explica con enfoque existencial basándote en los adjuntos: "${query}"`];
+    
+    for (const doc of allDocs) { 
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
+    }
 
     const response = await generateWithFallback(contents, null);
     user.aiConsumptionUSD += 0.10; await user.save();
@@ -483,9 +523,14 @@ app.post('/api/generate-flashcards', async (req, res) => {
     const subject = user.subjects.find(s => s.id === subjectId);
     
     const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
-    const contents = [];
-    for (const doc of docs) { if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`); }
-    contents.push(`Genera 6 fichas de estudio con lenguaje humano.`);
+    const contents = [`Genera 6 fichas de estudio con lenguaje humano basadas en el documento adjunto.`];
+    
+    let hasContent = false;
+    for (const doc of docs) { 
+      if (doc.base64Data) { contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }); hasContent = true; }
+      if (doc.textContent) { contents.push(`[${doc.title}]:\n${doc.textContent}`); hasContent = true; }
+    }
+    if (!hasContent) return res.status(400).json({ error: "Documento vacío." });
 
     const schema = { type: Type.OBJECT, properties: { flashcards: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, answer: { type: Type.STRING }, hint: { type: Type.STRING } }, required: ["question", "answer", "hint"] } } }, required: ["flashcards"] };
     const response = await generateWithFallback(contents, schema);
@@ -502,9 +547,14 @@ app.post('/api/generate-storybook', async (req, res) => {
     const subject = user.subjects.find(s => s.id === subjectId);
 
     const selectedDocs = await getFullDocumentsForSubject(user.username, subject, documentId);
-    const contents = [];
-    for (const doc of selectedDocs) { if (doc.textContent) contents.push(`Texto (${doc.title}):\n${doc.textContent}`); }
-    contents.push(`Crea una monografía académica con enfoque humanista sobre ${subject.name}. Incluye resumen, línea de tiempo, escenas por autores, y trivia gamificada.`);
+    const contents = [`Crea una monografía académica con enfoque humanista sobre ${subject.name} basada en el documento adjunto. Incluye resumen, línea de tiempo, escenas por autores, y trivia gamificada.`];
+    
+    let hasContent = false;
+    for (const doc of selectedDocs) { 
+      if (doc.base64Data) { contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }); hasContent = true; }
+      if (doc.textContent) { contents.push(`Texto (${doc.title}):\n${doc.textContent}`); hasContent = true; }
+    }
+    if (!hasContent) return res.status(400).json({ error: "Documento vacío." });
 
     const schema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, universe: { type: Type.STRING }, summary: { type: Type.STRING }, scenes: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { sceneNumber: { type: Type.INTEGER }, characterName: { type: Type.STRING }, academicConcept: { type: Type.STRING }, storyDialogue: { type: Type.STRING }, memoryTrick: { type: Type.STRING }, animationEffect: { type: Type.STRING } }, required: ["sceneNumber", "characterName", "academicConcept", "storyDialogue", "memoryTrick", "animationEffect"] } }, timeline: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { step: { type: Type.INTEGER }, title: { type: Type.STRING }, description: { type: Type.STRING } }, required: ["step", "title", "description"] } }, quiz: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctIndex: { type: Type.INTEGER }, heroExplanation: { type: Type.STRING } }, required: ["question", "options", "correctIndex", "heroExplanation"] } } }, required: ["title", "universe", "summary", "scenes", "timeline", "quiz"] };
     
