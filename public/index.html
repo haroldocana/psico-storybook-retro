@@ -3,23 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Centro de Estudio Multicarrera AI · Retro Storybook</title>
+  <title>Centro de Estudio Multicarrera AI · Plataforma Total</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body { background: radial-gradient(circle at top right, #1e1b4b, #090d16 70%); color: #f8fafc; font-family: system-ui, sans-serif; min-height: 100vh; }
-    .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
-    .manga-card { border: 2px solid #f59e0b; box-shadow: 6px 6px 0px #78350f; }
+    .glass { background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+    .comic-box { border: 4px solid #f59e0b; background: #0b0f19; box-shadow: 8px 8px 0px #78350f; position: relative; }
+    .speech-bubble { background: #fffbeb; color: #1e1b4b; border-radius: 1.25rem; border: 3px solid #78350f; position: relative; }
+    .speech-bubble:after { content: ''; position: absolute; bottom: -14px; left: 28px; border-width: 14px 14px 0; border-style: solid; border-color: #fffbeb transparent; display: block; width: 0; }
+    .flashcard { perspective: 1000px; }
+    .flashcard-inner { transition: transform 0.6s; transform-style: preserve-3d; }
+    .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+    .flashcard-front, .flashcard-back { backface-visibility: hidden; position: absolute; inset: 0; }
+    .flashcard-back { transform: rotateY(180deg); }
   </style>
 </head>
 <body class="text-slate-100">
 
-  <!-- PANTALLA LOGIN -->
+  <!-- AUTH SCREEN -->
   <div id="authScreen" class="min-h-screen flex items-center justify-center p-4">
     <div class="glass max-w-md w-full rounded-2xl p-8 shadow-2xl">
       <div class="text-center mb-6">
-        <span class="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full text-xs font-bold">MULTICARRERA & IA</span>
+        <span class="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full text-xs font-bold">MULTICARRERA & IA TOTAL</span>
         <h1 class="text-3xl font-extrabold mt-2 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">Centro de Estudio Retro</h1>
-        <p class="text-xs text-slate-400 mt-1">Dictado de Voz · Traductor Académico · Borradores Word</p>
+        <p class="text-xs text-slate-400 mt-1">Búsqueda RAG · Flashcards · Simulador de Casos · Mapas</p>
       </div>
 
       <div class="flex bg-slate-900/90 p-1 rounded-xl mb-5 border border-slate-800">
@@ -116,97 +123,105 @@
           </div>
         </div>
 
+        <!-- 🔍 BARRA DE BÚSQUEDA SEMÁNTICA GLOBAL (RAG) EN ARCHIVOS -->
+        <div class="glass rounded-2xl p-4 border-2 border-cyan-500/50 shadow-xl space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🔍</span>
+            <h3 class="font-black text-sm text-cyan-300 uppercase">Buscador Inteligente en tus Documentos (RAG)</h3>
+          </div>
+          <div class="flex gap-2">
+            <input type="text" id="ragQueryInput" placeholder="Pregúntale algo a tus archivos subidos (ej. ¿Qué dice el documento sobre el desarrollo cognitivo?)" class="flex-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
+            <button onclick="executeRagSearch()" class="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold text-xs shadow-lg">Buscar</button>
+          </div>
+        </div>
+
+        <!-- PANEL DE HERRAMIENTAS TOTALES -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- 1. Carga Masiva + Dictado de Voz -->
           <div class="glass rounded-2xl p-5 space-y-4 flex flex-col justify-between">
             <div>
               <div class="flex items-center justify-between">
                 <h3 class="font-bold text-sm text-amber-300">1️⃣ Carga Masiva y Dictado de Notas</h3>
                 <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/50">Permanente</span>
               </div>
-              <p class="text-xs text-slate-400 mt-1">Sube archivos o dicta apuntes en vivo con tu voz para guardarlos.</p>
+              <p class="text-xs text-slate-400 mt-1">Sube archivos o dicta apuntes en vivo con tu voz.</p>
 
               <form onsubmit="handleUploadDoc(event)" class="space-y-3 mt-3">
-                <input type="text" id="docTitle" placeholder="Título opcional (ej. Clase 3 - Neuro)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs" />
-                
+                <input type="text" id="docTitle" placeholder="Título opcional" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs" />
                 <div class="p-3 rounded-xl bg-slate-900/90 border border-dashed border-indigo-500/50">
                   <input type="file" id="docFiles" multiple accept=".pdf,.pptx,.ppt,.docx,.doc,.png,.jpg,.jpeg,.webp,.txt" onchange="updateSelectedFilesList()" class="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:text-white file:font-bold cursor-pointer" />
                   <div id="selectedFilesPreview" class="text-[11px] text-amber-300 mt-1.5 font-medium"></div>
                 </div>
-
-                <!-- Textarea con Botón de Dictado de Voz -->
                 <div class="relative">
-                  <textarea id="docText" rows="2" placeholder="O dicta tus apuntes aquí usando el micrófono..." class="w-full px-3 py-2 pr-10 rounded-xl bg-slate-900 border border-slate-700 text-xs"></textarea>
-                  <button type="button" onclick="toggleDictation()" id="btnMic" title="Dictar por voz" class="absolute right-2 top-2 p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs">🎙️</button>
+                  <textarea id="docText" rows="2" placeholder="O dicta tus apuntes aquí..." class="w-full px-3 py-2 pr-10 rounded-xl bg-slate-900 border border-slate-700 text-xs"></textarea>
+                  <button type="button" onclick="toggleDictation()" id="btnMic" class="absolute right-2 top-2 p-1.5 rounded-lg bg-slate-800 text-xs">🎙️</button>
                 </div>
-                <div id="micStatus" class="hidden text-[10px] text-pink-400 font-bold animate-pulse">🔴 Escuchando dictado de voz... habla ahora.</div>
-                
-                <button type="submit" id="btnUploadDoc" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xs shadow-lg">
-                  📥 Guardar en la Biblioteca Permanente
-                </button>
+                <button type="submit" id="btnUploadDoc" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xs shadow-lg">📥 Guardar en la Biblioteca</button>
               </form>
             </div>
-
             <div class="pt-4 border-t border-slate-800 mt-4">
               <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-slate-300">📚 Biblioteca Guardada (<span id="savedLibraryBadge" class="text-emerald-400">0</span>):</span>
-                <button id="btnClearAllDocs" onclick="clearAllSubjectDocs()" class="hidden text-[11px] px-2 py-0.5 rounded bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-800/60 font-bold">🗑️ Vaciar</button>
+                <span class="text-xs font-bold text-slate-300">📚 Biblioteca (<span id="savedLibraryBadge" class="text-emerald-400">0</span>):</span>
+                <button id="btnClearAllDocs" onclick="clearAllSubjectDocs()" class="hidden text-[11px] px-2 py-0.5 rounded bg-red-950 text-red-300 font-bold">🗑️ Vaciar</button>
               </div>
-              <div id="savedDocsList" class="space-y-1.5 max-h-36 overflow-y-auto pr-1"></div>
+              <div id="savedDocsList" class="space-y-1.5 max-h-32 overflow-y-auto pr-1"></div>
             </div>
           </div>
 
-          <!-- 2. IA, Storybooks, Exámenes y Traductor -->
-          <div class="glass rounded-2xl p-5 space-y-3 flex flex-col justify-between">
+          <div class="glass rounded-2xl p-5 space-y-4 flex flex-col justify-between">
             <div class="space-y-3">
-              <h3 class="font-bold text-sm text-pink-400">2️⃣ IA: Storybooks, Exámenes y Traducción</h3>
-              
+              <h3 class="font-bold text-sm text-pink-400">2️⃣ Herramientas de Estudio Avanzadas</h3>
               <div>
-                <label class="text-xs text-slate-400">Material a procesar:</label>
+                <label class="text-xs text-slate-400">Material de referencia:</label>
                 <select id="selectDocForAI" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs"></select>
               </div>
-
               <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <label class="text-xs text-slate-400">Universo:</label>
-                  <select id="selectUniverse" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs">
-                    <option value="HE_MAN">⚔️ He-Man</option>
-                    <option value="CANDY_CANDY">🌹 Candy Candy</option>
-                    <option value="TRANSFORMERS">🤖 Transformers</option>
-                    <option value="GI_JOE">🪖 G.I. Joe</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="text-xs text-slate-400">Traductor / Idioma:</label>
-                  <div class="flex gap-1 mt-1">
-                    <select id="selectLang" class="flex-1 px-2 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs">
-                      <option value="Español Técnico">Español Técnico</option>
-                      <option value="Inglés">Inglés</option>
-                      <option value="Francés">Francés</option>
-                    </select>
-                    <button onclick="translateDocument()" class="px-2.5 py-1.5 bg-cyan-600 hover:bg-cyan-500 rounded-xl text-xs font-bold" title="Traducir documento">🌐</button>
-                  </div>
-                </div>
+                <select id="selectUniverse" class="px-2 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs">
+                  <option value="HE_MAN">⚔️ He-Man</option>
+                  <option value="CANDY_CANDY">🌹 Candy Candy</option>
+                  <option value="TRANSFORMERS">🤖 Transformers</option>
+                  <option value="GI_JOE">🪖 G.I. Joe</option>
+                </select>
+                <input type="text" id="focusTopic" placeholder="Enfoque (ej. Piaget)" class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs" />
               </div>
 
-              <input type="text" id="focusTopic" placeholder="Enfoque o subtema opcional (ej. Trastorno límite)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs" />
-
+              <!-- BOTONES DE LAS 4 NUEVAS HERRAMIENTAS -->
               <div class="grid grid-cols-2 gap-2 pt-1">
-                <button onclick="generateStorybook()" id="btnGenSB" class="py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-pink-600 font-bold text-xs text-slate-950 hover:opacity-95 shadow-lg">✨ Crear Storybook</button>
-                <button onclick="generateExam()" id="btnGenExam" class="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-xs shadow-lg">🎯 Examen Práctico</button>
+                <button onclick="generateStorybook()" class="py-2 px-2 rounded-xl bg-gradient-to-r from-amber-500 to-pink-600 font-bold text-xs text-slate-950 shadow">✨ Storybook Cómic</button>
+                <button onclick="generateFlashcards()" class="py-2 px-2 rounded-xl bg-purple-600 hover:bg-purple-500 font-bold text-xs shadow">🃏 Flashcards Anki</button>
+                <button onclick="generateMindMap()" class="py-2 px-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold text-xs shadow">🧠 Mapa Mental</button>
+                <button onclick="openRoleplayModal()" class="py-2 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-xs shadow">⚖️ Simulador Casos</button>
               </div>
             </div>
 
             <div class="pt-3 border-t border-slate-800 space-y-2">
               <p class="text-xs font-bold text-slate-400">🗂️ HISTORIAL GUARDADO:</p>
-              <div id="savedHistoryList" class="space-y-1.5 max-h-36 overflow-y-auto pr-1"></div>
+              <div id="savedHistoryList" class="space-y-1.5 max-h-32 overflow-y-auto pr-1"></div>
             </div>
           </div>
         </div>
 
-        <!-- VISOR DINÁMICO (STORYBOOK, EXÁMENES Y TRADUCCIONES CON BOTÓN DE EXPORTAR A WORD/DOC) -->
+        <!-- VISOR DINÁMICO TOTAL -->
         <div id="viewerArea" class="hidden space-y-6"></div>
       </main>
+    </div>
+  </div>
+
+  <!-- MODAL SIMULADOR ROLEPLAY -->
+  <div id="modalRoleplay" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+    <div class="glass max-w-2xl w-full rounded-2xl p-6 space-y-4 border-2 border-emerald-500">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="font-extrabold text-base text-emerald-300">⚖️ Simulador de Casos Prácticos (Roleplay)</h3>
+        <button onclick="toggleRoleplayModal()" class="text-slate-400 font-bold">✕</button>
+      </div>
+      <div id="roleplayChatBox" class="h-64 overflow-y-auto bg-slate-900 p-4 rounded-xl space-y-3 border border-slate-800 text-xs">
+        <div class="p-3 rounded-xl bg-emerald-950/60 border border-emerald-800 text-emerald-200">
+          🤖 ¡Hola! Soy tu simulador clínico/legal. Cuéntame tu planteamiento o hazme una pregunta de prueba para iniciar la simulación de entrevista o caso.
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <input type="text" id="roleplayInput" placeholder="Escribe tu respuesta al paciente o juez..." class="flex-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
+        <button onclick="sendRoleplayMessage()" class="px-4 py-2.5 rounded-xl bg-emerald-600 font-bold text-xs">Enviar</button>
+      </div>
     </div>
   </div>
 
@@ -214,13 +229,10 @@
   <div id="modalSubject" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
     <div class="glass max-w-md w-full rounded-2xl p-6 space-y-4">
       <h3 class="font-bold text-lg">Agregar Nueva Materia</h3>
-      <input type="text" id="newSubjName" placeholder="Nombre (ej. Psicopatología I)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm" />
-      <input type="text" id="newSubjSchedule" placeholder="Horario o Semestre" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm" />
+      <input type="text" id="newSubjName" placeholder="Nombre de la materia" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm" />
+      <input type="text" id="newSubjSchedule" placeholder="Horario" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm" />
       <select id="newSubjHero" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm">
-        <option value="HE_MAN">He-Man</option>
-        <option value="CANDY_CANDY">Candy Candy</option>
-        <option value="TRANSFORMERS">Transformers</option>
-        <option value="GI_JOE">G.I. Joe</option>
+        <option value="HE_MAN">He-Man</option><option value="CANDY_CANDY">Candy Candy</option><option value="TRANSFORMERS">Transformers</option><option value="GI_JOE">G.I. Joe</option>
       </select>
       <div class="flex justify-end gap-2">
         <button onclick="toggleNewSubjectModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-xs">Cancelar</button>
@@ -232,8 +244,8 @@
   <script>
     let currentUser = null;
     let activeSubjectId = null;
-    let recognition = null;
-    let isRecording = false;
+    let recognition = null, isRecording = false;
+    let roleplayHistory = '';
 
     window.addEventListener('DOMContentLoaded', async () => {
       const savedUsername = localStorage.getItem('psico_active_user');
@@ -244,47 +256,25 @@
           if (res.ok && data.user) enterApp(data.user);
         } catch (e) {}
       }
-      initSpeechRecognition();
+      initSpeech();
     });
 
-    // Configurar reconocimiento de voz para Dictado
-    function initSpeechRecognition() {
+    function initSpeech() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRecognition) {
         recognition = new SpeechRecognition();
         recognition.lang = 'es-ES';
         recognition.continuous = true;
-        recognition.interimResults = true;
-
-        recognition.onresult = (event) => {
-          let transcript = '';
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            transcript += event.results[i][0].transcript;
-          }
-          document.getElementById('docText').value += ' ' + transcript;
+        recognition.onresult = (e) => {
+          let t = '';
+          for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript;
+          document.getElementById('docText').value += ' ' + t;
         };
-
-        recognition.onerror = () => stopDictation();
-        recognition.onend = () => stopDictation();
       }
     }
-
     function toggleDictation() {
-      if (!recognition) return alert('Tu navegador no soporta dictado por voz.');
-      if (isRecording) {
-        recognition.stop();
-      } else {
-        recognition.start();
-        isRecording = true;
-        document.getElementById('btnMic').className = 'absolute right-2 top-2 p-1.5 rounded-lg bg-pink-600 text-white text-xs animate-bounce';
-        document.getElementById('micStatus').classList.remove('hidden');
-      }
-    }
-
-    function stopDictation() {
-      isRecording = false;
-      document.getElementById('btnMic').className = 'absolute right-2 top-2 p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs';
-      document.getElementById('micStatus').classList.add('hidden');
+      if (!recognition) return alert('Sin soporte de voz.');
+      if (isRecording) { recognition.stop(); isRecording = false; } else { recognition.start(); isRecording = true; }
     }
 
     function switchAuthTab(tab) {
@@ -294,42 +284,31 @@
       document.getElementById('tabLogin').className = tab === 'login' ? 'flex-1 py-2 rounded-lg text-xs font-bold bg-indigo-600 text-white' : 'flex-1 py-2 rounded-lg text-xs font-bold text-slate-400';
       document.getElementById('tabRegister').className = tab === 'register' ? 'flex-1 py-2 rounded-lg text-xs font-bold bg-emerald-600 text-white' : 'flex-1 py-2 rounded-lg text-xs font-bold text-slate-400';
     }
-
-    function showAuthError(msg) {
-      const el = document.getElementById('authError');
-      el.textContent = msg;
-      el.classList.remove('hidden');
-    }
+    function showAuthError(msg) { const el = document.getElementById('authError'); el.textContent = msg; el.classList.remove('hidden'); }
 
     async function handleLogin(e) {
       e.preventDefault();
       try {
         const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ identifier: document.getElementById('loginId').value, password: document.getElementById('loginPass').value })
         });
         const data = await res.json();
         if (!res.ok) return showAuthError(data.error);
         enterApp(data.user);
-      } catch (err) { showAuthError('Error de conexión.'); }
+      } catch (e) { showAuthError('Error de red'); }
     }
-
     async function handleRegister(e) {
       e.preventDefault();
       try {
         const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fullName: document.getElementById('regName').value, username: document.getElementById('regUser').value,
-            career: document.getElementById('regCareer').value, email: document.getElementById('regEmail').value, password: document.getElementById('regPass').value
-          })
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fullName: document.getElementById('regName').value, username: document.getElementById('regUser').value, career: document.getElementById('regCareer').value, email: document.getElementById('regEmail').value, password: document.getElementById('regPass').value })
         });
         const data = await res.json();
         if (!res.ok) return showAuthError(data.error);
         enterApp(data.user);
-      } catch (err) { showAuthError('Error al registrar.'); }
+      } catch (e) { showAuthError('Error al registrar'); }
     }
 
     function enterApp(user) {
@@ -342,18 +321,11 @@
       renderDashboard();
     }
 
-    function logout() {
-      currentUser = null;
-      localStorage.removeItem('psico_active_user');
-      document.getElementById('appScreen').classList.add('hidden');
-      document.getElementById('authScreen').classList.remove('hidden');
-    }
+    function logout() { currentUser = null; localStorage.removeItem('psico_active_user'); document.getElementById('appScreen').classList.add('hidden'); document.getElementById('authScreen').classList.remove('hidden'); }
 
     function updateSelectedFilesList() {
       const input = document.getElementById('docFiles');
-      const preview = document.getElementById('selectedFilesPreview');
-      if (!input.files || input.files.length === 0) { preview.textContent = ''; return; }
-      preview.textContent = `✅ ${input.files.length} archivo(s) seleccionados.`;
+      document.getElementById('selectedFilesPreview').textContent = input.files.length ? `✅ ${input.files.length} archivo(s) listos.` : '';
     }
 
     function renderDashboard() {
@@ -362,10 +334,9 @@
 
       const list = document.getElementById('subjectsList');
       list.innerHTML = currentUser.subjects.map(s => `
-        <button onclick="selectSubject('${s.id}')" class="w-full text-left p-3 rounded-xl border transition ${s.id === activeSubjectId ? 'bg-indigo-950/90 border-indigo-400 shadow-md' : 'bg-slate-900/60 border-slate-800'}">
-          <div class="flex justify-between items-center text-[10px] text-amber-300 font-bold"><span>${s.defaultHero}</span><span>${s.schedule || ''}</span></div>
+        <button onclick="selectSubject('${s.id}')" class="w-full text-left p-3 rounded-xl border transition ${s.id === activeSubjectId ? 'bg-indigo-950/90 border-indigo-400' : 'bg-slate-900/60 border-slate-800'}">
+          <div class="flex justify-between items-center text-[10px] text-amber-300 font-bold"><span>${s.defaultHero}</span></div>
           <div class="font-bold text-sm mt-0.5">${s.name}</div>
-          <div class="text-[11px] text-slate-400 mt-1">📄 ${(s.documents||[]).length} guardados</div>
         </button>
       `).join('');
 
@@ -382,35 +353,25 @@
       document.getElementById('savedLibraryBadge').textContent = docs.length;
       document.getElementById('btnClearAllDocs').classList.toggle('hidden', docs.length === 0);
 
-      const savedDocsEl = document.getElementById('savedDocsList');
-      savedDocsEl.innerHTML = docs.length === 0 ? `<p class="text-xs text-slate-500 italic">Sin archivos guardados.</p>` : docs.map(d => `
+      document.getElementById('savedDocsList').innerHTML = docs.length === 0 ? `<p class="text-xs text-slate-500 italic">Sin archivos.</p>` : docs.map(d => `
         <div class="flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs gap-2">
-          <div class="truncate"><span class="text-emerald-400 font-bold">✔</span> ${d.title}</div>
-          <button onclick="deleteSavedDoc('${d.id}')" class="shrink-0 text-red-400 hover:text-red-300 text-xs font-bold">🗑️</button>
+          <div class="truncate">✔ ${d.title}</div>
+          <button onclick="deleteSavedDoc('${d.id}')" class="text-red-400 font-bold">🗑️</button>
         </div>
       `).join('');
 
-      const sel = document.getElementById('selectDocForAI');
-      sel.innerHTML = `<option value="ALL">📚 USAR TODOS LOS ARCHIVOS (${docs.length})</option>` + docs.map(d => `<option value="${d.id}">📄 ${d.title}</option>`).join('');
+      document.getElementById('selectDocForAI').innerHTML = `<option value="ALL">📚 USAR TODOS (${docs.length})</option>` + docs.map(d => `<option value="${d.id}">📄 ${d.title}</option>`).join('');
 
       const hist = document.getElementById('savedHistoryList');
-      const sbsHtml = (subj.storybooks || []).slice().reverse().map(sb => `
-        <div class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 flex justify-between items-center text-xs">
+      hist.innerHTML = (subj.storybooks || []).slice().reverse().map(sb => `
+        <div class="p-2 rounded-xl bg-slate-900 border border-slate-800 flex justify-between items-center text-xs">
           <div onclick='openStorybook(${JSON.stringify(sb).replace(/'/g, "&#39;")})' class="cursor-pointer truncate flex-1">📖 <b>${sb.title}</b></div>
-          <button onclick="deleteSavedStorybook('${sb.id}')" class="text-red-400 text-xs ml-2">🗑️</button>
+          <button onclick="deleteSavedStorybook('${sb.id}')" class="text-red-400 ml-2">🗑️</button>
         </div>
-      `).join('');
-
-      hist.innerHTML = sbsHtml || '<p class="text-xs text-slate-500">Sin historial aún.</p>';
+      `).join('') || '<p class="text-xs text-slate-500">Sin historial.</p>';
     }
 
-    function selectSubject(id) {
-      activeSubjectId = id;
-      if (currentUser) localStorage.setItem(`psico_subj_${currentUser.username}`, id);
-      document.getElementById('viewerArea').classList.add('hidden');
-      renderDashboard();
-    }
-
+    function selectSubject(id) { activeSubjectId = id; localStorage.setItem(`psico_subj_${currentUser.username}`, id); document.getElementById('viewerArea').classList.add('hidden'); renderDashboard(); }
     function toggleNewSubjectModal() { document.getElementById('modalSubject').classList.toggle('hidden'); }
 
     async function createNewSubject() {
@@ -425,7 +386,7 @@
     }
 
     async function deleteActiveSubject() {
-      if (!activeSubjectId || !confirm('¿Borrar materia y archivos?')) return;
+      if (!activeSubjectId || !confirm('¿Borrar materia?')) return;
       const res = await fetch(`/api/subjects/${activeSubjectId}`, {
         method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username })
       });
@@ -435,93 +396,58 @@
 
     async function handleUploadDoc(e) {
       e.preventDefault();
-      const btn = document.getElementById('btnUploadDoc');
-      const fileInput = document.getElementById('docFiles');
-      const textVal = document.getElementById('docText').value;
+      const fd = new FormData();
+      fd.append('username', currentUser.username); fd.append('subjectId', activeSubjectId);
+      fd.append('docTitle', document.getElementById('docTitle').value);
+      fd.append('customText', document.getElementById('docText').value);
+      const files = document.getElementById('docFiles').files;
+      for (let i = 0; i < files.length; i++) fd.append('documents', files[i]);
 
-      btn.disabled = true; btn.textContent = '⏳ Guardando en Cloud...';
-      try {
-        const fd = new FormData();
-        fd.append('username', currentUser.username);
-        fd.append('subjectId', activeSubjectId);
-        fd.append('docTitle', document.getElementById('docTitle').value);
-        fd.append('customText', textVal);
-        for (let i = 0; i < fileInput.files.length; i++) fd.append('documents', fileInput.files[i]);
-
-        const res = await fetch('/api/documents', { method: 'POST', body: fd });
-        const data = await res.json();
-        if (res.ok) {
-          currentUser = data.user;
-          document.getElementById('docTitle').value = '';
-          document.getElementById('docFiles').value = '';
-          document.getElementById('docText').value = '';
-          document.getElementById('selectedFilesPreview').textContent = '✅ ¡Guardado con éxito!';
-          renderDashboard();
-        } else { alert(data.error); }
-      } catch (err) { alert('Error: ' + err.message); }
-      finally { btn.disabled = false; btn.textContent = '📥 Guardar en la Biblioteca Permanente'; }
+      const res = await fetch('/api/documents', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (res.ok) { currentUser = data.user; document.getElementById('docTitle').value = ''; document.getElementById('docFiles').value = ''; document.getElementById('docText').value = ''; renderDashboard(); alert('¡Guardado!'); }
     }
 
-    async function deleteSavedDoc(docId) {
+    async function deleteSavedDoc(id) {
       if (!confirm('¿Borrar archivo?')) return;
-      const res = await fetch(`/api/documents/${docId}`, {
-        method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId })
-      });
+      const res = await fetch(`/api/documents/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId }) });
       const data = await res.json();
       if (res.ok) { currentUser = data.user; renderDashboard(); }
     }
 
     async function clearAllSubjectDocs() {
-      if (!confirm('¿Vaciar biblioteca?')) return;
-      const res = await fetch(`/api/subjects/${activeSubjectId}/documents`, {
-        method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username })
-      });
+      if (!confirm('¿Vaciar materia?')) return;
+      const res = await fetch(`/api/subjects/${activeSubjectId}/documents`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username }) });
       const data = await res.json();
       if (res.ok) { currentUser = data.user; renderDashboard(); }
     }
 
     async function deleteSavedStorybook(sbId) {
-      if (!confirm('¿Borrar Storybook?')) return;
-      const res = await fetch(`/api/storybooks/${sbId}`, {
-        method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId })
-      });
+      const res = await fetch(`/api/storybooks/${sbId}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId }) });
       const data = await res.json();
       if (res.ok) { currentUser = data.user; renderDashboard(); }
     }
 
-    // Exportar cualquier contenido a Borrador `.doc` descargable
     function exportToWord(title, contentHtml) {
-      const htmlContent = `
-        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-        <head><meta charset='utf-8'><title>${title}</title></head>
-        <body style='font-family: Arial, sans-serif; line-height: 1.4; color: #333;'>
-          <h1 style='color: #1e1b4b;'>${title}</h1>
-          <hr style='border: 1px solid #ccc;'/>
-          ${contentHtml}
-        </body>
-        </html>
-      `;
+      const htmlContent = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body><h1>${title}</h1>${contentHtml}</body></html>`;
       const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/msword' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.doc`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      const a = document.createElement('a'); a.href = url; a.download = `${title}.doc`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
 
-    async function translateDocument() {
-      const btnLang = document.getElementById('selectLang').value;
+    // 1. EJECUTAR BÚSQUEDA RAG
+    async function executeRagSearch() {
+      const query = document.getElementById('ragQueryInput').value.trim();
+      if (!query) return alert('Escribe una pregunta para buscar en tus archivos.');
       const v = document.getElementById('viewerArea');
       v.classList.remove('hidden');
-      v.innerHTML = `<div class="glass rounded-2xl p-6 text-center animate-pulse"><p class="text-cyan-300 font-bold">🌐 Traduciendo documento al ${btnLang} con Gemini...</p></div>`;
+      v.innerHTML = `<div class="glass rounded-2xl p-6 text-center animate-pulse"><p class="text-cyan-300 font-bold">🔍 Buscando en tus archivos con IA...</p></div>`;
       v.scrollIntoView({ behavior: 'smooth' });
 
       try {
-        const res = await fetch('/api/translate-document', {
+        const res = await fetch('/api/rag-search', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value, targetLanguage: btnLang })
+          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, query })
         });
         const data = await res.json();
         if (!res.ok) return alert(data.error);
@@ -529,20 +455,129 @@
         renderDashboard();
 
         v.innerHTML = `
-          <div class="glass rounded-2xl p-6 space-y-4 border-2 border-cyan-500/40">
-            <div class="flex justify-between items-center">
-              <h2 class="text-xl font-bold text-cyan-300">🌐 Traducción Académica (${btnLang})</h2>
-              <button onclick="exportToWord('Traduccion_${btnLang}', document.getElementById('translationContent').innerHTML)" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xs">📥 Descargar Borrador en Word (.doc)</button>
-            </div>
-            <div id="translationContent" class="bg-slate-900 p-4 rounded-xl text-xs whitespace-pre-wrap leading-relaxed border border-slate-800">${data.translation}</div>
+          <div class="glass rounded-2xl p-6 space-y-4 border-2 border-cyan-500">
+            <h2 class="text-xl font-bold text-cyan-300">🔍 Resultado de Búsqueda RAG</h2>
+            <p class="text-xs text-slate-400"><b>Pregunta:</b> "${query}"</p>
+            <div class="bg-slate-900 p-4 rounded-xl text-xs whitespace-pre-wrap leading-relaxed border border-slate-800">${data.answer}</div>
           </div>
         `;
-      } catch (err) { alert('Error traduciendo: ' + err.message); }
+      } catch (err) { alert('Error: ' + err.message); }
     }
 
+    // 2. FLASHCARDS
+    async function generateFlashcards() {
+      const v = document.getElementById('viewerArea');
+      v.classList.remove('hidden');
+      v.innerHTML = `<div class="glass rounded-2xl p-6 text-center animate-pulse"><p class="text-purple-300 font-bold">🃏 Generando Flashcards Anki...</p></div>`;
+      v.scrollIntoView({ behavior: 'smooth' });
+
+      try {
+        const res = await fetch('/api/generate-flashcards', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value })
+        });
+        const data = await res.json();
+        if (!res.ok) return alert(data.error);
+        currentUser = data.user;
+        renderDashboard();
+
+        v.innerHTML = `
+          <div class="glass rounded-2xl p-6 space-y-4 border-2 border-purple-500">
+            <h2 class="text-xl font-bold text-purple-300">🃏 Tarjetas de Estudio Anki (Flashcards)</h2>
+            <p class="text-xs text-slate-400">Haz clic en cualquier tarjeta para voltearla y ver la respuesta.</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              ${data.flashcards.map((fc, i) => `
+                <div onclick="this.classList.toggle('flipped')" class="flashcard h-48 cursor-pointer relative">
+                  <div class="flashcard-inner w-full h-full relative rounded-2xl shadow-xl">
+                    <div class="flashcard-front bg-slate-900 border-2 border-purple-500/60 p-4 rounded-2xl flex flex-col justify-between">
+                      <span class="text-[10px] font-bold text-purple-400">TARJETA #${i+1}</span>
+                      <p class="text-xs font-bold text-center">${fc.question}</p>
+                      <span class="text-[10px] text-slate-500 text-center">Click para girar 🔄</span>
+                    </div>
+                    <div class="flashcard-back bg-indigo-950 border-2 border-indigo-400 p-4 rounded-2xl flex flex-col justify-between">
+                      <span class="text-[10px] font-bold text-emerald-400">RESPUESTA</span>
+                      <p class="text-xs text-slate-200 text-center">${fc.answer}</p>
+                      <span class="text-[10px] text-amber-300 text-center">💡 Pista: ${fc.hint}</span>
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } catch (err) { alert('Error: ' + err.message); }
+    }
+
+    // 3. MAPA MENTAL
+    async function generateMindMap() {
+      const v = document.getElementById('viewerArea');
+      v.classList.remove('hidden');
+      v.innerHTML = `<div class="glass rounded-2xl p-6 text-center animate-pulse"><p class="text-cyan-300 font-bold">🧠 Construyendo mapa mental jerárquico...</p></div>`;
+      v.scrollIntoView({ behavior: 'smooth' });
+
+      try {
+        const res = await fetch('/api/generate-mindmap', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value })
+        });
+        const data = await res.json();
+        if (!res.ok) return alert(data.error);
+        currentUser = data.user;
+        renderDashboard();
+
+        const mm = data.mindmap;
+        v.innerHTML = `
+          <div class="glass rounded-2xl p-6 space-y-6 border-2 border-cyan-500">
+            <h2 class="text-xl font-bold text-cyan-300 text-center">🧠 Mapa Mental: ${mm.centralTopic}</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              ${mm.branches.map(b => `
+                <div class="p-4 rounded-2xl bg-slate-900 border-2 border-cyan-500/40 space-y-2">
+                  <h4 class="font-black text-sm text-amber-300 border-b border-slate-800 pb-1">📌 ${b.branchName}</h4>
+                  <ul class="space-y-1 text-xs text-slate-300">
+                    ${b.subitems.map(sub => `<li>• ${sub}</li>`).join('')}
+                  </ul>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } catch (err) { alert('Error: ' + err.message); }
+    }
+
+    // 4. SIMULADOR ROLEPLAY
+    function openRoleplayModal() { document.getElementById('modalRoleplay').classList.remove('hidden'); }
+    function toggleRoleplayModal() { document.getElementById('modalRoleplay').classList.toggle('hidden'); }
+
+    async function sendRoleplayMessage() {
+      const input = document.getElementById('roleplayInput');
+      const msg = input.value.trim();
+      if (!msg) return;
+      const box = document.getElementById('roleplayChatBox');
+      box.innerHTML += `<div class="p-3 rounded-xl bg-indigo-950/80 text-right text-indigo-200"><b>Tú:</b> ${msg}</div>`;
+      input.value = '';
+      roleplayHistory += `\nEstudiante: ${msg}`;
+
+      try {
+        const res = await fetch('/api/roleplay-chat', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, message: msg, history: roleplayHistory })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          roleplayHistory += `\nSimulador: ${data.reply}`;
+          box.innerHTML += `<div class="p-3 rounded-xl bg-emerald-950/60 border border-emerald-800 text-emerald-200"><b>Simulador:</b> ${data.reply}</div>`;
+          box.scrollTop = box.scrollHeight;
+        }
+      } catch (err) {}
+    }
+
+    // STORYBOOK CÓMIC
     async function generateStorybook() {
-      const btn = document.getElementById('btnGenSB');
-      btn.disabled = true; btn.textContent = '⏳ Analizando...';
+      const v = document.getElementById('viewerArea');
+      v.classList.remove('hidden');
+      v.innerHTML = `<div class="glass rounded-2xl p-6 text-center animate-pulse"><p class="text-amber-300 font-bold">✨ Creando Storybook Cómic con avatares...</p></div>`;
+      v.scrollIntoView({ behavior: 'smooth' });
+
       try {
         const res = await fetch('/api/generate-storybook', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -550,88 +585,75 @@
         });
         const data = await res.json();
         if (res.ok) { currentUser = data.user; renderDashboard(); openStorybook(data.storybook); }
-        else { alert(data.error); }
-      } catch (e) { alert('Error de red.'); }
-      finally { btn.disabled = false; btn.textContent = '✨ Crear Storybook'; }
+        else alert(data.error);
+      } catch (e) { alert('Error.'); }
     }
 
     function openStorybook(sb) {
       const v = document.getElementById('viewerArea');
       v.classList.remove('hidden');
-      
-      let htmlExport = `<h2>${sb.title}</h2><p><b>Resumen:</b> ${sb.summary}</p><h3>Línea de Tiempo</h3><ul>`;
-      (sb.timeline || []).forEach(t => htmlExport += `<li><b>${t.title}:</b> ${t.description}</li>`);
-      htmlExport += `</ul><h3>Escenas del Storybook</h3>`;
-      (sb.scenes || []).forEach(sc => htmlExport += `<p><b>Escena ${sc.sceneNumber} (${sc.characterName}):</b> ${sc.storyDialogue} <br/><em>Mnemotecnia:</em> ${sc.memoryTrick}</p>`);
+      const avatars = {
+        'HE_MAN': { name: 'He-Man', icon: '⚔️', bg: 'from-amber-600 to-yellow-500' },
+        'CANDY_CANDY': { name: 'Candy Candy', icon: '🌹', bg: 'from-pink-500 to-rose-400' },
+        'TRANSFORMERS': { name: 'Optimus Prime', icon: '🤖', bg: 'from-blue-600 to-cyan-500' },
+        'GI_JOE': { name: 'Duke', icon: '🪖', bg: 'from-emerald-600 to-teal-500' }
+      };
+      const avatar = avatars[sb.universe] || avatars['HE_MAN'];
 
       v.innerHTML = `
-        <div id="exportableStorybook" class="glass rounded-2xl p-6 space-y-6 border-2 border-amber-500/40">
-          <div class="flex flex-wrap justify-between items-center gap-2 border-b border-slate-800 pb-4">
-            <div>
-              <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300">${sb.universe}</span>
-              <h2 class="text-2xl font-extrabold mt-1">${sb.title}</h2>
+        <div id="exportableStorybook" class="glass rounded-3xl p-6 md:p-8 space-y-8 comic-box">
+          <div class="flex flex-wrap justify-between items-center gap-4 border-b-4 border-amber-500 pb-4">
+            <div class="flex items-center gap-4">
+              <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr ${avatar.bg} p-1 shadow-xl flex items-center justify-center text-3xl">${avatar.icon}</div>
+              <div>
+                <span class="px-3 py-1 rounded-full text-xs font-black bg-amber-500 text-slate-950 uppercase">Universo: ${sb.universe}</span>
+                <h2 class="text-3xl font-black mt-1 bg-gradient-to-r from-amber-300 via-pink-400 to-cyan-300 bg-clip-text text-transparent">${sb.title}</h2>
+              </div>
             </div>
-            <button onclick="exportToWord('${sb.title}', document.getElementById('exportableStorybook').innerHTML)" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xs">📥 Descargar Resumen en Word (.doc)</button>
+            <button onclick="exportToWord('${sb.title}', document.getElementById('exportableStorybook').innerHTML)" class="px-4 py-2 rounded-xl bg-indigo-600 font-extrabold text-xs">📥 Descargar .doc</button>
           </div>
 
-          <div class="bg-slate-900/90 rounded-2xl p-5 border border-indigo-500/30">
-            <h3 class="font-bold text-sm text-cyan-300 mb-4">⏳ LÍNEA DE TIEMPO CAUSAL</h3>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div class="speech-bubble p-5 text-sm font-bold shadow-xl flex items-start gap-4">
+            <span class="text-3xl">📖</span>
+            <div><p class="text-indigo-950 font-black mb-1">Resumen del Narrador:</p><p class="text-slate-800 font-medium">${sb.summary}</p></div>
+          </div>
+
+          <div class="bg-slate-950/95 rounded-2xl p-6 border-4 border-cyan-500 shadow-2xl space-y-4">
+            <h3 class="font-black text-base text-cyan-300 uppercase">⏳ Línea de Tiempo y Evolución Causal</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
               ${(sb.timeline || []).map(t => `
-                <div class="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                  <span class="text-xs font-bold text-cyan-300">Paso ${t.step}</span>
-                  <h4 class="font-bold text-sm mt-1 text-amber-200">${t.title}</h4>
-                  <p class="text-xs text-slate-300 mt-1">${t.description}</p>
+                <div class="p-4 rounded-xl bg-slate-900 border-2 border-indigo-500/60">
+                  <span class="text-[10px] font-black px-2 py-0.5 rounded bg-cyan-500 text-slate-950">FASE ${t.step}</span>
+                  <h4 class="font-extrabold text-sm mt-2 text-amber-300">${t.title}</h4>
+                  <p class="text-xs text-slate-300 mt-2">${t.description}</p>
                 </div>
               `).join('')}
             </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            ${(sb.scenes || []).map(sc => `
-              <div class="manga-card bg-slate-900 rounded-2xl p-4 space-y-2">
-                <div class="text-xs font-bold text-amber-400">ESCENA #${sc.sceneNumber} ·${sc.characterName}</div>
-                <p class="text-sm text-slate-100 italic bg-slate-950/80 p-3 rounded-xl">"${sc.storyDialogue}"</p>
-                <div class="text-xs bg-amber-500/10 text-amber-200 p-2 rounded-xl">💡 ${sc.memoryTrick}</div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-      v.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    async function generateExam() {
-      const btn = document.getElementById('btnGenExam');
-      btn.disabled = true; btn.textContent = '⏳ Generando...';
-      try {
-        const res = await fetch('/api/generate-exam', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value, universe: document.getElementById('selectUniverse').value })
-        });
-        const data = await res.json();
-        if (res.ok) { currentUser = data.user; renderDashboard(); openExam(data.exam); }
-        else { alert(data.error); }
-      } catch (e) { alert('Error.'); }
-      finally { btn.disabled = false; btn.textContent = '🎯 Examen Práctico'; }
-    }
-
-    function openExam(ex) {
-      const v = document.getElementById('viewerArea');
-      v.classList.remove('hidden');
-      v.innerHTML = `
-        <div class="glass rounded-2xl p-6 space-y-4 border-2 border-emerald-500/40">
-          <h2 class="text-xl font-extrabold text-emerald-300">🎯 ${ex.examTitle}</h2>
-          ${(ex.questions || []).map((q, i) => `
-            <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
-              <p class="font-bold text-sm">${i + 1}.${q.question}</p>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                ${(q.options || []).map((opt, oIdx) => `
-                  <button onclick="alert('${oIdx === q.correctIndex ? '✅ Correcto' : '❌ Incorrecto'} - ${q.heroExplanation}')" class="text-left text-xs p-2.5 rounded-xl bg-slate-950 hover:bg-emerald-950 border border-slate-700">${opt}</button>
-                `).join('')}
-              </div>
+          <div class="space-y-6">
+            <h3 class="font-black text-base text-amber-400 uppercase">🎬 Viñetas de Cómic con Personajes</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              ${(sb.scenes || []).map(sc => `
+                <div class="comic-box rounded-2xl p-5 space-y-4 flex flex-col justify-between">
+                  <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <span class="text-xs font-black px-2.5 py-1 rounded bg-amber-500/20 text-amber-300">ESCENA #${sc.sceneNumber}</span>
+                  </div>
+                  <div class="flex items-start gap-4 my-2">
+                    <div class="shrink-0 text-center">
+                      <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr ${avatar.bg} flex items-center justify-center text-xl font-bold">${sc.characterName.substring(0,2)}</div>
+                      <span class="text-[10px] font-bold text-amber-300 mt-1 block">${sc.characterName}</span>
+                    </div>
+                    <div class="speech-bubble p-3 text-xs font-bold leading-relaxed flex-1">
+                      <p class="text-indigo-950 font-black mb-1">📘 Concepto: ${sc.academicConcept}</p>
+                      <p class="text-slate-800 italic">"${sc.storyDialogue}"</p>
+                    </div>
+                  </div>
+                  <div class="text-xs bg-amber-500/10 text-amber-200 p-2.5 rounded-xl font-medium">💡 ${sc.memoryTrick}</div>
+                </div>
+              `).join('')}
             </div>
-          `).join('')}
+          </div>
         </div>
       `;
       v.scrollIntoView({ behavior: 'smooth' });
