@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Centro de Estudio Multicarrera AI · Audiolibro & Mapa Mental</title>
+  <title>Centro de Estudio de Psicología Clínica · Universidad</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { background: radial-gradient(circle at top right, #1e1b4b, #090d16 70%); color: #f8fafc; font-family: system-ui, sans-serif; min-height: 100vh; }
+    body { background: radial-gradient(circle at top right, #0f172a, #020617 70%); color: #f8fafc; font-family: system-ui, sans-serif; min-height: 100vh; }
     .glass { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.08); }
-    .comic-box { border: 4px solid #f59e0b; background: #0b0f19; box-shadow: 8px 8px 0px #78350f; position: relative; }
-    .speech-bubble { background: #fffbeb; color: #1e1b4b; border-radius: 1.25rem; border: 3px solid #78350f; position: relative; }
-    .speech-bubble:after { content: ''; position: absolute; bottom: -14px; left: 28px; border-width: 14px 14px 0; border-style: solid; border-color: #fffbeb transparent; display: block; width: 0; }
+    .academic-card { border: 2px solid #38bdf8; background: #0b0f19; box-shadow: 6px 6px 0px #0369a1; position: relative; }
+    .speech-bubble { background: #f0fdf4; color: #065f46; border-radius: 1.25rem; border: 2px solid #047857; position: relative; }
+    .speech-bubble:after { content: ''; position: absolute; bottom: -12px; left: 28px; border-width: 12px 12px 0; border-style: solid; border-color: #f0fdf4 transparent; display: block; width: 0; }
     .flashcard { perspective: 1000px; }
     .flashcard-inner { transition: transform 0.6s; transform-style: preserve-3d; }
     .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
     .flashcard-front, .flashcard-back { backface-visibility: hidden; position: absolute; inset: 0; }
     .flashcard-back { transform: rotateY(180deg); }
-    #viewerArea.fullscreen-mode { position: fixed; inset: 0; z-index: 100; overflow-y: auto; background: rgba(5, 7, 15, 0.98); padding: 2rem; }
+    #viewerArea.fullscreen-mode { position: fixed; inset: 0; z-index: 100; overflow-y: auto; background: rgba(2, 6, 23, 0.99); padding: 2rem; }
   </style>
 </head>
 <body class="text-slate-100">
@@ -25,14 +25,14 @@
   <div id="authScreen" class="min-h-screen flex items-center justify-center p-4">
     <div class="glass max-w-md w-full rounded-2xl p-8 shadow-2xl">
       <div class="text-center mb-6">
-        <span class="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full text-xs font-bold">PSICOLOGÍA CLÍNICA & IA</span>
-        <h1 class="text-3xl font-extrabold mt-2 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">Centro de Estudio Retro</h1>
-        <p class="text-xs text-slate-400 mt-1">Audiolibro TTS · Mapa Mental Gráfico · Repaso Espaciado</p>
+        <span class="px-3 py-1 bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 rounded-full text-xs font-bold">LICENCIATURA EN PSICOLOGÍA CLÍNICA</span>
+        <h1 class="text-3xl font-extrabold mt-2 bg-gradient-to-r from-cyan-400 via-teal-300 to-indigo-400 bg-clip-text text-transparent">Plataforma Académica</h1>
+        <p class="text-xs text-slate-400 mt-1">Evolución Histórica · Teorías y Autores · Audiolibro</p>
       </div>
 
       <div class="flex bg-slate-900/90 p-1 rounded-xl mb-5 border border-slate-800">
         <button onclick="switchAuthTab('login')" id="tabLogin" class="flex-1 py-2 rounded-lg text-xs font-bold bg-indigo-600 text-white">Iniciar Sesión</button>
-        <button onclick="switchAuthTab('register')" id="tabRegister" class="flex-1 py-2 rounded-lg text-xs font-bold text-slate-400">Nueva Cuenta ($6/mes)</button>
+        <button onclick="switchAuthTab('register')" id="tabRegister" class="flex-1 py-2 rounded-lg text-xs font-bold text-slate-400">Nueva Cuenta</button>
       </div>
 
       <div id="authError" class="hidden mb-4 p-3 rounded-xl bg-red-950/90 border border-red-500/60 text-red-200 text-xs"></div>
@@ -46,7 +46,7 @@
           <label class="text-xs text-slate-400">Contraseña</label>
           <input type="password" id="loginPass" required value="admin123" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
         </div>
-        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-pink-600 to-indigo-600 font-bold text-sm shadow-lg">Entrar a Mi Centro de Estudio</button>
+        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 font-bold text-sm shadow-lg">Entrar a Plataforma Universitaria</button>
       </form>
 
       <form id="registerForm" onsubmit="handleRegister(event)" class="hidden space-y-3">
@@ -63,8 +63,6 @@
             <label class="text-xs text-slate-400">Carrera</label>
             <select id="regCareer" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
               <option value="Psicología Clínica">Psicología Clínica</option>
-              <option value="Medicina">Medicina</option>
-              <option value="Abogacía">Abogacía / Derecho</option>
             </select>
           </div>
         </div>
@@ -76,7 +74,7 @@
           <label class="text-xs text-slate-400">Contraseña</label>
           <input type="password" id="regPass" required class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
         </div>
-        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 font-bold text-sm">Activar Cuenta ($6.00/mes + IA)</button>
+        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 font-bold text-sm">Registrar Cuenta</button>
       </form>
     </div>
   </div>
@@ -86,15 +84,14 @@
     <header class="glass sticky top-0 z-30 px-6 py-3 flex flex-wrap items-center justify-between gap-4 border-b border-slate-800">
       <div>
         <div class="flex items-center gap-2">
-          <span class="text-xl">⚡</span>
-          <h2 class="font-extrabold text-lg bg-gradient-to-r from-amber-300 to-pink-400 bg-clip-text text-transparent">Centro de Estudio Multicarrera AI</h2>
+          <span class="text-xl">🧠</span>
+          <h2 class="font-extrabold text-lg bg-gradient-to-r from-cyan-300 to-teal-400 bg-clip-text text-transparent">Centro de Estudio de Psicología Clínica</h2>
         </div>
         <p id="userHeaderInfo" class="text-xs text-slate-400"></p>
       </div>
       <div class="flex items-center gap-4">
         <div class="bg-slate-900/90 border border-slate-700 rounded-xl px-3 py-1.5 text-xs flex items-center gap-3">
-          <span>Base: <b class="text-emerald-400">$6.00</b></span>
-          <span>Consumo IA: <b id="aiBilling" class="text-amber-400">$0.00 USD</b></span>
+          <span>Consumo IA: <b id="aiBilling" class="text-cyan-400">$0.00 USD</b></span>
         </div>
         <button onclick="logout()" class="px-3 py-1.5 rounded-lg bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/50 text-xs font-bold">Salir</button>
       </div>
@@ -104,7 +101,7 @@
       <aside class="lg:col-span-3 space-y-4">
         <div class="glass rounded-2xl p-4">
           <div class="flex items-center justify-between mb-3">
-            <h3 class="font-bold text-xs uppercase tracking-wider text-slate-400">📚 Mis Materias</h3>
+            <h3 class="font-bold text-xs uppercase tracking-wider text-slate-400">📚 Materias</h3>
             <button onclick="toggleNewSubjectModal()" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-bold">+ Materia</button>
           </div>
           <div id="subjectsList" class="space-y-2"></div>
@@ -114,18 +111,18 @@
       <main class="lg:col-span-9 space-y-6">
         <div class="glass rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <span id="activeSubjMeta" class="text-xs font-bold text-indigo-400 uppercase"></span>
+            <span id="activeSubjMeta" class="text-xs font-bold text-cyan-400 uppercase"></span>
             <h2 id="activeSubjTitle" class="text-2xl font-extrabold mt-0.5">Selecciona una materia</h2>
           </div>
           <div class="flex flex-wrap items-center gap-3 text-xs">
             <div class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-2">
-              <span>📈 Dominio:</span>
+              <span>📈 Progreso Teórico:</span>
               <div class="w-20 bg-slate-800 rounded-full h-2.5 overflow-hidden">
-                <div id="progressBar" class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-2.5 rounded-full" style="width: 0%"></div>
+                <div id="progressBar" class="bg-gradient-to-r from-cyan-500 to-teal-400 h-2.5 rounded-full" style="width: 0%"></div>
               </div>
-              <span id="progressText" class="font-bold text-emerald-400">0%</span>
+              <span id="progressText" class="font-bold text-cyan-400">0%</span>
             </div>
-            <button onclick="deleteActiveSubject()" class="px-3 py-1.5 rounded-xl bg-red-950/70 hover:bg-red-900 text-red-300 border border-red-800/50 font-bold">🗑️ Borrar</button>
+            <button onclick="deleteActiveSubject()" class="px-3 py-1.5 rounded-xl bg-red-950/70 text-red-300 border border-red-800/50 font-bold">🗑️ Borrar</button>
           </div>
         </div>
 
@@ -133,40 +130,40 @@
         <div class="glass rounded-2xl p-4 border-2 border-cyan-500/50 shadow-xl space-y-3">
           <div class="flex items-center gap-2">
             <span class="text-xl">🔍</span>
-            <h3 class="font-black text-sm text-cyan-300 uppercase">Buscador Inteligente en tus Documentos (RAG)</h3>
+            <h3 class="font-black text-sm text-cyan-300 uppercase">Búsqueda Científica en Documentos</h3>
           </div>
           <div class="flex gap-2">
-            <input type="text" id="ragQueryInput" placeholder="Pregúntale algo a tus archivos..." class="flex-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
+            <input type="text" id="ragQueryInput" placeholder="Consulta bibliográfica (ej. ¿Qué postula Freud sobre el aparato psíquico?)" class="flex-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
             <button onclick="executeRagSearch()" class="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold text-xs shadow-lg">Buscar</button>
           </div>
         </div>
 
-        <!-- PANEL DE HERRAMIENTAS -->
+        <!-- PANEL DE HERRAMIENTAS ACADÉMICAS -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="glass rounded-2xl p-5 space-y-4 flex flex-col justify-between">
             <div>
               <div class="flex items-center justify-between">
-                <h3 class="font-bold text-sm text-amber-300">1️⃣ Carga Masiva y Dictado de Notas</h3>
-                <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/50">Permanente</span>
+                <h3 class="font-bold text-sm text-cyan-300">1️⃣ Carga de Documentos y Apuntes</h3>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/50">Base de Datos</span>
               </div>
-              <p class="text-xs text-slate-400 mt-1">Sube archivos o dicta apuntes con tu voz.</p>
+              <p class="text-xs text-slate-400 mt-1">Sube los textos obligatorios o dicta notas de clase.</p>
 
               <form onsubmit="handleUploadDoc(event)" class="space-y-3 mt-3">
-                <input type="text" id="docTitle" placeholder="Título opcional" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
-                <div class="p-3 rounded-xl bg-slate-900/90 border border-dashed border-indigo-500/50">
-                  <input type="file" id="docFiles" multiple accept=".pdf,.pptx,.ppt,.docx,.doc,.png,.jpg,.jpeg,.webp,.txt" onchange="updateSelectedFilesList()" class="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:text-white file:font-bold cursor-pointer" />
-                  <div id="selectedFilesPreview" class="text-[11px] text-amber-300 mt-1.5 font-medium"></div>
+                <input type="text" id="docTitle" placeholder="Título (ej. Texto Obligatorio - Unidad 1)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
+                <div class="p-3 rounded-xl bg-slate-900/90 border border-dashed border-cyan-500/50">
+                  <input type="file" id="docFiles" multiple accept=".pdf,.pptx,.ppt,.docx,.doc,.png,.jpg,.jpeg,.webp,.txt" onchange="updateSelectedFilesList()" class="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-cyan-600 file:text-white file:font-bold cursor-pointer" />
+                  <div id="selectedFilesPreview" class="text-[11px] text-cyan-300 mt-1.5 font-medium"></div>
                 </div>
                 <div class="relative">
                   <textarea id="docText" rows="2" placeholder="O dicta tus apuntes aquí..." class="w-full px-3 py-2 pr-10 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"></textarea>
                   <button type="button" onclick="toggleDictation()" id="btnMic" class="absolute right-2 top-2 p-1.5 rounded-lg bg-slate-800 text-xs text-white">🎙️</button>
                 </div>
-                <button type="submit" id="btnUploadDoc" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xs shadow-lg">📥 Guardar en la Biblioteca</button>
+                <button type="submit" id="btnUploadDoc" class="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold text-xs shadow-lg">📥 Guardar en Repositorio</button>
               </form>
             </div>
             <div class="pt-4 border-t border-slate-800 mt-4">
               <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-slate-300">📚 Biblioteca (<span id="savedLibraryBadge" class="text-emerald-400">0</span>):</span>
+                <span class="text-xs font-bold text-slate-300">📚 Textos (<span id="savedLibraryBadge" class="text-cyan-400">0</span>):</span>
                 <button id="btnClearAllDocs" onclick="clearAllSubjectDocs()" class="hidden text-[11px] px-2 py-0.5 rounded bg-red-950 text-red-300 font-bold">🗑️ Vaciar</button>
               </div>
               <div id="savedDocsList" class="space-y-1.5 max-h-32 overflow-y-auto pr-1"></div>
@@ -175,33 +172,23 @@
 
           <div class="glass rounded-2xl p-5 space-y-4 flex flex-col justify-between">
             <div class="space-y-3">
-              <h3 class="font-bold text-sm text-pink-400">2️⃣ Herramientas de Estudio Avanzadas</h3>
+              <h3 class="font-bold text-sm text-teal-300">2️⃣ Herramientas Científicas</h3>
               <div>
-                <label class="text-xs text-slate-400">Material de referencia:</label>
+                <label class="text-xs text-slate-400">Material analizado:</label>
                 <select id="selectDocForAI" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"></select>
               </div>
-              <div class="grid grid-cols-2 gap-2">
-                <select id="selectUniverse" class="px-2 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white">
-                  <option value="PSICO_CLINICA">🧠 Psico-Clínica (Freud, Rogers, Beck)</option>
-                  <option value="HE_MAN">⚔️ He-Man</option>
-                  <option value="CANDY_CANDY">🌹 Candy Candy</option>
-                  <option value="TRANSFORMERS">🤖 Transformers</option>
-                  <option value="GI_JOE">🪖 G.I. Joe</option>
-                </select>
-                <input type="text" id="focusTopic" placeholder="Enfoque (ej. Piaget)" class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
-              </div>
+              <input type="text" id="focusTopic" placeholder="Enfoque de estudio (ej. Psicoanálisis vs Conductismo)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
 
-              <!-- BOTONES ACTUALIZADOS CON 1, 3 Y 4 -->
               <div class="grid grid-cols-2 gap-2 pt-1">
-                <button onclick="generateStorybook()" class="py-2 px-2 rounded-xl bg-gradient-to-r from-amber-500 to-pink-600 font-bold text-xs text-slate-950 shadow">✨ Storybook Cómic</button>
-                <button onclick="generateFlashcards()" class="py-2 px-2 rounded-xl bg-purple-600 hover:bg-purple-500 font-bold text-xs shadow">🃏 Flashcards Anki</button>
-                <button onclick="generateMindMap()" class="py-2 px-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold text-xs shadow">🧠 Mapa Mental Gráfico</button>
-                <button onclick="playAudioPodcast()" class="py-2 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-xs shadow">🎙️ Audiolibro Podcast</button>
+                <button onclick="generateStorybook()" class="py-2 px-2 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 font-bold text-xs text-white shadow">📖 Monografía / Storybook</button>
+                <button onclick="generateFlashcards()" class="py-2 px-2 rounded-xl bg-purple-600 hover:bg-purple-500 font-bold text-xs shadow">🃏 Fichas Teóricas</button>
+                <button onclick="generateMindMap()" class="py-2 px-2 rounded-xl bg-teal-600 hover:bg-teal-500 font-bold text-xs shadow">🧠 Mapa Conceptual</button>
+                <button onclick="playAudioPodcast()" class="py-2 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-xs shadow">🎙️ Audiolibro Teórico</button>
               </div>
             </div>
 
             <div class="pt-3 border-t border-slate-800 space-y-2">
-              <p class="text-xs font-bold text-slate-400">🗂️ HISTORIAL GUARDADO:</p>
+              <p class="text-xs font-bold text-slate-400">🗂️ HISTORIAL ACADÉMICO:</p>
               <div id="savedHistoryList" class="space-y-1.5 max-h-32 overflow-y-auto pr-1"></div>
             </div>
           </div>
@@ -216,19 +203,12 @@
   <!-- MODAL NUEVA MATERIA -->
   <div id="modalSubject" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
     <div class="glass max-w-md w-full rounded-2xl p-6 space-y-4">
-      <h3 class="font-bold text-lg">Agregar Nueva Materia</h3>
-      <input type="text" id="newSubjName" placeholder="Nombre de la materia" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
-      <input type="text" id="newSubjSchedule" placeholder="Horario" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
-      <select id="newSubjHero" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
-        <option value="PSICO_CLINICA">🧠 Psico-Clínica</option>
-        <option value="HE_MAN">He-Man</option>
-        <option value="CANDY_CANDY">Candy Candy</option>
-        <option value="TRANSFORMERS">Transformers</option>
-        <option value="GI_JOE">G.I. Joe</option>
-      </select>
+      <h3 class="font-bold text-lg">Agregar Materia de Psicología</h3>
+      <input type="text" id="newSubjName" placeholder="Nombre (ej. Psicología de la Personalidad)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
+      <input type="text" id="newSubjSchedule" placeholder="Semestre / Horario" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white" />
       <div class="flex justify-end gap-2">
         <button onclick="toggleNewSubjectModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-xs">Cancelar</button>
-        <button onclick="createNewSubject()" class="px-4 py-2 rounded-xl bg-indigo-600 font-bold text-xs">Guardar</button>
+        <button onclick="createNewSubject()" class="px-4 py-2 rounded-xl bg-cyan-600 font-bold text-xs">Guardar</button>
       </div>
     </div>
   </div>
@@ -265,29 +245,27 @@
       }
     }
 
-    // 1. AUDIOLIBRO / PODCAST TTS
     function playAudioPodcast() {
       const subj = currentUser.subjects.find(s => s.id === activeSubjectId);
       if (!subj) return alert('Selecciona una materia.');
       const docs = subj.documents || [];
-      let textToSpeak = `Audiolibro de la materia ${subj.name}. `;
+      let textToSpeak = `Audiolibro científico de la materia ${subj.name}. `;
       if (subj.storybooks && subj.storybooks.length > 0) {
         const latestSb = subj.storybooks[subj.storybooks.length - 1];
         textToSpeak += `Resumen: ${latestSb.summary}. `;
         (latestSb.scenes || []).forEach(sc => {
-          textToSpeak += `Escena ${sc.sceneNumber}. ${sc.characterName} dice: ${sc.storyDialogue}. `;
+          textToSpeak += `Autor o teoría ${sc.characterName}. Concepto: ${sc.academicConcept}. Explicación: ${sc.storyDialogue}. `;
         });
       } else {
-        textToSpeak += `Tienes ${docs.length} documentos guardados en tu biblioteca para estudiar.`;
+        textToSpeak += `Tienes ${docs.length} documentos teóricos guardados en tu repositorio.`;
       }
 
       if (!('speechSynthesis' in window)) return alert('Tu navegador no soporta síntesis de voz.');
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(textToSpeak);
       utterance.lang = 'es-ES';
-      utterance.rate = 1.0;
       window.speechSynthesis.speak(utterance);
-      alert('🎙️ Reproduciendo Audiolibro Podcast...');
+      alert('🎙️ Reproduciendo Audiolibro Teórico...');
     }
 
     function speakText(text) {
@@ -324,6 +302,7 @@
         enterApp(data.user);
       } catch (e) { showAuthError('Error de red al iniciar sesión'); }
     }
+
     async function handleRegister(e) {
       e.preventDefault();
       try {
@@ -355,13 +334,12 @@
     }
 
     function renderDashboard() {
-      document.getElementById('userHeaderInfo').innerHTML = `👤 <b>${currentUser.fullName}</b> · <span class="text-amber-300">${currentUser.career || ''}</span>`;
+      document.getElementById('userHeaderInfo').innerHTML = `👤 <b>${currentUser.fullName}</b> · <span class="text-cyan-300">${currentUser.career || ''}</span>`;
       document.getElementById('aiBilling').textContent = `$${(currentUser.aiConsumptionUSD || 0).toFixed(2)} USD`;
 
       const list = document.getElementById('subjectsList');
       list.innerHTML = currentUser.subjects.map(s => `
-        <button onclick="selectSubject('${s.id}')" class="w-full text-left p-3 rounded-xl border transition ${s.id === activeSubjectId ? 'bg-indigo-950/90 border-indigo-400' : 'bg-slate-900/60 border-slate-800'}">
-          <div class="flex justify-between items-center text-[10px] text-amber-300 font-bold"><span>${s.defaultHero}</span></div>
+        <button onclick="selectSubject('${s.id}')" class="w-full text-left p-3 rounded-xl border transition ${s.id === activeSubjectId ? 'bg-cyan-950/80 border-cyan-400' : 'bg-slate-900/60 border-slate-800'}">
           <div class="font-bold text-sm mt-0.5">${s.name}</div>
         </button>
       `).join('');
@@ -379,13 +357,11 @@
       document.getElementById('progressBar').style.width = domainScore + '%';
       document.getElementById('progressText').textContent = domainScore + '%';
 
-      document.getElementById('selectUniverse').value = subj.defaultHero || 'PSICO_CLINICA';
-
       const docs = subj.documents || [];
       document.getElementById('savedLibraryBadge').textContent = docs.length;
       document.getElementById('btnClearAllDocs').classList.toggle('hidden', docs.length === 0);
 
-      document.getElementById('savedDocsList').innerHTML = docs.length === 0 ? `<p class="text-xs text-slate-500 italic">Sin archivos.</p>` : docs.map(d => `
+      document.getElementById('savedDocsList').innerHTML = docs.length === 0 ? `<p class="text-xs text-slate-500 italic">Sin documentos.</p>` : docs.map(d => `
         <div class="flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs gap-2">
           <div class="truncate">✔ ${d.title}</div>
           <button onclick="deleteSavedDoc('${d.id}')" class="text-red-400 font-bold">🗑️</button>
@@ -411,7 +387,7 @@
       if (!name) return;
       const res = await fetch('/api/subjects', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: currentUser.username, name, schedule: document.getElementById('newSubjSchedule').value, defaultHero: document.getElementById('newSubjHero').value })
+        body: JSON.stringify({ username: currentUser.username, name, schedule: document.getElementById('newSubjSchedule').value })
       });
       const data = await res.json();
       if (res.ok) { currentUser = data.user; activeSubjectId = data.newSubjectId; toggleNewSubjectModal(); renderDashboard(); }
@@ -441,7 +417,7 @@
     }
 
     async function deleteSavedDoc(id) {
-      if (!confirm('¿Borrar archivo?')) return;
+      if (!confirm('¿Borrar documento?')) return;
       const res = await fetch(`/api/documents/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId }) });
       const data = await res.json();
       if (res.ok) { currentUser = data.user; renderDashboard(); }
@@ -467,22 +443,13 @@
       const a = document.createElement('a'); a.href = url; a.download = `${title}.doc`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
 
-    function exportAnkiFlashcards() {
-      if (!currentFlashcardsData || currentFlashcardsData.length === 0) return alert('No hay flashcards.');
-      let txtContent = `# Flashcards Anki\n`;
-      currentFlashcardsData.forEach(fc => { txtContent += `${fc.question}\t${fc.answer} (Pista: ${fc.hint})\n`; });
-      const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = `flashcards_anki_${Date.now()}.txt`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    }
-
     async function executeRagSearch() {
       const query = document.getElementById('ragQueryInput').value.trim();
-      if (!query) return alert('Escribe una pregunta.');
+      if (!query) return alert('Escribe una consulta científica.');
       const v = document.getElementById('viewerArea');
       v.classList.add('fullscreen-mode');
       v.classList.remove('hidden');
-      v.innerHTML = `<div class="text-center animate-pulse pt-20"><p class="text-cyan-300 font-bold text-lg">🔍 Buscando en tus archivos con IA...</p></div>`;
+      v.innerHTML = `<div class="text-center animate-pulse pt-20"><p class="text-cyan-300 font-bold text-lg">🔍 Analizando bibliografía científica con IA...</p></div>`;
 
       try {
         const res = await fetch('/api/rag-search', {
@@ -497,7 +464,7 @@
           <div class="max-w-4xl mx-auto glass rounded-3xl p-8 space-y-6 border-2 border-cyan-500 relative">
             <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs">✕ Cerrar</button>
             <div class="flex justify-between items-center">
-              <h2 class="text-2xl font-bold text-cyan-300">🔍 Resultado RAG</h2>
+              <h2 class="text-2xl font-bold text-cyan-300">🔍 Análisis Bibliográfico</h2>
               <button onclick="speakText(document.getElementById('ragAnswerText').textContent)" class="px-3 py-1.5 rounded-xl bg-cyan-700 font-bold text-xs">🔊 Escuchar</button>
             </div>
             <div id="ragAnswerText" class="bg-slate-900 p-6 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed border border-slate-800">${data.answer}</div>
@@ -506,12 +473,11 @@
       } catch (err) { alert('Error: ' + err.message); }
     }
 
-    // 4. REPASO ESPACIADO INTELIGENTE DE FLASHCARDS
     async function generateFlashcards() {
       const v = document.getElementById('viewerArea');
       v.classList.add('fullscreen-mode');
       v.classList.remove('hidden');
-      v.innerHTML = `<div class="text-center animate-pulse pt-20"><p class="text-purple-300 font-bold text-lg">🃏 Generando Flashcards (Repaso Espaciado)...</p></div>`;
+      v.innerHTML = `<div class="text-center animate-pulse pt-20"><p class="text-purple-300 font-bold text-lg">🃏 Generando Fichas Teóricas...</p></div>`;
 
       try {
         const res = await fetch('/api/generate-flashcards', {
@@ -527,21 +493,18 @@
         v.innerHTML = `
           <div class="max-w-5xl mx-auto glass rounded-3xl p-8 space-y-6 border-2 border-purple-500 relative">
             <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs">✕ Cerrar</button>
-            <div class="flex justify-between items-center">
-              <h2 class="text-2xl font-bold text-purple-300">🃏 Flashcards (Repaso Espaciado)</h2>
-              <button onclick="exportAnkiFlashcards()" class="px-4 py-2 rounded-xl bg-purple-600 font-bold text-xs shadow-lg">📥 Exportar para Anki (.txt)</button>
-            </div>
+            <h2 class="text-2xl font-bold text-purple-300">🃏 Fichas Teóricas y Clínicas</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
               ${data.flashcards.map((fc, i) => `
                 <div onclick="this.classList.toggle('flipped')" class="flashcard h-56 cursor-pointer relative">
                   <div class="flashcard-inner w-full h-full relative rounded-2xl shadow-xl">
                     <div class="flashcard-front bg-slate-900 border-2 border-purple-500/60 p-5 rounded-2xl flex flex-col justify-between">
-                      <span class="text-xs font-bold text-purple-400">TARJETA #${i+1}</span>
+                      <span class="text-xs font-bold text-purple-400">FICHA #${i+1}</span>
                       <p class="text-sm font-bold text-center">${fc.question}</p>
                       <span class="text-xs text-slate-500 text-center">Click para girar 🔄</span>
                     </div>
                     <div class="flashcard-back bg-indigo-950 border-2 border-indigo-400 p-5 rounded-2xl flex flex-col justify-between">
-                      <span class="text-xs font-bold text-emerald-400">RESPUESTA</span>
+                      <span class="text-xs font-bold text-emerald-400">RESPUESTA CIENTÍFICA</span>
                       <p class="text-xs text-slate-200 text-center leading-relaxed">${fc.answer}</p>
                       <span class="text-[11px] text-amber-300 text-center">💡 ${fc.hint}</span>
                     </div>
@@ -554,12 +517,11 @@
       } catch (err) { alert('Error: ' + err.message); }
     }
 
-    // 3. MAPA MENTAL GRÁFICO INTERACTIVO
     async function generateMindMap() {
       const v = document.getElementById('viewerArea');
       v.classList.add('fullscreen-mode');
       v.classList.remove('hidden');
-      v.innerHTML = `<div class="text-center animate-pulse pt-20"><p class="text-cyan-300 font-bold text-lg">🧠 Renderizando Mapa Mental Gráfico...</p></div>`;
+      v.innerHTML = `<div class="text-center animate-pulse pt-20"><p class="text-teal-300 font-bold text-lg">🧠 Construyendo Mapa Conceptual de la Evolución Teórica...</p></div>`;
 
       try {
         const res = await fetch('/api/generate-mindmap', {
@@ -573,17 +535,17 @@
         const mm = data.mindmap;
 
         v.innerHTML = `
-          <div class="max-w-6xl mx-auto glass rounded-3xl p-8 space-y-6 border-2 border-cyan-500 relative">
+          <div class="max-w-6xl mx-auto glass rounded-3xl p-8 space-y-6 border-2 border-teal-500 relative">
             <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs">✕ Cerrar</button>
-            <h2 class="text-2xl font-bold text-cyan-300 text-center">🧠 Mapa Mental Gráfico: ${mm.centralTopic}</h2>
+            <h2 class="text-2xl font-bold text-teal-300 text-center">🧠 Mapa Conceptual: ${mm.centralTopic}</h2>
             <div class="flex flex-col items-center space-y-6 pt-4">
-              <div class="px-6 py-3 rounded-2xl bg-gradient-to-r from-cyan-600 to-indigo-600 font-black text-white text-lg shadow-2xl border-2 border-cyan-300">
+              <div class="px-6 py-3 rounded-2xl bg-gradient-to-r from-teal-600 to-cyan-600 font-black text-white text-lg shadow-2xl border-2 border-teal-300">
                 ⭐ ${mm.centralTopic} ⭐
               </div>
-              <div class="text-cyan-400 text-2xl font-bold">↓ Ramas Principales ↓</div>
+              <div class="text-teal-400 text-2xl font-bold">↓ Corrientes Teóricas y Autores ↓</div>
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
                 ${mm.branches.map(b => `
-                  <div class="p-5 rounded-2xl bg-slate-900 border-2 border-cyan-500/40 space-y-3 shadow-xl relative">
+                  <div class="p-5 rounded-2xl bg-slate-900 border-2 border-teal-500/40 space-y-3 shadow-xl relative">
                     <h4 class="font-black text-sm text-amber-300 border-b border-slate-800 pb-2">📌 ${b.branchName}</h4>
                     <ul class="space-y-2 text-xs text-slate-300">
                       ${b.subitems.map(sub => `<li class="bg-slate-950 p-2 rounded-xl border border-slate-800">• ${sub}</li>`).join('')}
@@ -601,12 +563,12 @@
       const v = document.getElementById('viewerArea');
       v.classList.add('fullscreen-mode');
       v.classList.remove('hidden');
-      v.innerHTML = `<div class="text-center animate-pulse pt-20"><p class="text-amber-300 font-bold text-lg">✨ Creando Storybook Cómic en Pantalla Completa...</p></div>`;
+      v.innerHTML = `<div class="text-center animate-pulse pt-20"><p class="text-cyan-300 font-bold text-lg">📖 Redactando Monografía y Línea de Evolución Científica...</p></div>`;
 
       try {
         const res = await fetch('/api/generate-storybook', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value, universe: document.getElementById('selectUniverse').value, focusTopic: document.getElementById('focusTopic').value })
+          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value, focusTopic: document.getElementById('focusTopic').value })
         });
         const data = await res.json();
         if (res.ok) { currentUser = data.user; renderDashboard(); openStorybook(data.storybook); }
@@ -621,31 +583,20 @@
       window.speechSynthesis.cancel();
     }
 
+    // VISOR DE MONOGRAFÍA ACADÉMICA (STORYBOOK CIENTÍFICO)
     function openStorybook(sb) {
       const v = document.getElementById('viewerArea');
       v.classList.add('fullscreen-mode');
       v.classList.remove('hidden');
 
-      const avatars = {
-        'PSICO_CLINICA': { name: 'Sigmund Freud & Carl Rogers', img: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=150&h=150&fit=crop' },
-        'HE_MAN': { name: 'He-Man & Sorceress', img: 'https://images.unsplash.com/photo-1563089145-599997674d42?w=150&h=150&fit=crop' },
-        'CANDY_CANDY': { name: 'Candy White', img: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop' },
-        'TRANSFORMERS': { name: 'Optimus Prime', img: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&h=150&fit=crop' },
-        'GI_JOE': { name: 'General Hawk', img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop' }
-      };
-      const uData = avatars[sb.universe] || avatars['PSICO_CLINICA'];
-
       v.innerHTML = `
-        <div id="exportableStorybook" class="max-w-6xl mx-auto glass rounded-3xl p-6 md:p-10 space-y-8 comic-box relative">
+        <div id="exportableStorybook" class="max-w-6xl mx-auto glass rounded-3xl p-6 md:p-10 space-y-8 academic-card relative">
           <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 hover:bg-red-900 text-red-300 font-extrabold text-xs shadow-lg z-20">✕ Cerrar</button>
 
-          <div class="flex flex-wrap justify-between items-center gap-4 border-b-4 border-amber-500 pb-4 pr-32">
-            <div class="flex items-center gap-4">
-              <img src="${uData.img}" class="w-16 h-16 rounded-2xl object-cover border-2 border-amber-400 shadow-xl" />
-              <div>
-                <span class="px-3 py-1 rounded-full text-xs font-black bg-amber-500 text-slate-950 uppercase">Universo: ${sb.universe}</span>
-                <h2 class="text-3xl font-black mt-1 bg-gradient-to-r from-amber-300 via-pink-400 to-cyan-300 bg-clip-text text-transparent">${sb.title}</h2>
-              </div>
+          <div class="flex flex-wrap justify-between items-center gap-4 border-b-4 border-cyan-500 pb-4 pr-32">
+            <div>
+              <span class="px-3 py-1 rounded-full text-xs font-black bg-cyan-500 text-slate-950 uppercase">Monografía Académica</span>
+              <h2 class="text-3xl font-black mt-1 bg-gradient-to-r from-cyan-300 via-teal-200 to-indigo-300 bg-clip-text text-transparent">${sb.title}</h2>
             </div>
             <div class="flex gap-2">
               <button onclick="speakText('${sb.summary.replace(/'/g, "")}')" class="px-3 py-2 rounded-xl bg-cyan-700 font-bold text-xs shadow-lg">🔊 Escuchar</button>
@@ -654,18 +605,17 @@
           </div>
 
           <div class="speech-bubble p-6 text-sm font-bold shadow-2xl flex items-center gap-6">
-            <img src="${uData.img}" class="w-16 h-16 rounded-full object-cover border-2 border-indigo-950 shrink-0" />
             <div>
-              <p class="text-indigo-950 font-black mb-1 text-base">Narración (${uData.name}):</p>
-              <p class="text-slate-800 font-medium leading-relaxed text-sm">${sb.summary}</p>
+              <p class="text-emerald-900 font-black mb-1 text-base">Resumen Histórico y Científico:</p>
+              <p class="text-emerald-950 font-medium leading-relaxed text-sm">${sb.summary}</p>
             </div>
           </div>
 
           <div class="bg-slate-950/95 rounded-2xl p-6 border-4 border-cyan-500 shadow-2xl space-y-4">
-            <h3 class="font-black text-base text-cyan-300 uppercase">⏳ Línea de Tiempo y Evolución Causal</h3>
+            <h3 class="font-black text-base text-cyan-300 uppercase">⏳ Línea de Tiempo de la Evolución Psicológica</h3>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
               ${(sb.timeline || []).map(t => `
-                <div class="p-4 rounded-xl bg-slate-900 border-2 border-indigo-500/60 shadow-lg">
+                <div class="p-4 rounded-xl bg-slate-900 border-2 border-cyan-500/60 shadow-lg">
                   <span class="text-[10px] font-black px-2 py-0.5 rounded bg-cyan-500 text-slate-950">FASE ${t.step}</span>
                   <h4 class="font-extrabold text-sm mt-2 text-amber-300">${t.title}</h4>
                   <p class="text-xs text-slate-300 mt-2">${t.description}</p>
@@ -675,23 +625,20 @@
           </div>
 
           <div class="space-y-6">
-            <h3 class="font-black text-base text-amber-400 uppercase">🎬 Viñetas de Cómic Académico</h3>
+            <h3 class="font-black text-base text-teal-300 uppercase">📚 Exposición Teórica por Autores e Intervinientes</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               ${(sb.scenes || []).map(sc => `
-                <div class="comic-box rounded-2xl p-6 space-y-4 flex flex-col justify-between shadow-xl">
+                <div class="academic-card rounded-2xl p-6 space-y-4 flex flex-col justify-between shadow-xl">
                   <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                    <span class="text-xs font-black px-2.5 py-1 rounded bg-amber-500/20 text-amber-300">ESCENA #${sc.sceneNumber}</span>
+                    <span class="text-xs font-black px-2.5 py-1 rounded bg-cyan-500/20 text-cyan-300">MÓDULO #${sc.sceneNumber} ·${sc.characterName}</span>
                     <button onclick="speakText('${sc.storyDialogue.replace(/'/g, "")}')" class="text-xs px-2 py-0.5 bg-cyan-900 text-cyan-200 rounded font-bold">🔊 Audio</button>
                   </div>
-                  <div class="flex items-start gap-4 my-2">
-                    <img src="${uData.img}" class="w-14 h-14 rounded-2xl object-cover border-2 border-amber-400 shadow-md shrink-0 mt-1" />
-                    <div class="speech-bubble p-4 text-xs font-bold leading-relaxed shadow-md flex-1">
-                      <p class="text-indigo-950 font-black mb-1 text-sm">📘 ${sc.characterName} (${sc.academicConcept}):</p>
-                      <p class="text-slate-800 italic font-semibold text-xs">"${sc.storyDialogue}"</p>
-                    </div>
+                  <div class="speech-bubble p-4 text-xs font-bold leading-relaxed shadow-md">
+                    <p class="text-emerald-950 font-black mb-1 text-sm">📘 Concepto Clave: ${sc.academicConcept}</p>
+                    <p class="text-emerald-900 italic font-semibold text-xs leading-relaxed">"${sc.storyDialogue}"</p>
                   </div>
-                  <div class="text-xs bg-amber-500/10 border border-amber-500/30 text-amber-200 p-3 rounded-xl font-medium">
-                    💡 <b>Mnemotecnia:</b> ${sc.memoryTrick}
+                  <div class="text-xs bg-cyan-500/10 border border-cyan-500/30 text-cyan-200 p-3 rounded-xl font-medium">
+                    💡 <b>Mnemotecnia Teórica:</b> ${sc.memoryTrick}
                   </div>
                 </div>
               `).join('')}
