@@ -3,465 +3,638 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Centro de Estudio Multicarrera | Storybook AI</title>
+  <title>Centro de Estudio Multicarrera AI · Retro Storybook</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    @keyframes pulseRetro {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-3px); }
-    }
-    .retro-box { animation: pulseRetro 4s ease-in-out infinite; border: 2px solid #f59e0b; box-shadow: 5px 5px 0px #0f172a; }
+    body { background: radial-gradient(circle at top right, #1e1b4b, #090d16 70%); color: #f8fafc; font-family: system-ui, sans-serif; min-height: 100vh; }
+    .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+    .manga-card { border: 2px solid #f59e0b; box-shadow: 6px 6px 0px #78350f; }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
+<body class="text-slate-100">
 
-  <!-- PANTALLA DE AUTENTICACIÓN -->
-  <div id="authScreen" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950">
-    <div class="bg-slate-900 p-8 rounded-2xl max-w-md w-full border border-indigo-500/40 shadow-2xl">
+  <!-- PANTALLA LOGIN -->
+  <div id="authScreen" class="min-h-screen flex items-center justify-center p-4">
+    <div class="glass max-w-md w-full rounded-2xl p-8 shadow-2xl">
       <div class="text-center mb-6">
-        <span class="px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full text-xs font-bold uppercase">Multicarrera & IA</span>
-        <h1 class="text-3xl font-extrabold mt-2 bg-gradient-to-r from-pink-400 via-amber-300 to-cyan-400 bg-clip-text text-transparent">Centro de Estudio Retro</h1>
-        <p class="text-slate-400 text-xs mt-1">Psicología • Medicina • Abogacía (Sube PDFs, PPTX, Word e Imágenes)</p>
+        <span class="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full text-xs font-bold">MULTICARRERA & IA</span>
+        <h1 class="text-3xl font-extrabold mt-2 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">Centro de Estudio Retro</h1>
+        <p class="text-xs text-slate-400 mt-1">Dictado de Voz · Traductor Académico · Borradores Word</p>
       </div>
 
-      <div class="grid grid-cols-2 gap-2 mb-6 bg-slate-800 p-1 rounded-xl text-xs font-bold">
-        <button id="tabLoginBtn" onclick="switchAuthTab('login')" class="py-2 rounded-lg bg-indigo-600 text-white">Iniciar Sesión</button>
-        <button id="tabRegBtn" onclick="switchAuthTab('register')" class="py-2 rounded-lg text-slate-400 hover:text-white">Nueva Cuenta ($6/mes)</button>
+      <div class="flex bg-slate-900/90 p-1 rounded-xl mb-5 border border-slate-800">
+        <button onclick="switchAuthTab('login')" id="tabLogin" class="flex-1 py-2 rounded-lg text-xs font-bold bg-indigo-600 text-white">Iniciar Sesión</button>
+        <button onclick="switchAuthTab('register')" id="tabRegister" class="flex-1 py-2 rounded-lg text-xs font-bold text-slate-400">Nueva Cuenta ($6/mes)</button>
       </div>
 
-      <div id="authError" class="hidden mb-4 p-3 rounded-lg bg-rose-950 border border-rose-500 text-rose-200 text-xs"></div>
+      <div id="authError" class="hidden mb-4 p-3 rounded-xl bg-red-950/90 border border-red-500/60 text-red-200 text-xs"></div>
 
       <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
         <div>
-          <label class="block text-xs text-slate-400 mb-1">Usuario o Correo</label>
-          <input type="text" id="loginIdentifier" value="haroldocana" required class="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm" />
+          <label class="text-xs text-slate-400">Usuario o Correo</label>
+          <input type="text" id="loginId" required placeholder="haroldocana" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm" />
         </div>
         <div>
-          <label class="block text-xs text-slate-400 mb-1">Contraseña</label>
-          <input type="password" id="loginPassword" value="admin123" required class="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm" />
+          <label class="text-xs text-slate-400">Contraseña</label>
+          <input type="password" id="loginPass" required placeholder="••••••••" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm" />
         </div>
-        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-pink-600 to-indigo-600 font-bold text-white text-sm shadow-lg">
-          Entrar a Mi Centro de Estudio
-        </button>
+        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-pink-600 to-indigo-600 font-bold text-sm shadow-lg">Entrar a Mi Centro de Estudio</button>
       </form>
 
       <form id="registerForm" onsubmit="handleRegister(event)" class="hidden space-y-3">
-        <input type="text" id="regFullName" placeholder="Nombre Completo" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
-        <div class="grid grid-cols-2 gap-2">
-          <input type="text" id="regUsername" placeholder="Usuario (ej. harold)" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
-          <select id="regCareer" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs font-bold text-amber-300">
-            <option value="Psicología Clínica">Psicología Clínica</option>
-            <option value="Medicina">Medicina</option>
-            <option value="Abogacía">Abogacía / Derecho</option>
-          </select>
+        <div>
+          <label class="text-xs text-slate-400">Nombre Completo</label>
+          <input type="text" id="regName" required placeholder="Ej. Ángello Ocaña" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm" />
         </div>
-        <input type="email" id="regEmail" placeholder="Correo electrónico" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
-        <input type="password" id="regPassword" placeholder="Contraseña" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
-        <button type="submit" class="w-full py-3 rounded-xl bg-emerald-600 font-bold text-white text-sm">
-          Activar Suscripción ($6.00/mes) y Registrarse
-        </button>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs text-slate-400">Usuario</label>
+            <input type="text" id="regUser" required placeholder="angello" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm" />
+          </div>
+          <div>
+            <label class="text-xs text-slate-400">Carrera</label>
+            <select id="regCareer" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm">
+              <option value="Psicología Clínica">Psicología Clínica</option>
+              <option value="Medicina">Medicina</option>
+              <option value="Abogacía">Abogacía / Derecho</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Correo</label>
+          <input type="email" id="regEmail" required placeholder="correo@universidad.edu" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm" />
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Contraseña</label>
+          <input type="password" id="regPass" required class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm" />
+        </div>
+        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 font-bold text-sm">Activar Cuenta ($6.00/mes + IA)</button>
       </form>
     </div>
   </div>
 
   <!-- DASHBOARD -->
-  <div id="appScreen" class="hidden">
-    <header class="bg-slate-900/95 border-b border-slate-800 sticky top-0 z-30">
-      <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 class="text-lg font-black bg-gradient-to-r from-pink-400 via-amber-300 to-cyan-400 bg-clip-text text-transparent">
-            ⚡ Centro de Estudio Multicarrera AI
-          </h2>
-          <p class="text-xs text-slate-300">
-            👤 <strong id="headerUserName"></strong> (<span id="headerUserCareer" class="text-amber-300 font-semibold"></span>)
-          </p>
+  <div id="appScreen" class="hidden min-h-screen flex flex-col">
+    <header class="glass sticky top-0 z-30 px-6 py-3 flex flex-wrap items-center justify-between gap-4 border-b border-slate-800">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="text-xl">⚡</span>
+          <h2 class="font-extrabold text-lg bg-gradient-to-r from-amber-300 to-pink-400 bg-clip-text text-transparent">Centro de Estudio Multicarrera AI</h2>
         </div>
-
-        <div class="flex items-center gap-4 bg-slate-800 px-4 py-2 rounded-xl border border-slate-700 text-xs">
-          <div><span class="text-slate-400 block">Base</span><strong class="text-emerald-400">$6.00</strong></div>
-          <div class="h-6 w-px bg-slate-700"></div>
-          <div><span class="text-slate-400 block">Consumo IA</span><strong class="text-amber-400" id="headerAiCost">$0.00</strong></div>
-          <button onclick="logout()" class="px-2.5 py-1 rounded bg-rose-600/20 text-rose-300 hover:bg-rose-600 font-bold">Salir</button>
+        <p id="userHeaderInfo" class="text-xs text-slate-400"></p>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="bg-slate-900/90 border border-slate-700 rounded-xl px-3 py-1.5 text-xs flex items-center gap-3">
+          <span>Base: <b class="text-emerald-400">$6.00</b></span>
+          <span>Consumo IA: <b id="aiBilling" class="text-amber-400">$0.00 USD</b></span>
         </div>
+        <button onclick="logout()" class="px-3 py-1.5 rounded-lg bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/50 text-xs font-bold">Salir</button>
       </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <!-- MATERIAS -->
-      <section class="lg:col-span-3 space-y-4">
-        <div class="flex items-center justify-between">
-          <h3 class="text-sm font-bold uppercase text-slate-300">📚 Mis Materias</h3>
-          <button onclick="toggleNewSubjectBox()" class="px-2 py-1 rounded bg-indigo-600 text-xs font-bold">+ Materia</button>
+    <div class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <aside class="lg:col-span-3 space-y-4">
+        <div class="glass rounded-2xl p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-xs uppercase tracking-wider text-slate-400">📚 Mis Materias</h3>
+            <button onclick="toggleNewSubjectModal()" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-bold">+ Materia</button>
+          </div>
+          <div id="subjectsList" class="space-y-2"></div>
         </div>
-        <div id="newSubjectBox" class="hidden p-3 rounded-xl bg-slate-900 border border-indigo-500/40 space-y-2">
-          <input id="newSubjName" type="text" placeholder="Nombre de la materia" class="w-full px-3 py-1.5 rounded bg-slate-800 text-xs" />
-          <input id="newSubjSchedule" type="text" placeholder="Semestre o sección" class="w-full px-3 py-1.5 rounded bg-slate-800 text-xs" />
-          <select id="newSubjHero" class="w-full px-3 py-1.5 rounded bg-slate-800 text-xs">
-            <option value="CANDY_CANDY">🌸 Candy Candy</option>
-            <option value="TRANSFORMERS">🤖 Transformers</option>
-            <option value="GI_JOE">🎖️ G.I. Joe</option>
-            <option value="HE_MAN">⚔️ He-Man</option>
-            <option value="OSITOS_CARINOSITOS">🌈 Ositos Cariñositos</option>
-          </select>
-          <button onclick="createNewSubject()" class="w-full py-1.5 bg-emerald-600 rounded font-bold text-xs">Guardar</button>
-        </div>
-        <div id="subjectsList" class="space-y-2.5"></div>
-      </section>
+      </aside>
 
-      <!-- CENTRO DE ESTUDIO -->
-      <section class="lg:col-span-9 space-y-6">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
+      <main class="lg:col-span-9 space-y-6">
+        <div class="glass rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <span class="text-xs uppercase font-bold text-pink-400" id="activeSubjectSchedule"></span>
-            <h2 class="text-2xl font-black text-white" id="activeSubjectName"></h2>
+            <span id="activeSubjMeta" class="text-xs font-bold text-indigo-400 uppercase"></span>
+            <h2 id="activeSubjTitle" class="text-2xl font-extrabold mt-0.5">Selecciona una materia</h2>
           </div>
-          <div class="flex gap-2 text-xs">
-            <span class="px-3 py-1 rounded bg-slate-800">📄 <strong id="statDocs">0</strong> Docs/PPTX/Imgs</span>
-            <span class="px-3 py-1 rounded bg-slate-800">📖 <strong id="statSbs">0</strong> Storybooks</span>
-            <span class="px-3 py-1 rounded bg-slate-800">🎯 <strong id="statExams">0</strong> Exámenes</span>
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <span id="statDocs" class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800">📄 0 Archivos</span>
+            <span id="statSbs" class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800">📖 0 Storybooks</span>
+            <button onclick="deleteActiveSubject()" class="px-3 py-1.5 rounded-xl bg-red-950/70 hover:bg-red-900 text-red-300 border border-red-800/50 font-bold">🗑️ Borrar Materia</button>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
-          <!-- CARGAR ARCHIVOS MULTIFORMATO -->
-          <div class="md:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
-            <h3 class="text-sm font-bold text-indigo-300">1️⃣ Cargar Material (PDF, PPTX, Word, Imagen)</h3>
-            <p class="text-xs text-slate-400">Sube tus diapositivas de clase (.pptx), lecturas en PDF, documentos de Word o esquemas e imágenes de estudio.</p>
-            <form onsubmit="uploadDocumentToSubject(event)" class="space-y-3">
-              <input type="text" id="docTitle" required placeholder="Título del archivo o tema" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs" />
-              <input type="file" id="mediaFile" accept=".pdf,.pptx,.docx,.txt,.png,.jpg,.jpeg" class="w-full text-xs text-slate-300 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-indigo-600 file:text-white" />
-              <textarea id="customText" rows="2" placeholder="O pega apuntes de texto aquí..." class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs"></textarea>
-              <button type="submit" id="btnUploadDoc" class="w-full py-2.5 rounded-xl bg-indigo-600 font-bold text-xs text-white">
-                📥 Subir a la Biblioteca
-              </button>
-            </form>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- 1. Carga Masiva + Dictado de Voz -->
+          <div class="glass rounded-2xl p-5 space-y-4 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between">
+                <h3 class="font-bold text-sm text-amber-300">1️⃣ Carga Masiva y Dictado de Notas</h3>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/50">Permanente</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-1">Sube archivos o dicta apuntes en vivo con tu voz para guardarlos.</p>
+
+              <form onsubmit="handleUploadDoc(event)" class="space-y-3 mt-3">
+                <input type="text" id="docTitle" placeholder="Título opcional (ej. Clase 3 - Neuro)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs" />
+                
+                <div class="p-3 rounded-xl bg-slate-900/90 border border-dashed border-indigo-500/50">
+                  <input type="file" id="docFiles" multiple accept=".pdf,.pptx,.ppt,.docx,.doc,.png,.jpg,.jpeg,.webp,.txt" onchange="updateSelectedFilesList()" class="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:text-white file:font-bold cursor-pointer" />
+                  <div id="selectedFilesPreview" class="text-[11px] text-amber-300 mt-1.5 font-medium"></div>
+                </div>
+
+                <!-- Textarea con Botón de Dictado de Voz -->
+                <div class="relative">
+                  <textarea id="docText" rows="2" placeholder="O dicta tus apuntes aquí usando el micrófono..." class="w-full px-3 py-2 pr-10 rounded-xl bg-slate-900 border border-slate-700 text-xs"></textarea>
+                  <button type="button" onclick="toggleDictation()" id="btnMic" title="Dictar por voz" class="absolute right-2 top-2 p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs">🎙️</button>
+                </div>
+                <div id="micStatus" class="hidden text-[10px] text-pink-400 font-bold animate-pulse">🔴 Escuchando dictado de voz... habla ahora.</div>
+                
+                <button type="submit" id="btnUploadDoc" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xs shadow-lg">
+                  📥 Guardar en la Biblioteca Permanente
+                </button>
+              </form>
+            </div>
+
+            <div class="pt-4 border-t border-slate-800 mt-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-300">📚 Biblioteca Guardada (<span id="savedLibraryBadge" class="text-emerald-400">0</span>):</span>
+                <button id="btnClearAllDocs" onclick="clearAllSubjectDocs()" class="hidden text-[11px] px-2 py-0.5 rounded bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-800/60 font-bold">🗑️ Vaciar</button>
+              </div>
+              <div id="savedDocsList" class="space-y-1.5 max-h-36 overflow-y-auto pr-1"></div>
+            </div>
           </div>
 
-          <!-- GENERAR STORYBOOK O EXAMEN -->
-          <div class="md:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-            <h3 class="text-sm font-bold text-amber-300">2️⃣ Generar Storybook & Línea de Tiempo</h3>
+          <!-- 2. IA, Storybooks, Exámenes y Traductor -->
+          <div class="glass rounded-2xl p-5 space-y-3 flex flex-col justify-between">
             <div class="space-y-3">
+              <h3 class="font-bold text-sm text-pink-400">2️⃣ IA: Storybooks, Exámenes y Traducción</h3>
+              
               <div>
-                <label class="block text-xs text-slate-400 mb-1">Material o Diapositivas a estudiar:</label>
-                <select id="docSelector" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs font-semibold"></select>
+                <label class="text-xs text-slate-400">Material a procesar:</label>
+                <select id="selectDocForAI" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs"></select>
               </div>
+
               <div class="grid grid-cols-2 gap-2">
                 <div>
-                  <label class="block text-xs text-slate-400 mb-1">Maestro Retro-Manga:</label>
-                  <select id="universeSelect" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs font-bold">
-                    <option value="CANDY_CANDY">🌸 Candy Candy</option>
-                    <option value="TRANSFORMERS">🤖 Transformers</option>
-                    <option value="GI_JOE">🎖️ G.I. Joe</option>
+                  <label class="text-xs text-slate-400">Universo:</label>
+                  <select id="selectUniverse" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs">
                     <option value="HE_MAN">⚔️ He-Man</option>
-                    <option value="OSITOS_CARINOSITOS">🌈 Ositos Cariñositos</option>
+                    <option value="CANDY_CANDY">🌹 Candy Candy</option>
+                    <option value="TRANSFORMERS">🤖 Transformers</option>
+                    <option value="GI_JOE">🪖 G.I. Joe</option>
                   </select>
                 </div>
                 <div>
-                  <label class="block text-xs text-slate-400 mb-1">Enfoque (Opcional):</label>
-                  <input type="text" id="focusTopic" placeholder="Ej. Ciclo cardíaco / Apego" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs" />
+                  <label class="text-xs text-slate-400">Traductor / Idioma:</label>
+                  <div class="flex gap-1 mt-1">
+                    <select id="selectLang" class="flex-1 px-2 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs">
+                      <option value="Español Técnico">Español Técnico</option>
+                      <option value="Inglés">Inglés</option>
+                      <option value="Francés">Francés</option>
+                    </select>
+                    <button onclick="translateDocument()" class="px-2.5 py-1.5 bg-cyan-600 hover:bg-cyan-500 rounded-xl text-xs font-bold" title="Traducir documento">🌐</button>
+                  </div>
                 </div>
               </div>
+
+              <input type="text" id="focusTopic" placeholder="Enfoque o subtema opcional (ej. Trastorno límite)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs" />
+
               <div class="grid grid-cols-2 gap-2 pt-1">
-                <button onclick="generateStorybook()" class="py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-pink-600 font-bold text-xs text-white shadow">
-                  ✨ Crear Storybook + Línea de Tiempo
-                </button>
-                <button onclick="generateExam()" class="py-2.5 px-3 rounded-xl bg-emerald-600 font-bold text-xs text-white shadow">
-                  🎯 Generar Examen Práctico
-                </button>
+                <button onclick="generateStorybook()" id="btnGenSB" class="py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-pink-600 font-bold text-xs text-slate-950 hover:opacity-95 shadow-lg">✨ Crear Storybook</button>
+                <button onclick="generateExam()" id="btnGenExam" class="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-xs shadow-lg">🎯 Examen Práctico</button>
               </div>
             </div>
-            <div class="border-t border-slate-800 pt-3">
-              <span class="text-[11px] uppercase font-bold text-slate-400 block mb-2">🗂️ Historial guardado:</span>
-              <div id="savedItemsGallery" class="flex flex-wrap gap-2"></div>
+
+            <div class="pt-3 border-t border-slate-800 space-y-2">
+              <p class="text-xs font-bold text-slate-400">🗂️ HISTORIAL GUARDADO:</p>
+              <div id="savedHistoryList" class="space-y-1.5 max-h-36 overflow-y-auto pr-1"></div>
             </div>
           </div>
         </div>
 
-        <!-- VISOR STORYBOOK + LÍNEA DE TIEMPO -->
-        <div id="storybookViewer" class="hidden space-y-6">
-          <div class="bg-slate-900 border-2 border-amber-400/60 rounded-2xl p-6 space-y-5">
-            <div>
-              <span id="sbUniverseBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-pink-500/20 text-pink-300"></span>
-              <h2 id="sbTitle" class="text-2xl font-black text-white mt-2"></h2>
-              <p id="sbSummary" class="text-sm text-slate-400 mt-1"></p>
-            </div>
+        <!-- VISOR DINÁMICO (STORYBOOK, EXÁMENES Y TRADUCCIONES CON BOTÓN DE EXPORTAR A WORD/DOC) -->
+        <div id="viewerArea" class="hidden space-y-6"></div>
+      </main>
+    </div>
+  </div>
 
-            <!-- LÍNEA DE TIEMPO CAUSAL / SECUENCIAL -->
-            <div id="timelineContainer" class="p-4 rounded-xl bg-indigo-950/60 border border-indigo-500/40 space-y-3">
-              <h4 class="text-xs font-bold uppercase tracking-wider text-cyan-300">⏳ Línea de Tiempo / Secuencia Causal del Tema:</h4>
-              <div id="timelineSteps" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3"></div>
-            </div>
-
-            <!-- VIÑETAS ANIMADAS -->
-            <div id="sceneContainer" class="retro-box bg-slate-800/90 p-6 rounded-xl space-y-4"></div>
-
-            <div class="flex items-center justify-between">
-              <button onclick="prevScene()" class="px-4 py-2 rounded-lg bg-slate-800 text-xs font-bold">⬅ Anterior</button>
-              <span id="sceneIndicator" class="text-xs font-bold text-amber-400"></span>
-              <button onclick="nextScene()" class="px-4 py-2 rounded-lg bg-indigo-600 text-xs font-bold">Siguiente ➡</button>
-            </div>
-          </div>
-
-          <div class="bg-slate-900 border border-emerald-500/40 rounded-2xl p-6 space-y-4">
-            <h3 class="text-lg font-extrabold text-emerald-400">🎯 Autoevaluación del Material</h3>
-            <div id="quizContainer" class="space-y-4"></div>
-          </div>
-        </div>
-      </section>
-    </main>
+  <!-- MODAL NUEVA MATERIA -->
+  <div id="modalSubject" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
+    <div class="glass max-w-md w-full rounded-2xl p-6 space-y-4">
+      <h3 class="font-bold text-lg">Agregar Nueva Materia</h3>
+      <input type="text" id="newSubjName" placeholder="Nombre (ej. Psicopatología I)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm" />
+      <input type="text" id="newSubjSchedule" placeholder="Horario o Semestre" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm" />
+      <select id="newSubjHero" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm">
+        <option value="HE_MAN">He-Man</option>
+        <option value="CANDY_CANDY">Candy Candy</option>
+        <option value="TRANSFORMERS">Transformers</option>
+        <option value="GI_JOE">G.I. Joe</option>
+      </select>
+      <div class="flex justify-end gap-2">
+        <button onclick="toggleNewSubjectModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-xs">Cancelar</button>
+        <button onclick="createNewSubject()" class="px-4 py-2 rounded-xl bg-indigo-600 font-bold text-xs">Guardar</button>
+      </div>
+    </div>
   </div>
 
   <script>
     let currentUser = null;
     let activeSubjectId = null;
-    let activeStorybook = null;
-    let currentSceneIdx = 0;
+    let recognition = null;
+    let isRecording = false;
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const savedUsername = localStorage.getItem('psico_active_user');
+      if (savedUsername) {
+        try {
+          const res = await fetch(`/api/auth/session/${encodeURIComponent(savedUsername)}`);
+          const data = await res.json();
+          if (res.ok && data.user) enterApp(data.user);
+        } catch (e) {}
+      }
+      initSpeechRecognition();
+    });
+
+    // Configurar reconocimiento de voz para Dictado
+    function initSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.lang = 'es-ES';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        recognition.onresult = (event) => {
+          let transcript = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+          }
+          document.getElementById('docText').value += ' ' + transcript;
+        };
+
+        recognition.onerror = () => stopDictation();
+        recognition.onend = () => stopDictation();
+      }
+    }
+
+    function toggleDictation() {
+      if (!recognition) return alert('Tu navegador no soporta dictado por voz.');
+      if (isRecording) {
+        recognition.stop();
+      } else {
+        recognition.start();
+        isRecording = true;
+        document.getElementById('btnMic').className = 'absolute right-2 top-2 p-1.5 rounded-lg bg-pink-600 text-white text-xs animate-bounce';
+        document.getElementById('micStatus').classList.remove('hidden');
+      }
+    }
+
+    function stopDictation() {
+      isRecording = false;
+      document.getElementById('btnMic').className = 'absolute right-2 top-2 p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs';
+      document.getElementById('micStatus').classList.add('hidden');
+    }
 
     function switchAuthTab(tab) {
       document.getElementById('authError').classList.add('hidden');
-      const isLogin = tab === 'login';
-      document.getElementById('loginForm').classList.toggle('hidden', !isLogin);
-      document.getElementById('registerForm').classList.toggle('hidden', isLogin);
-      document.getElementById('tabLoginBtn').className = isLogin ? 'py-2 rounded-lg bg-indigo-600 text-white' : 'py-2 rounded-lg text-slate-400';
-      document.getElementById('tabRegBtn').className = !isLogin ? 'py-2 rounded-lg bg-indigo-600 text-white' : 'py-2 rounded-lg text-slate-400';
+      document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
+      document.getElementById('registerForm').classList.toggle('hidden', tab !== 'register');
+      document.getElementById('tabLogin').className = tab === 'login' ? 'flex-1 py-2 rounded-lg text-xs font-bold bg-indigo-600 text-white' : 'flex-1 py-2 rounded-lg text-xs font-bold text-slate-400';
+      document.getElementById('tabRegister').className = tab === 'register' ? 'flex-1 py-2 rounded-lg text-xs font-bold bg-emerald-600 text-white' : 'flex-1 py-2 rounded-lg text-xs font-bold text-slate-400';
+    }
+
+    function showAuthError(msg) {
+      const el = document.getElementById('authError');
+      el.textContent = msg;
+      el.classList.remove('hidden');
     }
 
     async function handleLogin(e) {
       e.preventDefault();
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: document.getElementById('loginIdentifier').value, password: document.getElementById('loginPassword').value })
-      });
-      const data = await res.json();
-      if (!res.ok) return showAuthError(data.error);
-      enterDashboard(data.user);
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier: document.getElementById('loginId').value, password: document.getElementById('loginPass').value })
+        });
+        const data = await res.json();
+        if (!res.ok) return showAuthError(data.error);
+        enterApp(data.user);
+      } catch (err) { showAuthError('Error de conexión.'); }
     }
 
     async function handleRegister(e) {
       e.preventDefault();
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fullName: document.getElementById('regFullName').value,
-          username: document.getElementById('regUsername').value,
-          career: document.getElementById('regCareer').value,
-          email: document.getElementById('regEmail').value,
-          password: document.getElementById('regPassword').value
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) return showAuthError(data.error);
-      enterDashboard(data.user);
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fullName: document.getElementById('regName').value, username: document.getElementById('regUser').value,
+            career: document.getElementById('regCareer').value, email: document.getElementById('regEmail').value, password: document.getElementById('regPass').value
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) return showAuthError(data.error);
+        enterApp(data.user);
+      } catch (err) { showAuthError('Error al registrar.'); }
     }
 
-    function showAuthError(msg) {
-      const box = document.getElementById('authError');
-      box.textContent = msg;
-      box.classList.remove('hidden');
-    }
-
-    function enterDashboard(user) {
+    function enterApp(user) {
       currentUser = user;
+      localStorage.setItem('psico_active_user', user.username);
+      const lastSubj = localStorage.getItem(`psico_subj_${user.username}`);
+      activeSubjectId = (user.subjects.find(s => s.id === lastSubj) ? lastSubj : user.subjects[0]?.id) || null;
       document.getElementById('authScreen').classList.add('hidden');
       document.getElementById('appScreen').classList.remove('hidden');
-      refreshUserUI();
-      if (currentUser.subjects.length > 0) selectSubject(currentUser.subjects[0].id);
+      renderDashboard();
     }
 
-    function logout() { location.reload(); }
-
-    function refreshUserUI() {
-      document.getElementById('headerUserName').textContent = currentUser.fullName;
-      document.getElementById('headerUserCareer').textContent = currentUser.career;
-      document.getElementById('headerAiCost').textContent = `$${currentUser.aiConsumptionUSD.toFixed(2)} USD`;
-      renderSubjects();
+    function logout() {
+      currentUser = null;
+      localStorage.removeItem('psico_active_user');
+      document.getElementById('appScreen').classList.add('hidden');
+      document.getElementById('authScreen').classList.remove('hidden');
     }
 
-    function renderSubjects() {
-      document.getElementById('subjectsList').innerHTML = currentUser.subjects.map(s => `
-        <div onclick="selectSubject('${s.id}')" class="cursor-pointer p-3 rounded-xl border transition ${s.id === activeSubjectId ? 'bg-indigo-950 border-pink-500 shadow' : 'bg-slate-900 border-slate-800 hover:border-slate-700'}">
-          <div class="flex justify-between text-[10px] text-amber-300 font-bold"><span>${s.defaultHero}</span><span>${s.schedule}</span></div>
-          <h4 class="font-bold text-sm text-white mt-1">${s.name}</h4>
-          <p class="text-[11px] text-slate-400">📄 ${s.documents.length} archivos • 📖 ${s.storybooks.length} sbs</p>
+    function updateSelectedFilesList() {
+      const input = document.getElementById('docFiles');
+      const preview = document.getElementById('selectedFilesPreview');
+      if (!input.files || input.files.length === 0) { preview.textContent = ''; return; }
+      preview.textContent = `✅ ${input.files.length} archivo(s) seleccionados.`;
+    }
+
+    function renderDashboard() {
+      document.getElementById('userHeaderInfo').innerHTML = `👤 <b>${currentUser.fullName}</b> · <span class="text-amber-300">${currentUser.career || ''}</span>`;
+      document.getElementById('aiBilling').textContent = `$${(currentUser.aiConsumptionUSD || 0).toFixed(2)} USD`;
+
+      const list = document.getElementById('subjectsList');
+      list.innerHTML = currentUser.subjects.map(s => `
+        <button onclick="selectSubject('${s.id}')" class="w-full text-left p-3 rounded-xl border transition ${s.id === activeSubjectId ? 'bg-indigo-950/90 border-indigo-400 shadow-md' : 'bg-slate-900/60 border-slate-800'}">
+          <div class="flex justify-between items-center text-[10px] text-amber-300 font-bold"><span>${s.defaultHero}</span><span>${s.schedule || ''}</span></div>
+          <div class="font-bold text-sm mt-0.5">${s.name}</div>
+          <div class="text-[11px] text-slate-400 mt-1">📄 ${(s.documents||[]).length} guardados</div>
+        </button>
+      `).join('');
+
+      const subj = currentUser.subjects.find(s => s.id === activeSubjectId);
+      if (!subj) return;
+
+      document.getElementById('activeSubjMeta').textContent = `${subj.section || ''} · ${subj.schedule || ''}`;
+      document.getElementById('activeSubjTitle').textContent = subj.name;
+      document.getElementById('statDocs').textContent = `📄 ${(subj.documents||[]).length} Archivos`;
+      document.getElementById('statSbs').textContent = `📖 ${(subj.storybooks||[]).length} Storybooks`;
+      document.getElementById('selectUniverse').value = subj.defaultHero || 'HE_MAN';
+
+      const docs = subj.documents || [];
+      document.getElementById('savedLibraryBadge').textContent = docs.length;
+      document.getElementById('btnClearAllDocs').classList.toggle('hidden', docs.length === 0);
+
+      const savedDocsEl = document.getElementById('savedDocsList');
+      savedDocsEl.innerHTML = docs.length === 0 ? `<p class="text-xs text-slate-500 italic">Sin archivos guardados.</p>` : docs.map(d => `
+        <div class="flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs gap-2">
+          <div class="truncate"><span class="text-emerald-400 font-bold">✔</span> ${d.title}</div>
+          <button onclick="deleteSavedDoc('${d.id}')" class="shrink-0 text-red-400 hover:text-red-300 text-xs font-bold">🗑️</button>
         </div>
       `).join('');
+
+      const sel = document.getElementById('selectDocForAI');
+      sel.innerHTML = `<option value="ALL">📚 USAR TODOS LOS ARCHIVOS (${docs.length})</option>` + docs.map(d => `<option value="${d.id}">📄 ${d.title}</option>`).join('');
+
+      const hist = document.getElementById('savedHistoryList');
+      const sbsHtml = (subj.storybooks || []).slice().reverse().map(sb => `
+        <div class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 flex justify-between items-center text-xs">
+          <div onclick='openStorybook(${JSON.stringify(sb).replace(/'/g, "&#39;")})' class="cursor-pointer truncate flex-1">📖 <b>${sb.title}</b></div>
+          <button onclick="deleteSavedStorybook('${sb.id}')" class="text-red-400 text-xs ml-2">🗑️</button>
+        </div>
+      `).join('');
+
+      hist.innerHTML = sbsHtml || '<p class="text-xs text-slate-500">Sin historial aún.</p>';
     }
 
     function selectSubject(id) {
       activeSubjectId = id;
-      const subj = currentUser.subjects.find(s => s.id === id);
-      if (!subj) return;
-      document.getElementById('activeSubjectSchedule').textContent = `${subj.section} • ${subj.schedule}`;
-      document.getElementById('activeSubjectName').textContent = subj.name;
-      document.getElementById('universeSelect').value = subj.defaultHero;
-      document.getElementById('statDocs').textContent = subj.documents.length;
-      document.getElementById('statSbs').textContent = subj.storybooks.length;
-      document.getElementById('statExams').textContent = subj.exams.length;
-
-      const docSelect = document.getElementById('docSelector');
-      docSelect.innerHTML = subj.documents.length === 0 
-        ? `<option value="NONE">-- Sube un archivo a la izquierda --</option>`
-        : `<option value="ALL">📚 TODOS los archivos (${subj.documents.length})</option>` + subj.documents.map(d => `<option value="${d.id}">📄 ${d.title} (${d.fileName})</option>`).join('');
-
-      document.getElementById('savedItemsGallery').innerHTML = subj.storybooks.map((sb, i) => `
-        <button onclick='openStorybook(${JSON.stringify(sb)})' class="px-2.5 py-1 rounded bg-pink-500/20 border border-pink-500/40 text-pink-200 text-xs font-bold">
-          📖 SB #${i+1}: ${sb.title}
-        </button>
-      `).join('') || `<span class="text-xs text-slate-500">Sin storybooks aún.</span>`;
-
-      renderSubjects();
-      if (subj.storybooks.length > 0) openStorybook(subj.storybooks[subj.storybooks.length - 1]);
-      else document.getElementById('storybookViewer').classList.add('hidden');
+      if (currentUser) localStorage.setItem(`psico_subj_${currentUser.username}`, id);
+      document.getElementById('viewerArea').classList.add('hidden');
+      renderDashboard();
     }
 
-    function toggleNewSubjectBox() { document.getElementById('newSubjectBox').classList.toggle('hidden'); }
+    function toggleNewSubjectModal() { document.getElementById('modalSubject').classList.toggle('hidden'); }
 
     async function createNewSubject() {
-      const name = document.getElementById('newSubjName').value;
+      const name = document.getElementById('newSubjName').value.trim();
       if (!name) return;
       const res = await fetch('/api/subjects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: currentUser.username, name, schedule: document.getElementById('newSubjSchedule').value, defaultHero: document.getElementById('newSubjHero').value })
       });
       const data = await res.json();
-      currentUser = data.user;
-      document.getElementById('newSubjName').value = '';
-      toggleNewSubjectBox();
-      refreshUserUI();
-      selectSubject(data.newSubjectId);
+      if (res.ok) { currentUser = data.user; activeSubjectId = data.newSubjectId; toggleNewSubjectModal(); renderDashboard(); }
     }
 
-    async function uploadDocumentToSubject(e) {
+    async function deleteActiveSubject() {
+      if (!activeSubjectId || !confirm('¿Borrar materia y archivos?')) return;
+      const res = await fetch(`/api/subjects/${activeSubjectId}`, {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username })
+      });
+      const data = await res.json();
+      if (res.ok) { currentUser = data.user; activeSubjectId = currentUser.subjects[0]?.id || null; document.getElementById('viewerArea').classList.add('hidden'); renderDashboard(); }
+    }
+
+    async function handleUploadDoc(e) {
       e.preventDefault();
       const btn = document.getElementById('btnUploadDoc');
-      btn.disabled = true; btn.textContent = '⏳ Subiendo y procesando...';
+      const fileInput = document.getElementById('docFiles');
+      const textVal = document.getElementById('docText').value;
 
-      const formData = new FormData();
-      formData.append('username', currentUser.username);
-      formData.append('subjectId', activeSubjectId);
-      formData.append('docTitle', document.getElementById('docTitle').value);
-      formData.append('customText', document.getElementById('customText').value);
-      const fileInput = document.getElementById('mediaFile');
-      if (fileInput.files[0]) formData.append('document', fileInput.files[0]);
+      btn.disabled = true; btn.textContent = '⏳ Guardando en Cloud...';
+      try {
+        const fd = new FormData();
+        fd.append('username', currentUser.username);
+        fd.append('subjectId', activeSubjectId);
+        fd.append('docTitle', document.getElementById('docTitle').value);
+        fd.append('customText', textVal);
+        for (let i = 0; i < fileInput.files.length; i++) fd.append('documents', fileInput.files[i]);
+
+        const res = await fetch('/api/documents', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (res.ok) {
+          currentUser = data.user;
+          document.getElementById('docTitle').value = '';
+          document.getElementById('docFiles').value = '';
+          document.getElementById('docText').value = '';
+          document.getElementById('selectedFilesPreview').textContent = '✅ ¡Guardado con éxito!';
+          renderDashboard();
+        } else { alert(data.error); }
+      } catch (err) { alert('Error: ' + err.message); }
+      finally { btn.disabled = false; btn.textContent = '📥 Guardar en la Biblioteca Permanente'; }
+    }
+
+    async function deleteSavedDoc(docId) {
+      if (!confirm('¿Borrar archivo?')) return;
+      const res = await fetch(`/api/documents/${docId}`, {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId })
+      });
+      const data = await res.json();
+      if (res.ok) { currentUser = data.user; renderDashboard(); }
+    }
+
+    async function clearAllSubjectDocs() {
+      if (!confirm('¿Vaciar biblioteca?')) return;
+      const res = await fetch(`/api/subjects/${activeSubjectId}/documents`, {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username })
+      });
+      const data = await res.json();
+      if (res.ok) { currentUser = data.user; renderDashboard(); }
+    }
+
+    async function deleteSavedStorybook(sbId) {
+      if (!confirm('¿Borrar Storybook?')) return;
+      const res = await fetch(`/api/storybooks/${sbId}`, {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId })
+      });
+      const data = await res.json();
+      if (res.ok) { currentUser = data.user; renderDashboard(); }
+    }
+
+    // Exportar cualquier contenido a Borrador `.doc` descargable
+    function exportToWord(title, contentHtml) {
+      const htmlContent = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head><meta charset='utf-8'><title>${title}</title></head>
+        <body style='font-family: Arial, sans-serif; line-height: 1.4; color: #333;'>
+          <h1 style='color: #1e1b4b;'>${title}</h1>
+          <hr style='border: 1px solid #ccc;'/>
+          ${contentHtml}
+        </body>
+        </html>
+      `;
+      const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.doc`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    async function translateDocument() {
+      const btnLang = document.getElementById('selectLang').value;
+      const v = document.getElementById('viewerArea');
+      v.classList.remove('hidden');
+      v.innerHTML = `<div class="glass rounded-2xl p-6 text-center animate-pulse"><p class="text-cyan-300 font-bold">🌐 Traduciendo documento al ${btnLang} con Gemini...</p></div>`;
+      v.scrollIntoView({ behavior: 'smooth' });
 
       try {
-        const res = await fetch('/api/documents', { method: 'POST', body: formData });
+        const res = await fetch('/api/translate-document', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value, targetLanguage: btnLang })
+        });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
+        if (!res.ok) return alert(data.error);
         currentUser = data.user;
-        document.getElementById('docTitle').value = '';
-        document.getElementById('mediaFile').value = '';
-        document.getElementById('customText').value = '';
-        selectSubject(activeSubjectId);
-        document.getElementById('docSelector').value = data.documentId;
-      } catch (err) { alert(err.message); }
-      finally { btn.disabled = false; btn.textContent = '📥 Subir a la Biblioteca'; }
+        renderDashboard();
+
+        v.innerHTML = `
+          <div class="glass rounded-2xl p-6 space-y-4 border-2 border-cyan-500/40">
+            <div class="flex justify-between items-center">
+              <h2 class="text-xl font-bold text-cyan-300">🌐 Traducción Académica (${btnLang})</h2>
+              <button onclick="exportToWord('Traduccion_${btnLang}', document.getElementById('translationContent').innerHTML)" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xs">📥 Descargar Borrador en Word (.doc)</button>
+            </div>
+            <div id="translationContent" class="bg-slate-900 p-4 rounded-xl text-xs whitespace-pre-wrap leading-relaxed border border-slate-800">${data.translation}</div>
+          </div>
+        `;
+      } catch (err) { alert('Error traduciendo: ' + err.message); }
     }
 
     async function generateStorybook() {
+      const btn = document.getElementById('btnGenSB');
+      btn.disabled = true; btn.textContent = '⏳ Analizando...';
       try {
         const res = await fetch('/api/generate-storybook', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            username: currentUser.username,
-            subjectId: activeSubjectId,
-            documentId: document.getElementById('docSelector').value,
-            universe: document.getElementById('universeSelect').value,
-            focusTopic: document.getElementById('focusTopic').value
-          })
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value, universe: document.getElementById('selectUniverse').value, focusTopic: document.getElementById('focusTopic').value })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-        currentUser = data.user;
-        refreshUserUI();
-        selectSubject(activeSubjectId);
-        openStorybook(data.storybook);
-      } catch (err) { alert('Error: ' + err.message); }
-    }
-
-    async function generateExam() {
-      try {
-        const res = await fetch('/api/generate-exam', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('docSelector').value, universe: document.getElementById('universeSelect').value })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-        currentUser = data.user;
-        refreshUserUI();
-        alert('¡Examen generado con éxito en el historial!');
-      } catch (err) { alert('Error: ' + err.message); }
+        if (res.ok) { currentUser = data.user; renderDashboard(); openStorybook(data.storybook); }
+        else { alert(data.error); }
+      } catch (e) { alert('Error de red.'); }
+      finally { btn.disabled = false; btn.textContent = '✨ Crear Storybook'; }
     }
 
     function openStorybook(sb) {
-      activeStorybook = sb;
-      currentSceneIdx = 0;
-      document.getElementById('storybookViewer').classList.remove('hidden');
-      document.getElementById('sbUniverseBadge').textContent = `Universo: ${sb.universe}`;
-      document.getElementById('sbTitle').textContent = sb.title;
-      document.getElementById('sbSummary').textContent = sb.summary;
+      const v = document.getElementById('viewerArea');
+      v.classList.remove('hidden');
+      
+      let htmlExport = `<h2>${sb.title}</h2><p><b>Resumen:</b> ${sb.summary}</p><h3>Línea de Tiempo</h3><ul>`;
+      (sb.timeline || []).forEach(t => htmlExport += `<li><b>${t.title}:</b> ${t.description}</li>`);
+      htmlExport += `</ul><h3>Escenas del Storybook</h3>`;
+      (sb.scenes || []).forEach(sc => htmlExport += `<p><b>Escena ${sc.sceneNumber} (${sc.characterName}):</b> ${sc.storyDialogue} <br/><em>Mnemotecnia:</em> ${sc.memoryTrick}</p>`);
 
-      const tlSteps = document.getElementById('timelineSteps');
-      if (sb.timeline && sb.timeline.length > 0) {
-        document.getElementById('timelineContainer').classList.remove('hidden');
-        tlSteps.innerHTML = sb.timeline.map(t => `
-          <div class="p-2.5 rounded bg-slate-900 border border-indigo-500/30 text-xs">
-            <span class="text-amber-400 font-extrabold">Paso ${t.step}:</span> <strong class="text-white">${t.title}</strong>
-            <p class="text-slate-300 mt-1 text-[11px]">${t.description}</p>
+      v.innerHTML = `
+        <div id="exportableStorybook" class="glass rounded-2xl p-6 space-y-6 border-2 border-amber-500/40">
+          <div class="flex flex-wrap justify-between items-center gap-2 border-b border-slate-800 pb-4">
+            <div>
+              <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300">${sb.universe}</span>
+              <h2 class="text-2xl font-extrabold mt-1">${sb.title}</h2>
+            </div>
+            <button onclick="exportToWord('${sb.title}', document.getElementById('exportableStorybook').innerHTML)" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xs">📥 Descargar Resumen en Word (.doc)</button>
           </div>
-        `).join('');
-      } else {
-        document.getElementById('timelineContainer').classList.add('hidden');
-      }
 
-      renderScene();
-      renderQuiz();
-    }
+          <div class="bg-slate-900/90 rounded-2xl p-5 border border-indigo-500/30">
+            <h3 class="font-bold text-sm text-cyan-300 mb-4">⏳ LÍNEA DE TIEMPO CAUSAL</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+              ${(sb.timeline || []).map(t => `
+                <div class="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                  <span class="text-xs font-bold text-cyan-300">Paso ${t.step}</span>
+                  <h4 class="font-bold text-sm mt-1 text-amber-200">${t.title}</h4>
+                  <p class="text-xs text-slate-300 mt-1">${t.description}</p>
+                </div>
+              `).join('')}
+            </div>
+          </div>
 
-    function renderScene() {
-      const s = activeStorybook.scenes[currentSceneIdx];
-      document.getElementById('sceneIndicator').textContent = `Escena ${currentSceneIdx + 1} de ${activeStorybook.scenes.length}`;
-      document.getElementById('sceneContainer').innerHTML = `
-        <div class="flex justify-between text-xs font-bold text-amber-300"><span>🗣 ${s.characterName}</span><span>✨ ${s.animationEffect}</span></div>
-        <div class="p-3 rounded bg-slate-950 text-xs text-indigo-300"><strong>Concepto:</strong> ${s.academicConcept}</div>
-        <p class="text-base text-white font-medium">"${s.storyDialogue}"</p>
-        <div class="p-3 rounded bg-emerald-950/50 border border-emerald-500/40 text-xs text-emerald-200">🧠 <strong>Truco de Memoria:</strong> ${s.memoryTrick}</div>
-      `;
-    }
-
-    function prevScene() { if (currentSceneIdx > 0) { currentSceneIdx--; renderScene(); } }
-    function nextScene() { if (currentSceneIdx < activeStorybook.scenes.length - 1) { currentSceneIdx++; renderScene(); } }
-
-    function renderQuiz() {
-      document.getElementById('quizContainer').innerHTML = activeStorybook.quiz.map((q, qIdx) => `
-        <div class="p-4 rounded-xl bg-slate-800 border border-slate-700 space-y-2">
-          <p class="font-bold text-sm text-white">${qIdx + 1}. ${q.question}</p>
-          <div class="space-y-1.5">
-            ${q.options.map((opt, oIdx) => `
-              <button onclick="checkQuiz(${qIdx},${oIdx})" class="w-full text-left px-3 py-2 rounded bg-slate-900 hover:bg-indigo-950 border border-slate-700 text-xs">${opt}</button>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            ${(sb.scenes || []).map(sc => `
+              <div class="manga-card bg-slate-900 rounded-2xl p-4 space-y-2">
+                <div class="text-xs font-bold text-amber-400">ESCENA #${sc.sceneNumber} ·${sc.characterName}</div>
+                <p class="text-sm text-slate-100 italic bg-slate-950/80 p-3 rounded-xl">"${sc.storyDialogue}"</p>
+                <div class="text-xs bg-amber-500/10 text-amber-200 p-2 rounded-xl">💡 ${sc.memoryTrick}</div>
+              </div>
             `).join('')}
           </div>
-          <div id="fb-${qIdx}" class="hidden p-3 rounded text-xs mt-2"></div>
         </div>
-      `).join('');
+      `;
+      v.scrollIntoView({ behavior: 'smooth' });
     }
 
-    function checkQuiz(qIdx, oIdx) {
-      const q = activeStorybook.quiz[qIdx];
-      const fb = document.getElementById(`fb-${qIdx}`);
-      fb.classList.remove('hidden');
-      if (oIdx === q.correctIndex) {
-        fb.className = 'p-3 rounded text-xs mt-2 bg-emerald-950 border border-emerald-500 text-emerald-200';
-        fb.innerHTML = `✅ <strong>¡Correcto!</strong> ${q.heroExplanation}`;
-      } else {
-        fb.className = 'p-3 rounded text-xs mt-2 bg-rose-950 border border-rose-500 text-rose-200';
-        fb.innerHTML = `❌ <strong>Incorrecto:</strong> ${q.heroExplanation}`;
-      }
+    async function generateExam() {
+      const btn = document.getElementById('btnGenExam');
+      btn.disabled = true; btn.textContent = '⏳ Generando...';
+      try {
+        const res = await fetch('/api/generate-exam', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value, universe: document.getElementById('selectUniverse').value })
+        });
+        const data = await res.json();
+        if (res.ok) { currentUser = data.user; renderDashboard(); openExam(data.exam); }
+        else { alert(data.error); }
+      } catch (e) { alert('Error.'); }
+      finally { btn.disabled = false; btn.textContent = '🎯 Examen Práctico'; }
+    }
+
+    function openExam(ex) {
+      const v = document.getElementById('viewerArea');
+      v.classList.remove('hidden');
+      v.innerHTML = `
+        <div class="glass rounded-2xl p-6 space-y-4 border-2 border-emerald-500/40">
+          <h2 class="text-xl font-extrabold text-emerald-300">🎯 ${ex.examTitle}</h2>
+          ${(ex.questions || []).map((q, i) => `
+            <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+              <p class="font-bold text-sm">${i + 1}.${q.question}</p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                ${(q.options || []).map((opt, oIdx) => `
+                  <button onclick="alert('${oIdx === q.correctIndex ? '✅ Correcto' : '❌ Incorrecto'} - ${q.heroExplanation}')" class="text-left text-xs p-2.5 rounded-xl bg-slate-950 hover:bg-emerald-950 border border-slate-700">${opt}</button>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      v.scrollIntoView({ behavior: 'smooth' });
     }
   </script>
 </body>
