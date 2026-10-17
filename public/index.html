@@ -6,28 +6,35 @@
   <title>Plataforma Académica Universitaria</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    /* =========================================
+       DISEÑO Y ESTILOS (PLATAFORMA EDUCATIVA)
+       ========================================= */
     body { 
       background: radial-gradient(circle at top right, #1e1b4b, #0f172a 70%); 
       color: #f8fafc; 
-      font-family: system-ui, sans-serif; 
+      font-family: system-ui, -apple-system, sans-serif; 
       min-height: 100vh; 
     }
+    
     .glass-edu { 
       background: rgba(30, 27, 75, 0.9); 
       backdrop-filter: blur(16px); 
       border: 2px solid rgba(129, 140, 248, 0.25); 
       box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
     }
+    
     .cartoon-card { 
       border: 3px solid #38bdf8; 
       background: #0b0f19; 
       box-shadow: 6px 6px 0px #0284c7; 
       border-radius: 1.25rem; 
-      transition: transform 0.2s; 
+      transition: transform 0.2s ease-in-out; 
     }
+    
     .cartoon-card:hover { 
-      transform: translateY(-2px); 
+      transform: translateY(-4px); 
     }
+    
     .speech-bubble { 
       background: #f0fdf4; 
       color: #065f46; 
@@ -35,6 +42,7 @@
       border: 3px solid #047857; 
       position: relative; 
     }
+    
     .speech-bubble:after { 
       content: ''; 
       position: absolute; 
@@ -46,11 +54,30 @@
       display: block; 
       width: 0; 
     }
-    .flashcard { perspective: 1000px; }
-    .flashcard-inner { transition: transform 0.6s; transform-style: preserve-3d; }
-    .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
-    .flashcard-front, .flashcard-back { backface-visibility: hidden; position: absolute; inset: 0; }
-    .flashcard-back { transform: rotateY(180deg); }
+    
+    .flashcard { 
+      perspective: 1000px; 
+    }
+    
+    .flashcard-inner { 
+      transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); 
+      transform-style: preserve-3d; 
+    }
+    
+    .flashcard.flipped .flashcard-inner { 
+      transform: rotateY(180deg); 
+    }
+    
+    .flashcard-front, .flashcard-back { 
+      backface-visibility: hidden; 
+      position: absolute; 
+      inset: 0; 
+    }
+    
+    .flashcard-back { 
+      transform: rotateY(180deg); 
+    }
+    
     #viewerArea.fullscreen-mode { 
       position: fixed; 
       inset: 0; 
@@ -59,53 +86,83 @@
       background: rgba(3, 7, 18, 0.99); 
       padding: 2.5rem; 
     }
+
+    /* Scrollbar personalizada para áreas de lectura */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #38bdf8;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #0284c7;
+    }
   </style>
 </head>
 <body class="text-slate-100 flex flex-col min-h-screen">
 
-  <!-- ================= PANTALLA DE AUTENTICACIÓN ================= -->
+  <!-- =========================================
+       PANTALLA DE AUTENTICACIÓN Y REGISTRO
+       ========================================= -->
   <div id="authScreen" class="min-h-screen flex items-center justify-center p-4">
     <div class="glass-edu max-w-lg w-full rounded-3xl p-8 shadow-2xl">
       <div class="text-center mb-6">
-        <span class="px-4 py-1.5 bg-cyan-500/20 text-cyan-300 border border-cyan-400 rounded-full text-xs font-black tracking-wider uppercase">🎓 Portal Universitario</span>
-        <h1 class="text-3xl font-black mt-3 bg-gradient-to-r from-cyan-400 via-teal-300 to-indigo-400 bg-clip-text text-transparent">Plataforma Educativa</h1>
-        <p class="text-xs text-slate-300 mt-1">Selecciona tu carrera para acceder a tu entorno especializado</p>
+        <span class="px-4 py-1.5 bg-cyan-500/20 text-cyan-300 border border-cyan-400 rounded-full text-xs font-black tracking-wider uppercase">
+          🎓 Portal Universitario
+        </span>
+        <h1 class="text-3xl font-black mt-4 bg-gradient-to-r from-cyan-400 via-teal-300 to-indigo-400 bg-clip-text text-transparent">
+          Plataforma Educativa
+        </h1>
+        <p class="text-xs text-slate-300 mt-2">
+          Selecciona tu carrera para acceder a tu entorno especializado
+        </p>
       </div>
 
       <div class="flex bg-slate-900/90 p-1.5 rounded-2xl mb-6 border border-indigo-500/30">
-        <button onclick="switchAuthTab('login')" id="tabLogin" class="flex-1 py-2.5 rounded-xl text-xs font-black bg-indigo-600 text-white shadow">Iniciar Sesión</button>
-        <button onclick="switchAuthTab('register')" id="tabRegister" class="flex-1 py-2.5 rounded-xl text-xs font-black text-slate-400">Nueva Cuenta</button>
+        <button onclick="switchAuthTab('login')" id="tabLogin" class="flex-1 py-3 rounded-xl text-xs font-black bg-indigo-600 text-white shadow">
+          Iniciar Sesión
+        </button>
+        <button onclick="switchAuthTab('register')" id="tabRegister" class="flex-1 py-3 rounded-xl text-xs font-black text-slate-400 hover:text-white transition">
+          Nueva Cuenta
+        </button>
       </div>
 
-      <div id="authError" class="hidden mb-4 p-3 rounded-2xl bg-red-950/90 border border-red-500 text-red-200 text-xs font-bold"></div>
+      <div id="authError" class="hidden mb-4 p-4 rounded-2xl bg-red-950/90 border border-red-500 text-red-200 text-xs font-bold text-center"></div>
 
       <!-- Formulario Login -->
       <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
         <div>
-          <label class="text-xs font-bold text-cyan-300">Usuario o Correo</label>
-          <input type="text" id="loginId" required value="haroldocana" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-cyan-400 font-bold" />
+          <label class="text-xs font-bold text-cyan-300 ml-1">Usuario o Correo</label>
+          <input type="text" id="loginId" required value="haroldocana" class="w-full mt-1.5 px-4 py-3.5 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-cyan-400 font-bold transition" />
         </div>
         <div>
-          <label class="text-xs font-bold text-cyan-300">Contraseña</label>
-          <input type="password" id="loginPass" required value="admin123" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-cyan-400 font-bold" />
+          <label class="text-xs font-bold text-cyan-300 ml-1">Contraseña</label>
+          <input type="password" id="loginPass" required value="admin123" class="w-full mt-1.5 px-4 py-3.5 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-cyan-400 font-bold transition" />
         </div>
-        <button type="submit" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 font-black text-sm shadow-xl hover:brightness-110 transition">Ingresar a mi Entorno</button>
+        <button type="submit" class="w-full mt-6 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 font-black text-sm shadow-xl hover:brightness-110 transition-all transform hover:scale-105">
+          Ingresar a mi Entorno
+        </button>
       </form>
 
       <!-- Formulario Registro -->
-      <form id="registerForm" onsubmit="handleRegister(event)" class="hidden space-y-3">
+      <form id="registerForm" onsubmit="handleRegister(event)" class="hidden space-y-4">
         <div>
-          <label class="text-xs font-bold text-cyan-300">Nombre Completo</label>
-          <input type="text" id="regName" required placeholder="Harold Benjamín Ocaña" class="w-full mt-1 px-4 py-2.5 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white" />
+          <label class="text-xs font-bold text-cyan-300 ml-1">Nombre Completo</label>
+          <input type="text" id="regName" required placeholder="Ej. Harold Benjamín Ocaña" class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-emerald-400 transition" />
         </div>
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="text-xs font-bold text-cyan-300">Usuario</label>
-            <input type="text" id="regUser" required placeholder="haroldocana" class="w-full mt-1 px-4 py-2.5 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white" />
+            <label class="text-xs font-bold text-cyan-300 ml-1">Usuario</label>
+            <input type="text" id="regUser" required placeholder="haroldocana" class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-emerald-400 transition" />
           </div>
           <div>
-            <label class="text-xs font-bold text-cyan-300">Carrera Universitaria</label>
-            <select id="regCareer" class="w-full mt-1 px-3 py-2.5 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-xs font-bold text-cyan-300">
+            <label class="text-xs font-bold text-cyan-300 ml-1">Carrera Universitaria</label>
+            <select id="regCareer" class="w-full mt-1.5 px-3 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-xs font-bold text-cyan-300 focus:outline-none focus:border-emerald-400 transition">
               <option value="Psicología Clínica">🧠 Psicología Clínica</option>
               <option value="Derecho y Abogacía">⚖️ Derecho y Abogacía</option>
               <option value="Medicina">🩺 Medicina</option>
@@ -114,286 +171,418 @@
           </div>
         </div>
         <div>
-          <label class="text-xs font-bold text-cyan-300">Correo</label>
-          <input type="email" id="regEmail" required placeholder="correo@universidad.edu" class="w-full mt-1 px-4 py-2.5 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white" />
+          <label class="text-xs font-bold text-cyan-300 ml-1">Correo Electrónico</label>
+          <input type="email" id="regEmail" required placeholder="correo@universidad.edu" class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-emerald-400 transition" />
         </div>
         <div>
-          <label class="text-xs font-bold text-cyan-300">Contraseña</label>
-          <input type="password" id="regPass" required class="w-full mt-1 px-4 py-2.5 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white" />
+          <label class="text-xs font-bold text-cyan-300 ml-1">Contraseña</label>
+          <input type="password" id="regPass" required class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-emerald-400 transition" />
         </div>
-        <button type="submit" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 font-black text-sm shadow-xl">Registrar e Iniciar Entorno</button>
+        <button type="submit" class="w-full mt-6 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 font-black text-sm shadow-xl hover:brightness-110 transition-all transform hover:scale-105">
+          Registrar e Iniciar Entorno
+        </button>
       </form>
     </div>
   </div>
 
-  <!-- ================= DASHBOARD PRINCIPAL ================= -->
+  <!-- =========================================
+       DASHBOARD PRINCIPAL (ENTORNO DE ESTUDIO)
+       ========================================= -->
   <div id="appScreen" class="hidden min-h-screen flex flex-col">
-    <!-- Cabecera -->
+    
+    <!-- Cabecera Superior -->
     <header class="glass-edu sticky top-0 z-30 px-6 py-4 flex flex-wrap items-center justify-between gap-4 border-b border-indigo-500/30">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-2xl bg-cyan-500/20 border-2 border-cyan-400 flex items-center justify-center text-xl shadow">🚀</div>
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-2xl bg-cyan-500/20 border-2 border-cyan-400 flex items-center justify-center text-2xl shadow-lg">
+          🚀
+        </div>
         <div>
-          <h2 id="careerTitleBanner" class="font-black text-base text-cyan-300 uppercase">Entorno Universitario</h2>
-          <p id="userHeaderInfo" class="text-xs text-slate-300 font-medium"></p>
+          <h2 id="careerTitleBanner" class="font-black text-lg text-cyan-300 uppercase tracking-wide">
+            Entorno Universitario
+          </h2>
+          <p id="userHeaderInfo" class="text-sm text-slate-300 font-medium mt-0.5"></p>
         </div>
       </div>
       <div class="flex items-center gap-4">
-        <div class="bg-slate-900/90 border border-indigo-500/40 rounded-2xl px-3.5 py-2 text-xs flex items-center gap-2 shadow">
-          <span class="text-slate-400">Consumo IA:</span> <b id="aiBilling" class="text-cyan-400">$0.00 USD</b>
+        <div class="bg-slate-900/90 border border-indigo-500/40 rounded-2xl px-4 py-2 text-xs flex items-center gap-2 shadow">
+          <span class="text-slate-400">Consumo IA:</span> 
+          <b id="aiBilling" class="text-cyan-400 text-sm">$0.00 USD</b>
         </div>
-        <button onclick="logout()" class="px-4 py-2 rounded-xl bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-800 text-xs font-black shadow transition">Cerrar Sesión</button>
+        <button onclick="logout()" class="px-5 py-2.5 rounded-xl bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-800 text-xs font-black shadow-lg transition">
+          Cerrar Sesión
+        </button>
       </div>
     </header>
 
-    <div class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
       
-      <!-- MENÚ LATERAL DE MATERIAS -->
-      <aside class="lg:col-span-3 space-y-4">
-        <div class="glass-edu rounded-3xl p-5 border border-indigo-500/30">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="font-black text-xs uppercase tracking-wider text-cyan-300">📚 Materias</h3>
-            <button onclick="toggleNewSubjectModal()" class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black shadow">+ Materia</button>
+      <!-- ================= SIDEBAR MATERIAS ================= -->
+      <aside class="lg:col-span-3 space-y-6">
+        <div class="glass-edu rounded-3xl p-6 border border-indigo-500/30 shadow-xl">
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="font-black text-sm uppercase tracking-wider text-cyan-300 flex items-center gap-2">
+              <span>📚</span> Materias
+            </h3>
+            <button onclick="toggleNewSubjectModal()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black shadow-md transition">
+              + Agregar
+            </button>
           </div>
-          <div id="subjectsList" class="space-y-2.5"></div>
+          <div id="subjectsList" class="space-y-3">
+            <!-- Lista inyectada por JS -->
+          </div>
         </div>
       </aside>
 
-      <!-- ÁREA DE TRABAJO CENTRAL -->
-      <main class="lg:col-span-9 space-y-6">
+      <!-- ================= ÁREA CENTRAL ================= -->
+      <main class="lg:col-span-9 space-y-8">
         
-        <!-- Tarjeta de Materia Activa -->
-        <div class="glass-edu rounded-3xl p-6 flex flex-wrap items-center justify-between gap-4 border border-indigo-500/30">
+        <!-- Tarjeta de Progreso de la Materia -->
+        <div class="glass-edu rounded-3xl p-8 flex flex-wrap items-center justify-between gap-6 border border-indigo-500/30 shadow-xl">
           <div>
-            <span id="activeSubjMeta" class="text-xs font-black text-cyan-400 uppercase"></span>
-            <h2 id="activeSubjTitle" class="text-2xl font-black mt-1 text-white">Selecciona una materia</h2>
+            <span id="activeSubjMeta" class="text-xs font-black text-cyan-400 uppercase tracking-widest"></span>
+            <h2 id="activeSubjTitle" class="text-3xl font-black mt-2 text-white">Selecciona una materia</h2>
           </div>
-          <div class="flex flex-wrap items-center gap-3 text-xs">
-            <div class="px-4 py-2 rounded-2xl bg-slate-900 border border-indigo-500/40 flex items-center gap-3 shadow">
-              <span>📈 Progreso:</span>
-              <div class="w-24 bg-slate-800 rounded-full h-3 overflow-hidden">
-                <div id="progressBar" class="bg-gradient-to-r from-cyan-400 to-emerald-400 h-3 rounded-full transition-all" style="width: 0%"></div>
+          <div class="flex flex-wrap items-center gap-4 text-sm">
+            <div class="px-5 py-3 rounded-2xl bg-slate-900 border border-indigo-500/40 flex items-center gap-4 shadow-inner">
+              <span class="font-bold text-slate-300">Progreso:</span>
+              <div class="w-32 bg-slate-800 rounded-full h-3.5 overflow-hidden">
+                <div id="progressBar" class="bg-gradient-to-r from-cyan-400 to-emerald-400 h-3.5 rounded-full transition-all duration-700" style="width: 0%"></div>
               </div>
               <span id="progressText" class="font-black text-cyan-400">0%</span>
             </div>
-            <button onclick="deleteActiveSubject()" class="px-3.5 py-2 rounded-2xl bg-red-950/80 text-red-300 border border-red-800 font-bold shadow">🗑️ Borrar</button>
+            <button onclick="deleteActiveSubject()" class="px-4 py-3 rounded-2xl bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-800 font-bold shadow transition flex items-center gap-2">
+              <span>🗑️</span> Borrar Materia
+            </button>
           </div>
         </div>
 
-        <!-- 🏛️ SANTUARIO FENOMENOLÓGICO -->
-        <div class="glass-edu rounded-3xl p-6 border-2 border-amber-500/50 shadow-2xl space-y-5 bg-gradient-to-br from-amber-950/40 to-slate-900">
-          <div class="flex items-center justify-between border-b border-amber-500/30 pb-3">
-            <div class="flex items-center gap-3">
-              <span class="text-3xl">🏛️</span>
+        <!-- ================= MÓDULO 1: SANTUARIO FENOMENOLÓGICO ================= -->
+        <div class="glass-edu rounded-3xl p-8 border-2 border-amber-500/50 shadow-2xl space-y-6 bg-gradient-to-br from-amber-950/40 to-slate-900">
+          <div class="flex items-center justify-between border-b border-amber-500/30 pb-4">
+            <div class="flex items-center gap-4">
+              <span class="text-4xl drop-shadow-md">🏛️</span>
               <div>
-                <h3 class="font-black text-base text-amber-300 uppercase">Santuario Fenomenológico (Continental)</h3>
-                <p class="text-xs text-slate-300">Exploración pura de Edmund Husserl y Martin Heidegger. Sin filosofía analítica ni anglosajona.</p>
+                <h3 class="font-black text-lg text-amber-300 uppercase tracking-wide">Santuario Fenomenológico (Continental)</h3>
+                <p class="text-sm text-slate-300 mt-1">Exploración pura de Edmund Husserl y Martin Heidegger. Libre de filosofía analítica.</p>
               </div>
             </div>
-            <button onclick="togglePhenomenologyDocs()" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 font-black text-xs text-white shadow transition">📖 Ver Teoría y Glosario</button>
+            <button onclick="togglePhenomenologyDocs()" class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 font-black text-xs text-white shadow-lg transition">
+              📖 Ver Glosario y Teoría
+            </button>
           </div>
 
-          <div id="phenomenologyDocs" class="hidden space-y-4 pt-2">
-            <div class="bg-slate-900 p-4 rounded-2xl border border-amber-500/40">
-              <h4 class="font-black text-sm text-cyan-300 mb-2">📜 De la Consciencia al Ser</h4>
-              <p class="text-xs text-slate-300 leading-relaxed"><b>Edmund Husserl</b> funda la fenomenología para ir "a las cosas mismas", estableciendo que la <i>Consciencia</i> siempre es intencional. Su alumno, <b>Martin Heidegger</b>, lleva este método a la existencia humana concreta, creando la ontología fundamental y descubriendo al <i>Dasein</i> (el Ser-ahí).</p>
+          <!-- Documentación Oculta (Toggle) -->
+          <div id="phenomenologyDocs" class="hidden space-y-5 pt-3 animate-fade-in">
+            <div class="bg-slate-900 p-6 rounded-2xl border border-amber-500/40 shadow-inner">
+              <h4 class="font-black text-base text-cyan-300 mb-3 flex items-center gap-2"><span>📜</span> De la Consciencia al Ser</h4>
+              <p class="text-sm text-slate-300 leading-relaxed">
+                <b>Edmund Husserl</b> funda la fenomenología para ir "a las cosas mismas", estableciendo que la <i>Consciencia</i> siempre es intencional (está dirigida hacia algo). Su alumno, <b>Martin Heidegger</b>, toma este método pero lo enfoca en la existencia humana concreta en el tiempo, creando la ontología fundamental y descubriendo al <i>Dasein</i> (el Ser-ahí).
+              </p>
             </div>
-            <div class="bg-slate-900 p-4 rounded-2xl border border-amber-500/40">
-              <h4 class="font-black text-sm text-amber-300 mb-2">⚖️ Consciencia (SC) vs. Conciencia (C)</h4>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                <div>
-                  <span class="font-black text-emerald-400">Consciencia (con SC):</span>
-                  <p class="text-slate-300 mt-1">Término psicológico y fenomenológico. Es el estado de estar despierto y percibir. <i>"La intencionalidad de la consciencia."</i></p>
+            <div class="bg-slate-900 p-6 rounded-2xl border border-amber-500/40 shadow-inner">
+              <h4 class="font-black text-base text-amber-300 mb-4 flex items-center gap-2"><span>⚖️</span> Consciencia (SC) vs. Conciencia (C)</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800">
+                  <span class="font-black text-emerald-400 text-base">Consciencia (con SC):</span>
+                  <p class="text-slate-300 mt-2 leading-relaxed">
+                    Término neurológico, psicológico y fenomenológico. Es el estado de estar despierto y percibir la realidad de manera atenta. <i>"La intencionalidad de la consciencia."</i>
+                  </p>
                 </div>
-                <div>
-                  <span class="font-black text-purple-400">Conciencia (con C):</span>
-                  <p class="text-slate-300 mt-1">Término moral y existencial (Heidegger). La voz interior que llama al Dasein a asumir su libertad. <i>"Actuar según mi conciencia."</i></p>
+                <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800">
+                  <span class="font-black text-purple-400 text-base">Conciencia (con C):</span>
+                  <p class="text-slate-300 mt-2 leading-relaxed">
+                    Término moral y existencial (Heidegger). Es la voz interior silenciosa que llama al Dasein a salir de su cotidianidad y asumir su libertad. <i>"Actuar según mi conciencia."</i>
+                  </p>
                 </div>
               </div>
             </div>
-            <div class="bg-slate-900 p-4 rounded-2xl border border-amber-500/40">
-              <h4 class="font-black text-sm text-rose-300 mb-2">🗣️ Teoría del Lenguaje y Glosario</h4>
-              <p class="text-xs text-slate-300 mb-2"><i>"El lenguaje es la casa del ser. En su morada habita el hombre"</i> - Heidegger.</p>
-              <ul class="text-xs text-slate-300 space-y-1 mt-2">
-                <li><b>Dasein:</b> El ser humano que se pregunta por su existencia.</li>
-                <li><b>Epokhé:</b> Suspensión del juicio (Husserl).</li>
-                <li><b>Ser-para-la-muerte:</b> Reconocer la finitud para vivir auténticamente.</li>
+            <div class="bg-slate-900 p-6 rounded-2xl border border-amber-500/40 shadow-inner">
+              <h4 class="font-black text-base text-rose-300 mb-3 flex items-center gap-2"><span>🗣️</span> Teoría del Lenguaje y Glosario</h4>
+              <p class="text-sm text-slate-300 mb-4 italic">
+                "El lenguaje es la casa del ser. En su morada habita el hombre" - Martin Heidegger.
+              </p>
+              <ul class="text-sm text-slate-300 space-y-3 mt-2 list-none pl-0">
+                <li class="flex items-start gap-2"><span class="text-amber-500">➤</span> <span><b>Dasein:</b> El ser humano en cuanto ente que se pregunta por su propia existencia.</span></li>
+                <li class="flex items-start gap-2"><span class="text-amber-500">➤</span> <span><b>Epokhé:</b> Suspensión del juicio (Husserl). Poner entre paréntesis el mundo natural para analizar el fenómeno puro.</span></li>
+                <li class="flex items-start gap-2"><span class="text-amber-500">➤</span> <span><b>Ser-para-la-muerte:</b> La condición existencial de reconocer la propia finitud para poder vivir de forma auténtica.</span></li>
               </ul>
             </div>
           </div>
 
           <!-- Oráculo Fenomenológico -->
-          <div class="pt-2">
-            <h4 class="font-black text-xs text-slate-400 mb-2 uppercase">Oráculo Fenomenológico (Consulta Interactiva)</h4>
-            <div class="flex gap-2">
-              <input type="text" id="phenoQueryInput" placeholder="Pregunta sobre Dasein, Husserl, Angustia..." class="flex-1 px-4 py-3 rounded-2xl bg-slate-900 border border-amber-500/50 text-xs text-white focus:outline-none focus:border-amber-400" />
-              <button onclick="askPhenomenology()" class="px-6 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 font-black text-xs text-white shadow-xl transition">Consultar Oráculo</button>
+          <div class="pt-4 border-t border-amber-500/20">
+            <h4 class="font-black text-sm text-slate-400 mb-3 uppercase tracking-widest">Oráculo Fenomenológico (Consulta a la IA)</h4>
+            <div class="flex gap-3">
+              <input type="text" id="phenoQueryInput" placeholder="Ej. ¿Cómo explica Heidegger la Angustia y por qué es diferente al miedo?..." class="flex-1 px-5 py-4 rounded-2xl bg-slate-900 border border-amber-500/50 text-sm text-white focus:outline-none focus:border-amber-400 shadow-inner transition" />
+              <button onclick="askPhenomenology()" class="px-8 py-4 rounded-2xl bg-amber-600 hover:bg-amber-500 font-black text-sm text-white shadow-xl transition-all transform hover:scale-105">
+                Consultar Oráculo
+              </button>
             </div>
           </div>
         </div>
 
-        <!-- 📝 MÓDULO DE SOLICITUD DE TAREAS -->
-        <div class="glass-edu rounded-3xl p-6 border-2 border-emerald-500/50 shadow-2xl space-y-4">
-          <div class="flex items-center gap-3">
-            <span class="text-3xl">📝</span>
+        <!-- =========================================
+             MÓDULO 2: SOLICITUD DE TAREAS Y RESÚMENES
+             ========================================= -->
+        <div class="glass-edu rounded-3xl p-8 border-2 border-emerald-500/50 shadow-2xl space-y-5 bg-gradient-to-br from-emerald-950/20 to-slate-900">
+          <div class="flex items-center gap-4 border-b border-emerald-500/30 pb-4">
+            <span class="text-4xl drop-shadow-md">📝</span>
             <div>
-              <h3 class="font-black text-sm text-emerald-300 uppercase">Módulo Humanista-Existencial: Tareas y Resúmenes</h3>
-              <p class="text-xs text-slate-300">Pide por escrito tus resúmenes y la IA te los redactará profundamente sin tecnicismos fríos.</p>
+              <h3 class="font-black text-lg text-emerald-300 uppercase tracking-wide">Módulo Humanista-Existencial: Tareas y Resúmenes</h3>
+              <p class="text-sm text-slate-300 mt-1">Pide a la IA que lea tu repositorio y te redacte respuestas académicas profundas, cálidas y sin tecnicismos fríos.</p>
             </div>
           </div>
-          <div class="space-y-3">
-            <textarea id="homeworkPromptInput" rows="3" placeholder="Ej. Redacta un resumen analítico sobre los documentos cargados, explicando la teoría de manera comprensible y humana..." class="w-full p-4 rounded-2xl bg-slate-900 border-2 border-emerald-500/40 text-xs text-white focus:outline-none focus:border-emerald-400 font-medium"></textarea>
-            <button onclick="submitUniversityHomework()" class="px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 font-black text-xs text-white shadow-xl hover:brightness-110 transition">✨ Generar Resolución Académica</button>
+          <div class="space-y-4 pt-2">
+            <textarea id="homeworkPromptInput" rows="4" placeholder="Ej. Basándote en los documentos cargados, redacta un resumen analítico sobre cómo la gerontología centrada en la persona mejora el sentido existencial del adulto mayor. Explícalo con palabras comprensibles y humanas..." class="w-full p-5 rounded-2xl bg-slate-900 border-2 border-emerald-500/40 text-sm text-white focus:outline-none focus:border-emerald-400 font-medium shadow-inner transition"></textarea>
+            <button onclick="submitUniversityHomework()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 font-black text-sm text-white shadow-xl hover:brightness-110 transition-all transform hover:scale-[1.01]">
+              ✨ Generar Resolución Académica
+            </button>
           </div>
         </div>
 
-        <!-- REPOSITORIO Y HERRAMIENTAS (2 COLUMNAS) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- =========================================
+             MÓDULO 3: REPOSITORIO Y HERRAMIENTAS (2 COLUMNAS)
+             ========================================= -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
           
-          <!-- COLUMNA 1: REPOSITORIO -->
-          <div class="glass-edu rounded-3xl p-6 space-y-4 flex flex-col justify-between border border-indigo-500/30">
+          <!-- Columna Izquierda: Repositorio -->
+          <div class="glass-edu rounded-3xl p-7 space-y-6 flex flex-col justify-between border border-indigo-500/30 shadow-xl">
             <div>
-              <div class="flex items-center justify-between">
-                <h3 class="font-black text-sm text-cyan-300">1️⃣ Repositorio y Videos</h3>
-                <span class="text-[10px] px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold">Multifuente</span>
+              <div class="flex items-center justify-between border-b border-indigo-500/30 pb-3 mb-4">
+                <h3 class="font-black text-base text-cyan-300 flex items-center gap-2"><span>1️⃣</span> Repositorio Multi-formato</h3>
+                <span class="text-[10px] px-3 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-600 font-black tracking-widest uppercase">Multi-fuente</span>
               </div>
-              <p class="text-xs text-slate-300 mt-2">Carga aquí tus PDFs, textos o enlaces de YouTube.</p>
+              <p class="text-xs text-slate-300 mb-4 leading-relaxed">Carga tus libros (PDFs), apuntes en Word/TXT, imágenes, o pega el enlace de tu clase magistral de YouTube.</p>
 
-              <form onsubmit="handleUploadDoc(event)" class="space-y-3 mt-3">
-                <input type="text" id="docTitle" placeholder="Título (ej. Clase Magistral)" class="w-full px-4 py-2.5 rounded-2xl bg-slate-900 border border-indigo-500/40 text-xs text-white font-medium" />
+              <form onsubmit="handleUploadDoc(event)" class="space-y-4">
                 <div>
-                  <label class="text-[11px] text-red-400 font-bold">▶️ Enlace de Video de YouTube:</label>
-                  <input type="url" id="youtubeUrlInput" placeholder="https://youtu.be/..." class="w-full mt-1 px-4 py-2.5 rounded-2xl bg-slate-900 border border-red-500/50 text-xs text-white font-medium" />
+                  <label class="text-xs font-bold text-slate-400 ml-1">Título del material</label>
+                  <input type="text" id="docTitle" placeholder="Ej. Libro de Gerontología" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-900 border border-indigo-500/40 text-sm text-white font-medium focus:border-cyan-400 transition" />
                 </div>
-                <div class="p-4 rounded-2xl bg-slate-900/90 border-2 border-dashed border-cyan-500/40">
-                  <input type="file" id="docFiles" multiple accept=".pdf,.pptx,.ppt,.docx,.doc,.png,.jpg,.jpeg,.webp,.txt" onchange="updateSelectedFilesList()" class="w-full text-xs text-slate-300 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-cyan-600 file:text-white file:font-bold cursor-pointer" />
-                  <div id="selectedFilesPreview" class="text-[11px] text-cyan-300 mt-2 font-bold"></div>
+                
+                <div>
+                  <label class="text-[11px] text-red-400 font-black tracking-wider uppercase ml-1">▶️ Enlace de YouTube (Opcional):</label>
+                  <input type="url" id="youtubeUrlInput" placeholder="https://youtu.be/..." class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-900 border border-red-500/50 text-sm text-white font-medium focus:border-red-400 transition" />
                 </div>
-                <button type="submit" id="btnUploadDoc" class="w-full py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 font-black text-xs shadow-xl text-white transition">📥 Procesar y Guardar</button>
+                
+                <div class="p-5 rounded-2xl bg-slate-900/90 border-2 border-dashed border-cyan-500/40 hover:border-cyan-400 transition text-center">
+                  <input type="file" id="docFiles" multiple accept=".pdf,.pptx,.ppt,.docx,.doc,.png,.jpg,.jpeg,.webp,.txt" onchange="updateSelectedFilesList()" class="w-full text-xs text-slate-300 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:bg-cyan-600 file:text-white file:font-black file:shadow-md cursor-pointer transition" />
+                  <div id="selectedFilesPreview" class="text-xs text-cyan-300 mt-3 font-black"></div>
+                </div>
+                
+                <button type="submit" id="btnUploadDoc" class="w-full py-4 rounded-2xl bg-cyan-600 hover:bg-cyan-500 font-black text-sm shadow-xl text-white transition-all transform hover:scale-105">
+                  📥 Subir y Procesar Material
+                </button>
               </form>
             </div>
             
-            <div class="pt-4 border-t border-indigo-500/30 mt-4">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-slate-300">📚 Archivos (<span id="savedLibraryBadge" class="text-cyan-400">0</span>):</span>
-                <button id="btnClearAllDocs" onclick="clearAllSubjectDocs()" class="hidden text-[11px] px-2.5 py-1 rounded-xl bg-red-950 text-red-300 font-bold">🗑️ Vaciar</button>
+            <div class="pt-5 border-t border-indigo-500/30">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-sm font-black text-slate-200 flex items-center gap-2">
+                  <span>📚</span> Archivos Guardados (<span id="savedLibraryBadge" class="text-cyan-400">0</span>)
+                </span>
+                <button id="btnClearAllDocs" onclick="clearAllSubjectDocs()" class="hidden text-xs px-3 py-1.5 rounded-xl bg-red-950 text-red-300 font-black hover:bg-red-900 transition">
+                  🗑️ Vaciar Todo
+                </button>
               </div>
-              <div id="savedDocsList" class="space-y-2 max-h-32 overflow-y-auto pr-1"></div>
+              <div id="savedDocsList" class="space-y-2.5 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                <!-- Documentos inyectados por JS -->
+              </div>
             </div>
           </div>
 
-          <!-- COLUMNA 2: HERRAMIENTAS Y AUDIOLIBRO -->
-          <div class="glass-edu rounded-3xl p-6 space-y-4 flex flex-col justify-between border border-indigo-500/30">
-            <div class="space-y-3">
-              <h3 class="font-black text-sm text-teal-300">2️⃣ Asimilación y Audiolibros</h3>
+          <!-- Columna Derecha: Herramientas y Audiolibro -->
+          <div class="glass-edu rounded-3xl p-7 space-y-6 flex flex-col justify-between border border-indigo-500/30 shadow-xl">
+            <div class="space-y-4">
+              <div class="border-b border-indigo-500/30 pb-3 mb-4">
+                <h3 class="font-black text-base text-teal-300 flex items-center gap-2"><span>2️⃣</span> Herramientas y Audiolibro</h3>
+              </div>
               
               <div>
-                <label class="text-xs text-slate-300 font-bold">Material de análisis para herramientas:</label>
-                <select id="selectDocForAI" class="w-full mt-1 px-4 py-2.5 rounded-2xl bg-slate-900 border border-indigo-500/40 text-xs text-white font-bold"></select>
+                <label class="text-xs text-slate-300 font-bold ml-1">Selecciona el material para analizar:</label>
+                <select id="selectDocForAI" class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border border-indigo-500/40 text-sm text-white font-bold focus:outline-none focus:border-cyan-400 transition"></select>
               </div>
-              <input type="text" id="focusTopic" placeholder="Enfoque (ej. Conceptos Clave)" class="w-full px-4 py-2.5 rounded-2xl bg-slate-900 border border-indigo-500/40 text-xs text-white font-medium" />
-
-              <div class="grid grid-cols-2 gap-2.5 pt-1">
-                <button onclick="generateStorybook()" class="py-2.5 px-2 rounded-2xl bg-gradient-to-r from-cyan-600 to-indigo-600 font-black text-xs text-white shadow-lg hover:brightness-110">📖 Monografía</button>
-                <button onclick="generateFlashcards()" class="py-2.5 px-2 rounded-2xl bg-purple-600 hover:bg-purple-500 font-black text-xs text-white shadow-lg">🃏 Fichas Teóricas</button>
-                <button onclick="generateMindMap()" class="py-2.5 px-2 rounded-2xl bg-teal-600 hover:bg-teal-500 font-black text-xs text-white shadow-lg">🧠 Mapa</button>
-                <button onclick="generateTimelineMap()" class="py-2.5 px-2 rounded-2xl bg-amber-600 hover:bg-amber-500 font-black text-xs text-white shadow-lg">🗺️ Línea de Tiempo</button>
+              
+              <div>
+                <label class="text-xs text-slate-300 font-bold ml-1">Foco de estudio (Opcional):</label>
+                <input type="text" id="focusTopic" placeholder="Ej. Analizar la resiliencia en adultos" class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border border-indigo-500/40 text-sm text-white font-medium focus:outline-none focus:border-cyan-400 transition" />
               </div>
 
-              <!-- 🎧 SELECTOR Y BOTÓN DE AUDIOLIBRO -->
-              <div class="mt-4 p-4 rounded-2xl bg-rose-950/40 border border-rose-500/50 space-y-3 shadow-inner">
-                <label class="text-xs font-black text-rose-300">Selecciona el Libro para Audiolibre:</label>
-                <select id="audiobookDocSelect" class="w-full px-4 py-2.5 rounded-2xl bg-slate-900 border border-rose-500/50 text-xs text-white font-bold focus:outline-none focus:border-rose-400"></select>
-                <button onclick="generateAudiobook()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-pink-600 to-rose-600 font-black text-sm text-white shadow-xl hover:brightness-110 transition flex items-center justify-center gap-2">
-                  🎧 Iniciar Audiolibre Interactivo
+              <!-- Botones de Asimilación Visual -->
+              <div class="grid grid-cols-2 gap-3 pt-2">
+                <button onclick="generateStorybook()" class="py-3.5 px-2 rounded-2xl bg-gradient-to-r from-cyan-600 to-indigo-600 font-black text-xs sm:text-sm text-white shadow-lg hover:shadow-cyan-500/25 transition-all transform hover:-translate-y-1">
+                  📖 Monografía
+                </button>
+                <button onclick="generateFlashcards()" class="py-3.5 px-2 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 font-black text-xs sm:text-sm text-white shadow-lg transition-all transform hover:-translate-y-1">
+                  🃏 Fichas Teóricas
+                </button>
+                <button onclick="generateMindMap()" class="py-3.5 px-2 rounded-2xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 font-black text-xs sm:text-sm text-white shadow-lg transition-all transform hover:-translate-y-1">
+                  🧠 Mapa
+                </button>
+                <button onclick="generateTimelineMap()" class="py-3.5 px-2 rounded-2xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 font-black text-xs sm:text-sm text-white shadow-lg transition-all transform hover:-translate-y-1">
+                  🗺️ Línea de Tiempo
+                </button>
+              </div>
+
+              <!-- 🎧 SELECTOR Y BOTÓN DE AUDIOLIBRO (MUY VISIBLE) -->
+              <div class="mt-6 p-5 rounded-2xl bg-rose-950/30 border-2 border-rose-500/50 space-y-4 shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pink-500 to-rose-500"></div>
+                <div>
+                  <label class="text-xs font-black text-rose-300 uppercase tracking-wide flex items-center gap-2">
+                    <span>🎧</span> Crear Audiolibre desde un Libro:
+                  </label>
+                  <select id="audiobookDocSelect" class="w-full mt-2 px-4 py-3 rounded-2xl bg-slate-900 border border-rose-500/50 text-sm text-white font-bold focus:outline-none focus:border-rose-400 transition shadow-inner"></select>
+                </div>
+                <button onclick="generateAudiobook()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-pink-600 to-rose-600 font-black text-sm text-white shadow-xl hover:shadow-rose-500/30 transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3">
+                  <span class="text-lg">▶️</span> Iniciar Audiolibre Completo
                 </button>
               </div>
             </div>
 
-            <div class="pt-3 border-t border-indigo-500/30 space-y-2">
-              <p class="text-xs font-black text-slate-400">🗂️ HISTORIAL DE MONOGRAFÍAS:</p>
-              <div id="savedHistoryList" class="space-y-2 max-h-32 overflow-y-auto pr-1"></div>
+            <div class="pt-5 border-t border-indigo-500/30 mt-4">
+              <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <span>🗂️</span> Historial de Monografías
+              </p>
+              <div id="savedHistoryList" class="space-y-2.5 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                <!-- Historial inyectado por JS -->
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- VISOR DINÁMICO FULL SCREEN -->
-        <div id="viewerArea" class="hidden space-y-6"></div>
+        <!-- =========================================
+             VISOR DINÁMICO FULL SCREEN (Pop-ups)
+             ========================================= -->
+        <div id="viewerArea" class="hidden space-y-6">
+          <!-- Aquí se inyectan las monografías, mapas, audiolibros, etc. -->
+        </div>
+
       </main>
     </div>
   </div>
 
+  <!-- =========================================
+       MODALES FLOTANTES (POP-UPS)
+       ========================================= -->
+       
   <!-- MODAL DEBATE SOCRÁTICO -->
-  <div id="modalSocratic" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4">
-    <div class="glass-edu max-w-2xl w-full rounded-3xl p-6 space-y-4 border-2 border-indigo-500 shadow-2xl">
-      <div class="flex justify-between items-center border-b border-indigo-500/30 pb-3">
-        <h3 class="font-black text-base text-indigo-300">🤼‍♂️ Seminario y Debate Académico</h3>
-        <button onclick="openSocraticModal()" class="text-slate-400 font-bold text-lg hover:text-white">✕</button>
+  <div id="modalSocratic" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="glass-edu max-w-2xl w-full rounded-3xl p-8 space-y-6 border-2 border-indigo-500 shadow-2xl relative">
+      <div class="flex justify-between items-center border-b border-indigo-500/30 pb-4">
+        <h3 class="font-black text-xl text-indigo-300 flex items-center gap-3">
+          <span>🤼‍♂️</span> Seminario y Debate Académico
+        </h3>
+        <button onclick="openSocraticModal()" class="text-slate-400 hover:text-white font-black text-2xl transition">✕</button>
       </div>
-      <div class="space-y-2 text-xs">
-        <label class="text-slate-300 font-bold">Experto con quien debatir:</label>
-        <select id="socraticPhilosopher" class="w-full px-4 py-2.5 rounded-2xl bg-slate-900 border border-indigo-500/40 text-white font-bold">
-          <option value="Martin Heidegger">Martin Heidegger (Fenomenología)</option>
-          <option value="Carl Rogers">Carl Rogers (Enfoque Humanista)</option>
+      
+      <div class="space-y-2 text-sm">
+        <label class="text-slate-300 font-bold ml-1">Selecciona el Experto de la Mesa de Debate:</label>
+        <select id="socraticPhilosopher" class="w-full px-4 py-3.5 rounded-2xl bg-slate-900 border-2 border-indigo-500/40 text-white font-bold focus:outline-none focus:border-indigo-400 transition">
+          <option value="Martin Heidegger">Martin Heidegger (Fenomenología y Dasein)</option>
+          <option value="Edmund Husserl">Edmund Husserl (Fenomenología Pura)</option>
+          <option value="Carl Rogers">Carl Rogers (Enfoque Humanista Clínico)</option>
+          <option value="Viktor Frankl">Viktor Frankl (Logoterapia y Sentido)</option>
           <option value="Criminólogo Experto">Criminólogo / Especialista Legal</option>
           <option value="Fisiólogo Clínico">Fisiólogo / Especialista Médico</option>
         </select>
       </div>
-      <div id="socraticChatBox" class="h-60 overflow-y-auto bg-slate-900 p-4 rounded-2xl space-y-3 border border-indigo-500/30 text-xs">
-        <div class="p-3 rounded-2xl bg-indigo-950/80 border border-indigo-800 text-indigo-200 font-medium">
-          🏛️ ¡Hola! Propón un dilema para debatir y poner a prueba tu pensamiento crítico.
+      
+      <div id="socraticChatBox" class="h-72 overflow-y-auto bg-slate-900 p-5 rounded-2xl space-y-4 border border-indigo-500/30 text-sm shadow-inner custom-scrollbar">
+        <div class="p-4 rounded-2xl bg-indigo-950/80 border border-indigo-800 text-indigo-200 font-medium leading-relaxed">
+          🏛️ ¡Bienvenido al seminario! Propón un dilema ético, clínico o filosófico para debatir y poner a prueba tu pensamiento crítico.
         </div>
       </div>
-      <div class="flex gap-2">
-        <input type="text" id="socraticInput" placeholder="Escribe tu argumento..." class="flex-1 px-4 py-3 rounded-2xl bg-slate-900 border border-indigo-500/40 text-xs text-white font-medium focus:border-indigo-400" />
-        <button onclick="sendSocraticMessage()" class="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-black text-xs text-white shadow">Argumentar</button>
+      
+      <div class="flex gap-3 pt-2">
+        <input type="text" id="socraticInput" placeholder="Escribe tu argumento o duda académica aquí..." class="flex-1 px-5 py-4 rounded-2xl bg-slate-900 border-2 border-indigo-500/40 text-sm text-white font-medium focus:border-indigo-400 focus:outline-none transition shadow-inner" />
+        <button onclick="sendSocraticMessage()" class="px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-black text-sm text-white shadow-xl transition-all transform hover:scale-105">
+          Argumentar
+        </button>
       </div>
     </div>
   </div>
 
   <!-- MODAL NUEVA MATERIA -->
-  <div id="modalSubject" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-    <div class="glass-edu max-w-md w-full rounded-3xl p-6 space-y-4 border border-indigo-500/50">
-      <h3 class="font-black text-lg text-white">Agregar Materia a tu Carrera</h3>
-      <input type="text" id="newSubjName" placeholder="Nombre (ej. Psicopatología)" class="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-indigo-500/40 text-sm text-white font-bold" />
-      <input type="text" id="newSubjSchedule" placeholder="Semestre / Horario" class="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-indigo-500/40 text-sm text-white font-bold" />
-      <div class="flex justify-end gap-2 pt-2">
-        <button onclick="toggleNewSubjectModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white transition">Cancelar</button>
-        <button onclick="createNewSubject()" class="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-black text-xs text-white shadow transition">Guardar</button>
+  <div id="modalSubject" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="glass-edu max-w-md w-full rounded-3xl p-8 space-y-6 border-2 border-indigo-500/50 shadow-2xl relative">
+      <h3 class="font-black text-2xl text-white text-center">Añadir Materia</h3>
+      <p class="text-center text-slate-300 text-xs mt-1 mb-4">Agrega una nueva asignatura a tu pensum actual.</p>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="text-xs font-bold text-cyan-300 ml-1">Nombre Oficial (ej. Psicopatología)</label>
+          <input type="text" id="newSubjName" placeholder="Escribe el nombre aquí..." class="w-full mt-1.5 px-4 py-3.5 rounded-2xl bg-slate-900 border-2 border-indigo-500/40 text-sm text-white font-bold focus:outline-none focus:border-cyan-400 transition" />
+        </div>
+        <div>
+          <label class="text-xs font-bold text-cyan-300 ml-1">Semestre o Ciclo (ej. Semestre 4)</label>
+          <input type="text" id="newSubjSchedule" placeholder="Especifica el horario o ciclo..." class="w-full mt-1.5 px-4 py-3.5 rounded-2xl bg-slate-900 border-2 border-indigo-500/40 text-sm text-white font-bold focus:outline-none focus:border-cyan-400 transition" />
+        </div>
+      </div>
+      
+      <div class="flex justify-between gap-4 pt-4 border-t border-indigo-500/30">
+        <button onclick="toggleNewSubjectModal()" class="flex-1 px-4 py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-sm font-bold text-white transition">
+          Cancelar
+        </button>
+        <button onclick="createNewSubject()" class="flex-1 px-4 py-3.5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 font-black text-sm text-white shadow-xl transition-all transform hover:scale-105">
+          💾 Guardar
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- SCRIPTS Y LÓGICA -->
+
+  <!-- =========================================
+       SCRIPTS Y LÓGICA JAVASCRIPT
+       ========================================= -->
   <script>
     let currentUser = null;
     let activeSubjectId = null;
     let socraticHistory = '';
+    
+    // Variables globales para el resumen del audiolibro
+    window.currentAudiobookSummary = "";
+    window.currentAudiobookTitle = "";
 
+    // 1. INICIALIZACIÓN Y SESIÓN
     window.addEventListener('DOMContentLoaded', async () => {
       const savedUsername = localStorage.getItem('psico_active_user');
       if (savedUsername) {
         try {
           const res = await fetch(`/api/auth/session/${encodeURIComponent(savedUsername)}`);
           const data = await res.json();
-          if (res.ok && data.user) enterApp(data.user);
-        } catch (e) {}
+          if (res.ok && data.user) {
+            enterApp(data.user);
+          }
+        } catch (e) {
+          console.error("Error cargando sesión:", e);
+        }
       }
     });
 
+    // 2. FUNCIÓN DE VOZ SINTÉTICA (TTS)
     function speakText(text) {
-      if (!('speechSynthesis' in window)) return alert('Sin soporte de voz.');
+      if (!('speechSynthesis' in window)) {
+        return alert('Tu navegador no soporta síntesis de voz. Por favor usa Chrome, Edge o Safari.');
+      }
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'es-ES';
       window.speechSynthesis.speak(utterance);
     }
 
+    // 3. FUNCIONES DE AUTENTICACIÓN
     function switchAuthTab(tab) {
       document.getElementById('authError').classList.add('hidden');
       document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
       document.getElementById('registerForm').classList.toggle('hidden', tab !== 'register');
-      document.getElementById('tabLogin').className = tab === 'login' ? 'flex-1 py-2.5 rounded-xl text-xs font-black bg-indigo-600 text-white shadow' : 'flex-1 py-2.5 rounded-xl text-xs font-black text-slate-400';
-      document.getElementById('tabRegister').className = tab === 'register' ? 'flex-1 py-2.5 rounded-xl text-xs font-black bg-emerald-600 text-white shadow' : 'flex-1 py-2.5 rounded-xl text-xs font-black text-slate-400';
+      
+      document.getElementById('tabLogin').className = tab === 'login' 
+        ? 'flex-1 py-3 rounded-xl text-xs font-black bg-indigo-600 text-white shadow' 
+        : 'flex-1 py-3 rounded-xl text-xs font-black text-slate-400 hover:text-white transition';
+        
+      document.getElementById('tabRegister').className = tab === 'register' 
+        ? 'flex-1 py-3 rounded-xl text-xs font-black bg-emerald-600 text-white shadow' 
+        : 'flex-1 py-3 rounded-xl text-xs font-black text-slate-400 hover:text-white transition';
     }
 
     function showAuthError(msg) { 
@@ -406,20 +595,27 @@
       e.preventDefault();
       try {
         const res = await fetch('/api/auth/login', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ identifier: document.getElementById('loginId').value, password: document.getElementById('loginPass').value })
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            identifier: document.getElementById('loginId').value, 
+            password: document.getElementById('loginPass').value 
+          })
         });
         const data = await res.json();
         if (!res.ok) return showAuthError(data.error);
         enterApp(data.user);
-      } catch (e) { showAuthError('Error de red'); }
+      } catch (e) { 
+        showAuthError('Error de conexión con el servidor.'); 
+      }
     }
 
     async function handleRegister(e) {
       e.preventDefault();
       try {
         const res = await fetch('/api/auth/register', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             fullName: document.getElementById('regName').value, 
             username: document.getElementById('regUser').value, 
@@ -431,7 +627,9 @@
         const data = await res.json();
         if (!res.ok) return showAuthError(data.error);
         enterApp(data.user);
-      } catch (e) { showAuthError('Error al registrar'); }
+      } catch (e) { 
+        showAuthError('Error al registrar la cuenta.'); 
+      }
     }
 
     function enterApp(user) {
@@ -450,9 +648,12 @@
       location.reload(); 
     }
 
+    // 4. RENDERIZADO DEL DASHBOARD Y MATERIAS
     function updateSelectedFilesList() {
       const input = document.getElementById('docFiles');
-      document.getElementById('selectedFilesPreview').textContent = input.files.length ? `✅ ${input.files.length} archivo(s) listos.` : '';
+      document.getElementById('selectedFilesPreview').textContent = input.files.length > 0 
+        ? `✅ ${input.files.length} archivo(s) listos para subir.` 
+        : '';
     }
 
     function renderDashboard() {
@@ -462,20 +663,22 @@
 
       const list = document.getElementById('subjectsList');
       list.innerHTML = currentUser.subjects.map(s => `
-        <button onclick="selectSubject('${s.id}')" class="w-full text-left p-3.5 rounded-2xl border-2 transition ${s.id === activeSubjectId ? 'bg-cyan-950/80 border-cyan-400 shadow-lg text-white' : 'bg-slate-900/70 border-indigo-500/30 text-slate-300 hover:border-indigo-400'}">
-          <div class="font-black text-xs">${s.name}</div>
-          <div class="text-[10px] text-cyan-300/80 mt-0.5 font-bold">${s.schedule || ''}</div>
+        <button onclick="selectSubject('${s.id}')" class="w-full text-left p-4 rounded-2xl border-2 transition-all ${s.id === activeSubjectId ? 'bg-cyan-950/80 border-cyan-400 shadow-lg text-white transform scale-[1.02]' : 'bg-slate-900/70 border-indigo-500/30 text-slate-300 hover:border-indigo-400'}">
+          <div class="font-black text-sm">${s.name}</div>
+          <div class="text-xs text-cyan-300/80 mt-1 font-bold">${s.schedule || ''}</div>
         </button>
       `).join('');
 
       const subj = currentUser.subjects.find(s => s.id === activeSubjectId);
       if (!subj) return;
 
-      document.getElementById('activeSubjMeta').textContent = `${currentUser.career} · ${subj.schedule || ''}`;
+      document.getElementById('activeSubjMeta').textContent = `${currentUser.career} ·${subj.schedule || ''}`;
       document.getElementById('activeSubjTitle').textContent = subj.name;
       
       const docs = subj.documents || [];
       const sbCount = (subj.storybooks || []).length;
+      
+      // Cálculo de Progreso
       const domainScore = Math.min(100, (docs.length * 25) + (sbCount * 20));
       document.getElementById('progressBar').style.width = domainScore + '%';
       document.getElementById('progressText').textContent = domainScore + '%';
@@ -483,24 +686,29 @@
       document.getElementById('savedLibraryBadge').textContent = docs.length;
       document.getElementById('btnClearAllDocs').classList.toggle('hidden', docs.length === 0);
 
-      document.getElementById('savedDocsList').innerHTML = docs.length === 0 ? `<p class="text-xs text-slate-500 italic">Sin documentos.</p>` : docs.map(d => `
-        <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-900 border border-indigo-500/30 text-xs gap-2">
-          <div class="truncate text-slate-200 font-medium">📄 ${d.title}</div>
-          <button onclick="deleteSavedDoc('${d.id}')" class="text-red-400 font-bold hover:text-red-300">🗑️</button>
-        </div>
-      `).join('');
+      // Render Archivos Guardados
+      document.getElementById('savedDocsList').innerHTML = docs.length === 0 
+        ? `<p class="text-xs text-slate-500 italic p-2 border border-dashed border-slate-700 rounded-xl text-center">Repositorio vacío. Sube material para comenzar.</p>` 
+        : docs.map(d => `
+          <div class="flex items-center justify-between px-4 py-3 rounded-xl bg-slate-900 border border-indigo-500/30 text-sm gap-3 shadow-sm hover:border-indigo-400 transition">
+            <div class="truncate text-slate-200 font-bold">📄 ${d.title}</div>
+            <button onclick="deleteSavedDoc('${d.id}')" class="text-red-400 font-black hover:text-red-300 bg-red-950/50 px-2 py-1 rounded-lg">🗑️</button>
+          </div>
+        `).join('');
 
+      // Render Selectores (IA y Audiolibro)
       const optionsHTML = `<option value="ALL">📚 USAR TODOS LOS ARCHIVOS (${docs.length})</option>` + docs.map(d => `<option value="${d.id}">📄 ${d.title}</option>`).join('');
       document.getElementById('selectDocForAI').innerHTML = optionsHTML;
-      document.getElementById('audiobookDocSelect').innerHTML = `<option value="">-- Elige un libro para escuchar --</option>` + docs.map(d => `<option value="${d.id}">📖 ${d.title}</option>`).join('');
+      document.getElementById('audiobookDocSelect').innerHTML = `<option value="">-- Elige el Libro Completo --</option>` + docs.map(d => `<option value="${d.id}">📖 ${d.title}</option>`).join('');
 
+      // Render Historial de Monografías
       const hist = document.getElementById('savedHistoryList');
       hist.innerHTML = (subj.storybooks || []).slice().reverse().map(sb => `
-        <div class="p-2.5 rounded-xl bg-slate-900 border border-indigo-500/30 flex justify-between items-center text-xs">
-          <div onclick='openStorybook(${JSON.stringify(sb).replace(/'/g, "&#39;")})' class="cursor-pointer truncate flex-1 text-slate-200 font-bold hover:text-cyan-300">📖 <b>${sb.title}</b></div>
-          <button onclick="deleteSavedStorybook('${sb.id}')" class="text-red-400 ml-2 font-bold">🗑️</button>
+        <div class="p-3.5 rounded-xl bg-slate-900 border border-indigo-500/30 flex justify-between items-center text-sm shadow-sm hover:border-cyan-500 transition">
+          <div onclick='openStorybook(${JSON.stringify(sb).replace(/'/g, "&#39;")})' class="cursor-pointer truncate flex-1 text-slate-200 font-black hover:text-cyan-300">📖 ${sb.title}</div>
+          <button onclick="deleteSavedStorybook('${sb.id}')" class="text-red-400 ml-3 font-black bg-red-950/50 px-2 py-1 rounded-lg">🗑️</button>
         </div>
-      `).join('') || '<p class="text-xs text-slate-500 italic">Sin monografías generadas.</p>';
+      `).join('') || '<p class="text-xs text-slate-500 italic p-2 border border-dashed border-slate-700 rounded-xl text-center">No hay monografías generadas aún.</p>';
     }
 
     function selectSubject(id) { 
@@ -514,26 +722,39 @@
       document.getElementById('modalSubject').classList.toggle('hidden'); 
     }
 
+    // 5. GESTIÓN DE MATERIAS Y DOCUMENTOS
     async function createNewSubject() {
       const name = document.getElementById('newSubjName').value.trim();
       if (!name) return;
       const res = await fetch('/api/subjects', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: currentUser.username, name, schedule: document.getElementById('newSubjSchedule').value })
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          username: currentUser.username, 
+          name, 
+          schedule: document.getElementById('newSubjSchedule').value 
+        })
       });
       const data = await res.json();
       if (res.ok) { 
         currentUser = data.user; 
         activeSubjectId = data.newSubjectId; 
         toggleNewSubjectModal(); 
+        
+        // Limpiar inputs
+        document.getElementById('newSubjName').value = '';
+        document.getElementById('newSubjSchedule').value = '';
+        
         renderDashboard(); 
       }
     }
 
     async function deleteActiveSubject() {
-      if (!activeSubjectId || !confirm('¿Borrar materia?')) return;
+      if (!activeSubjectId || !confirm('¿Estás seguro de querer borrar esta materia y todos sus documentos? Esta acción no se puede deshacer.')) return;
       const res = await fetch(`/api/subjects/${activeSubjectId}`, {
-        method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username })
+        method: 'DELETE', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ username: currentUser.username })
       });
       const data = await res.json();
       if (res.ok) { 
@@ -546,6 +767,12 @@
 
     async function handleUploadDoc(e) {
       e.preventDefault();
+      
+      const btn = document.getElementById('btnUploadDoc');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '⏳ Subiendo...';
+      btn.disabled = true;
+      
       const fd = new FormData();
       fd.append('username', currentUser.username); 
       fd.append('subjectId', activeSubjectId);
@@ -553,56 +780,130 @@
       fd.append('youtubeUrl', document.getElementById('youtubeUrlInput').value);
       
       const files = document.getElementById('docFiles').files;
-      for (let i = 0; i < files.length; i++) fd.append('documents', files[i]);
+      for (let i = 0; i < files.length; i++) {
+        fd.append('documents', files[i]);
+      }
 
-      const res = await fetch('/api/documents', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (res.ok) { 
-        currentUser = data.user; 
-        document.getElementById('docTitle').value = ''; 
-        document.getElementById('docFiles').value = ''; 
-        document.getElementById('youtubeUrlInput').value = '';
-        renderDashboard(); 
-        alert('¡Contenido guardado con éxito!'); 
+      try {
+        const res = await fetch('/api/documents', { method: 'POST', body: fd });
+        const data = await res.json();
+        
+        if (res.ok) { 
+          currentUser = data.user; 
+          document.getElementById('docTitle').value = ''; 
+          document.getElementById('docFiles').value = ''; 
+          document.getElementById('selectedFilesPreview').textContent = '';
+          document.getElementById('youtubeUrlInput').value = '';
+          renderDashboard(); 
+          alert('¡Material procesado y guardado en la nube con éxito!'); 
+        } else {
+          alert(data.error);
+        }
+      } catch (err) {
+        alert('Error al subir el archivo. Revisa tu conexión.');
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
       }
     }
 
     async function deleteSavedDoc(id) {
-      if (!confirm('¿Borrar documento?')) return;
-      const res = await fetch(`/api/documents/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId }) });
+      if (!confirm('¿Borrar documento permanentemente del repositorio?')) return;
+      const res = await fetch(`/api/documents/${id}`, { 
+        method: 'DELETE', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId }) 
+      });
       const data = await res.json();
       if (res.ok) { currentUser = data.user; renderDashboard(); }
     }
 
     async function clearAllSubjectDocs() {
-      if (!confirm('¿Vaciar materia?')) return;
-      const res = await fetch(`/api/subjects/${activeSubjectId}/documents`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username }) });
+      if (!confirm('¿Estás SEGURO de querer vaciar todo el repositorio de esta materia? Se perderán los PDFs y textos subidos.')) return;
+      const res = await fetch(`/api/subjects/${activeSubjectId}/documents`, { 
+        method: 'DELETE', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ username: currentUser.username }) 
+      });
       const data = await res.json();
       if (res.ok) { currentUser = data.user; renderDashboard(); }
     }
 
     async function deleteSavedStorybook(sbId) {
-      const res = await fetch(`/api/storybooks/${sbId}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId }) });
+      if (!confirm('¿Borrar esta monografía del historial?')) return;
+      const res = await fetch(`/api/storybooks/${sbId}`, { 
+        method: 'DELETE', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId }) 
+      });
       const data = await res.json();
       if (res.ok) { currentUser = data.user; renderDashboard(); }
     }
 
+    // 6. FUNCIONES DE EXPORTACIÓN Y VISOR FULL SCREEN
+    function exportToWord(title, contentHtml) {
+      const htmlContent = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+          <meta charset='utf-8'>
+          <title>${title}</title>
+          <style>
+            body { font-family: 'Arial', sans-serif; line-height: 1.6; color: #000; padding: 20px; }
+            h1, h2, h3, h4 { color: #1a365d; }
+            p { margin-bottom: 15px; }
+            .chapter-box { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; background-color: #f9f9f9; }
+          </style>
+        </head>
+        <body>
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #0284c7;">DOCUMENTO ACADÉMICO</h1>
+            <p><strong>Generado desde la Plataforma Universitaria</strong></p>
+          </div>
+          ${contentHtml}
+        </body>
+        </html>
+      `;
+      const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); 
+      a.href = url; 
+      a.download = `${title}.doc`; 
+      document.body.appendChild(a); 
+      a.click(); 
+      document.body.removeChild(a);
+    }
+
+    function closeFullScreenViewer() {
+      const v = document.getElementById('viewerArea');
+      v.classList.remove('fullscreen-mode');
+      v.classList.add('hidden');
+      window.speechSynthesis.cancel();
+    }
+
+    // 7. MÓDULO FENOMENOLÓGICO (ORÁCULO Y TEORÍA)
     function togglePhenomenologyDocs() { 
-      document.getElementById('phenomenologyDocs').classList.toggle('hidden'); 
+      const docs = document.getElementById('phenomenologyDocs');
+      docs.classList.toggle('hidden'); 
     }
 
     async function askPhenomenology() {
       const query = document.getElementById('phenoQueryInput').value.trim();
-      if (!query) return alert('Escribe tu duda sobre Husserl o Heidegger.');
+      if (!query) return alert('Por favor, escribe tu duda existencial o fenomenológica primero.');
       
       const v = document.getElementById('viewerArea');
       v.classList.add('fullscreen-mode'); 
       v.classList.remove('hidden');
-      v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-amber-300 font-black text-xl">🏛️ Consultando al Oráculo Fenomenológico...</p></div>`;
+      v.innerHTML = `
+        <div class="text-center animate-pulse pt-32 flex flex-col items-center">
+          <span class="text-6xl mb-4">🏛️</span>
+          <p class="text-amber-300 font-black text-2xl tracking-widest uppercase">Consultando al Oráculo Fenomenológico...</p>
+          <p class="text-slate-400 mt-2 text-sm">Analizando a Husserl y Heidegger...</p>
+        </div>`;
 
       try {
         const res = await fetch('/api/phenomenology-query', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: currentUser.username, query })
         });
         const data = await res.json();
@@ -611,51 +912,151 @@
         renderDashboard();
 
         v.innerHTML = `
-          <div class="max-w-4xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-amber-500 relative shadow-2xl bg-gradient-to-b from-amber-950/40 to-slate-900">
-            <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs hover:bg-red-900 transition">✕ Cerrar</button>
-            <div class="flex justify-between items-center pr-16 border-b border-amber-500/30 pb-4">
-              <h2 class="text-2xl font-black text-amber-300">🏛️ Respuesta Fenomenológica</h2>
-              <button onclick="speakText(document.getElementById('phenoResultText').textContent)" class="px-3.5 py-2 rounded-xl bg-amber-700 hover:bg-amber-600 font-bold text-xs text-white transition">🔊 Escuchar</button>
+          <div class="max-w-4xl mx-auto glass-edu rounded-3xl p-10 space-y-6 border-2 border-amber-500 relative shadow-2xl bg-gradient-to-b from-amber-950/40 to-slate-900 mt-10">
+            <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-red-950 text-red-300 font-black text-sm hover:bg-red-900 transition shadow-lg">✕ Cerrar</button>
+            
+            <div class="flex justify-between items-center pr-20 border-b-2 border-amber-500/30 pb-5">
+              <div>
+                <span class="text-amber-500 font-black text-xs tracking-[0.2em] uppercase">Módulo Continental Puro</span>
+                <h2 class="text-3xl font-black text-amber-300 mt-1">🏛️ Respuesta Fenomenológica</h2>
+              </div>
+              <button onclick="speakText(document.getElementById('phenoResultText').textContent)" class="px-5 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 font-black text-sm text-white shadow-lg transition-all transform hover:scale-105 flex items-center gap-2">
+                <span>🔊</span> Escuchar
+              </button>
             </div>
-            <div id="phenoResultText" class="bg-slate-900 p-6 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed border border-amber-500/30 text-slate-100 font-medium">${data.answer}</div>
+            
+            <div class="bg-slate-900/80 p-8 rounded-2xl border border-amber-500/30 shadow-inner">
+              <div id="phenoResultText" class="text-base whitespace-pre-wrap leading-relaxed text-slate-100 font-medium">${data.answer}</div>
+            </div>
           </div>
         `;
-      } catch (err) { alert('Error: ' + err.message); }
+      } catch (err) { 
+        alert('Error al consultar al oráculo: ' + err.message); 
+        closeFullScreenViewer();
+      }
     }
 
-    // ================= MÓDULO DE AUDIOLIBRO INTERACTIVO =================
+    // 8. MÓDULO: TAREAS Y RESÚMENES HUMANISTA-EXISTENCIAL
+    async function submitUniversityHomework() {
+      const promptTask = document.getElementById('homeworkPromptInput').value.trim();
+      if (!promptTask) return alert('Escribe detalladamente qué tarea o resumen necesitas que el profesor IA te resuelva.');
+      
+      const v = document.getElementById('viewerArea');
+      v.classList.add('fullscreen-mode'); 
+      v.classList.remove('hidden');
+      v.innerHTML = `
+        <div class="text-center animate-pulse pt-32 flex flex-col items-center">
+          <span class="text-6xl mb-4">📝</span>
+          <p class="text-emerald-300 font-black text-2xl tracking-widest uppercase">Redactando Resolución Académica...</p>
+          <p class="text-slate-400 mt-2 text-sm">Aplicando método humanista-existencial y leyendo repositorio...</p>
+        </div>`;
+
+      try {
+        const res = await fetch('/api/university-homework', {
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, promptTask })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          closeFullScreenViewer();
+          return alert(data.error);
+        }
+        currentUser = data.user; 
+        renderDashboard();
+
+        v.innerHTML = `
+          <div class="max-w-5xl mx-auto glass-edu rounded-3xl p-10 space-y-6 border-2 border-emerald-500 relative shadow-2xl mt-10">
+            <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-red-950 text-red-300 font-black text-sm hover:bg-red-900 transition shadow-lg">✕ Cerrar</button>
+            
+            <div class="flex justify-between items-center pr-20 border-b-2 border-indigo-500/30 pb-5">
+              <div>
+                <span class="px-3 py-1 rounded-full text-xs font-black bg-emerald-500 text-slate-950 uppercase tracking-widest shadow">Asistencia Universitaria</span>
+                <h2 class="text-3xl font-black mt-3 text-emerald-300">Resolución de Tarea</h2>
+              </div>
+              <div class="flex gap-3">
+                <button onclick="speakText(document.getElementById('homeworkResultText').textContent)" class="px-5 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 font-black text-sm text-white shadow-lg transition-all transform hover:scale-105 flex items-center gap-2">
+                  <span>🔊</span> Audio
+                </button>
+                <button onclick="exportToWord('Resolucion_Tarea_Humanista', document.getElementById('exportableHomework').innerHTML)" class="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-black text-sm text-white shadow-lg transition-all transform hover:scale-105 flex items-center gap-2">
+                  <span>📥</span> Descargar .doc
+                </button>
+              </div>
+            </div>
+            
+            <div id="exportableHomework" class="bg-slate-900 p-8 rounded-2xl border border-indigo-500/30 shadow-inner">
+              <div id="homeworkResultText" class="text-base whitespace-pre-wrap leading-relaxed text-slate-100 font-medium">${data.result}</div>
+            </div>
+          </div>
+        `;
+      } catch (err) { 
+        alert('Error al generar la tarea: ' + err.message); 
+        closeFullScreenViewer();
+      }
+    }
+
+    // 9. MÓDULO: AUDIOLIBRO INTERACTIVO COMPLETO Y DESCARGA DE RESUMEN
+    window.downloadAudiobookSummary = () => {
+      const safeTitle = window.currentAudiobookTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const content = `
+        <div class="chapter-box">
+          <h2>Resumen Analítico</h2>
+          <p>${window.currentAudiobookSummary.replace(/\n/g, '<br>')}</p>
+        </div>
+      `;
+      exportToWord('Resumen_' + safeTitle, content);
+    };
+
     async function generateAudiobook() {
       const selectedDocId = document.getElementById('audiobookDocSelect').value;
-      if(!selectedDocId) return alert('Por favor, selecciona un libro del menú rojo para escuchar.');
+      if(!selectedDocId) return alert('Por favor, selecciona un libro del menú desplegable rojo para escuchar.');
 
       const v = document.getElementById('viewerArea');
       v.classList.add('fullscreen-mode');
       v.classList.remove('hidden');
-      v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-rose-300 font-black text-xl">🎧 Preparando los Capítulos del Libro para Audio...</p></div>`;
+      v.innerHTML = `
+        <div class="text-center animate-pulse pt-32 flex flex-col items-center">
+          <span class="text-6xl mb-4">🎧</span>
+          <p class="text-rose-400 font-black text-2xl tracking-widest uppercase">Extrayendo Obra Completa...</p>
+          <p class="text-slate-400 mt-2 text-sm">La IA está leyendo y dividiendo el libro en capítulos. Esto puede tomar unos segundos.</p>
+        </div>`;
 
       try {
         const res = await fetch('/api/audiobook-chapters', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: selectedDocId })
         });
+        
         const data = await res.json();
-        if (!res.ok) { closeFullScreenViewer(); return alert(data.error); }
+        if (!res.ok) { 
+          closeFullScreenViewer(); 
+          return alert(data.error); 
+        }
         
         currentUser = data.user;
         renderDashboard();
         const ab = data.audiobook;
+        
+        // Guardar variables globales para la descarga del Word
+        window.currentAudiobookSummary = ab.bookSummary || 'No se generó resumen. El libro podría ser muy corto o ilegible.';
+        window.currentAudiobookTitle = ab.audiobookTitle || 'Libro_Educativo';
 
         let currentChapterIdx = 0;
 
+        // Función interna de reproducción
         function playCurrentChapter() {
           if (!('speechSynthesis' in window)) return alert('Tu navegador no soporta síntesis de voz.');
-          window.speechSynthesis.cancel();
-          const textToSpeak = `${ab.chapters[currentChapterIdx].chapterTitle}. ${ab.chapters[currentChapterIdx].chapterContent}`;
+          
+          window.speechSynthesis.cancel(); // Detener cualquier audio previo
+          
+          const textToSpeak = `${ab.chapters[currentChapterIdx].chapterTitle}.${ab.chapters[currentChapterIdx].chapterContent}`;
           const utterance = new SpeechSynthesisUtterance(textToSpeak);
           utterance.lang = 'es-ES';
           utterance.rate = 1.0;
           
           utterance.onend = () => {
+            // Avanzar al siguiente capítulo automáticamente al terminar
             if (currentChapterIdx < ab.chapters.length - 1) {
               currentChapterIdx++;
               renderAudiobookUI();
@@ -666,6 +1067,7 @@
           window.speechSynthesis.speak(utterance);
         }
 
+        // Exponer funciones al scope de la ventana para los botones de UI
         window.jumpToChapter = (idx) => {
           currentChapterIdx = idx;
           renderAudiobookUI();
@@ -676,330 +1078,61 @@
         window.resumeAudiobook = () => { window.speechSynthesis.resume(); };
         window.stopAudiobook = () => { window.speechSynthesis.cancel(); };
 
+        // Renderizado del UI del Audiolibre
         function renderAudiobookUI() {
           v.innerHTML = `
-            <div class="max-w-5xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-rose-500 relative shadow-2xl">
-              <button onclick="closeFullScreenViewer(); window.speechSynthesis.cancel();" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs hover:bg-red-900 transition">✕ Cerrar</button>
+            <div class="max-w-6xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-rose-500 relative shadow-2xl mt-4">
               
-              <div class="border-b border-indigo-500/30 pb-4 pr-16">
-                <span class="px-3 py-1 rounded-full text-xs font-black bg-rose-500 text-slate-950 uppercase">🎧 Audiolibre Interactivo (Tus Libros)</span>
-                <h2 class="text-2xl font-black mt-2 text-rose-300">${ab.audiobookTitle}</h2>
-              </div>
-
-              <div class="bg-slate-900 p-5 rounded-2xl border-2 border-rose-500/40 flex flex-wrap items-center justify-between gap-4 shadow-xl">
+              <!-- Botón Cerrar -->
+              <button onclick="closeFullScreenViewer(); window.speechSynthesis.cancel();" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-red-950 text-red-300 font-black text-sm hover:bg-red-900 transition shadow-lg z-10">✕ Cerrar Audio</button>
+              
+              <!-- Cabecera Audiolibre -->
+              <div class="border-b-2 border-rose-500/30 pb-5 pr-32 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
                 <div>
-                  <p class="text-xs text-slate-400 font-bold uppercase">Reproduciendo:</p>
-                  <p class="text-sm font-black text-white">${ab.chapters[currentChapterIdx].chapterTitle}</p>
+                  <span class="px-3 py-1 rounded-full text-[10px] font-black bg-rose-500 text-slate-950 uppercase tracking-widest shadow">🎧 Audiolibre Interactivo (Obra Completa)</span>
+                  <h2 class="text-3xl font-black mt-3 text-rose-300 leading-tight">${ab.audiobookTitle}</h2>
                 </div>
-                <div class="flex items-center gap-2">
-                  <button onclick="playCurrentChapter()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow">▶️ Reproducir</button>
-                  <button onclick="pauseAudiobook()" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black text-xs shadow">⏸️ Pausar</button>
-                  <button onclick="resumeAudiobook()" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs shadow">⏯️ Continuar</button>
-                  <button onclick="stopAudiobook()" class="px-4 py-2 rounded-xl bg-red-900 hover:bg-red-800 text-white font-black text-xs shadow">⏹️ Detener</button>
+                
+                <!-- Botón Mágico: Descargar Resumen del Libro -->
+                <button onclick="downloadAudiobookSummary()" class="px-5 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm shadow-xl transition-all transform hover:scale-105 flex items-center justify-center gap-2 whitespace-nowrap border border-emerald-400">
+                  <span class="text-xl">📥</span> Descargar Puntos Clave (.doc)
+                </button>
+              </div>
+
+              <!-- Controles de Reproducción Visibles -->
+              <div class="bg-slate-900/90 p-6 rounded-3xl border-2 border-rose-500/50 flex flex-wrap items-center justify-between gap-6 shadow-xl relative overflow-hidden">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-rose-500"></div>
+                <div class="pl-2">
+                  <p class="text-xs text-rose-400 font-black uppercase tracking-widest">Reproduciendo Ahora:</p>
+                  <p class="text-xl font-black text-white mt-1">${ab.chapters[currentChapterIdx].chapterTitle}</p>
+                </div>
+                <div class="flex items-center gap-3">
+                  <button onclick="playCurrentChapter()" class="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm shadow-md transition transform hover:scale-105">▶️ Reiniciar</button>
+                  <button onclick="pauseAudiobook()" class="px-5 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black text-sm shadow-md transition transform hover:scale-105">⏸️ Pausar</button>
+                  <button onclick="resumeAudiobook()" class="px-5 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-sm shadow-md transition transform hover:scale-105">⏯️ Seguir</button>
+                  <button onclick="stopAudiobook()" class="px-5 py-3 rounded-xl bg-red-900 hover:bg-red-800 text-white font-black text-sm shadow-md transition transform hover:scale-105">⏹️ Parar</button>
                 </div>
               </div>
 
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-                <div class="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-                  <p class="text-xs font-black text-slate-400 mb-2">ÍNDICE DE CAPÍTULOS:</p>
+              <!-- Diseño Dos Columnas: Índice y Transcripción -->
+              <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4">
+                
+                <!-- Columna 1: Índice de Capítulos -->
+                <div class="space-y-3 max-h-[500px] overflow-y-auto pr-3 custom-scrollbar bg-slate-950/50 p-4 rounded-3xl border border-slate-800">
+                  <p class="text-xs font-black text-slate-400 mb-4 uppercase tracking-widest text-center border-b border-slate-800 pb-2">ÍNDICE DE CAPÍTULOS</p>
                   ${ab.chapters.map((ch, idx) => `
-                    <button onclick="jumpToChapter(${idx})" class="w-full text-left p-3 rounded-xl border transition text-xs font-bold ${idx === currentChapterIdx ? 'bg-rose-950/80 border-rose-400 text-white shadow' : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'}">
-                      Capítulo ${idx + 1}:${ch.chapterTitle}
+                    <button onclick="jumpToChapter(${idx})" class="w-full text-left p-4 rounded-2xl border-2 transition-all text-sm font-bold flex items-center gap-3 ${idx === currentChapterIdx ? 'bg-rose-900/60 border-rose-400 text-white shadow-lg transform scale-[1.02]' : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-slate-200'}">
+                      <span class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${idx === currentChapterIdx ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-500'}">
+                        ${idx === currentChapterIdx ? '🔊' : idx + 1}
+                      </span>
+                      <span class="line-clamp-2">${ch.chapterTitle}</span>
                     </button>
                   `).join('')}
                 </div>
-                <div class="md:col-span-2 bg-slate-900 p-6 rounded-2xl border border-indigo-500/30 max-h-[400px] overflow-y-auto space-y-3">
-                  <p class="text-xs font-black text-rose-300 uppercase">Transcripción del Texto Extraído:</p>
-                  <p class="text-sm text-slate-200 leading-relaxed font-medium whitespace-pre-wrap">${ab.chapters[currentChapterIdx].chapterContent}</p>
-                </div>
-              </div>
-            </div>
-          `;
-        }
-
-        renderAudiobookUI();
-        playCurrentChapter();
-
-      } catch (err) { alert('Error al generar audiolibre: ' + err.message); }
-    }
-
-    // ================= TAREAS Y RESÚMENES PROMPT =================
-    async function submitUniversityHomework() {
-      const promptTask = document.getElementById('homeworkPromptInput').value.trim();
-      if (!promptTask) return alert('Escribe qué tarea o resumen necesitas que el profesor IA te resuelva.');
-      
-      const v = document.getElementById('viewerArea');
-      v.classList.add('fullscreen-mode'); 
-      v.classList.remove('hidden');
-      v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-emerald-300 font-black text-xl">📝 Redactando resolución...</p></div>`;
-
-      try {
-        const res = await fetch('/api/university-homework', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, promptTask })
-        });
-        const data = await res.json();
-        if (!res.ok) return alert(data.error);
-        currentUser = data.user; 
-        renderDashboard();
-
-        v.innerHTML = `
-          <div id="exportableHomework" class="max-w-4xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-emerald-500 relative shadow-2xl">
-            <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs hover:bg-red-900 transition">✕ Cerrar</button>
-            <div class="flex justify-between items-center pr-16 border-b border-indigo-500/30 pb-4">
-              <div>
-                <span class="px-3 py-1 rounded-full text-xs font-black bg-emerald-500 text-slate-950 uppercase">Asistencia de Tarea</span>
-                <h2 class="text-2xl font-black mt-1 text-emerald-300">Resolución Académica</h2>
-              </div>
-              <div class="flex gap-2">
-                <button onclick="speakText(document.getElementById('homeworkResultText').textContent)" class="px-3.5 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-600 font-bold text-xs text-white transition">🔊 Escuchar</button>
-                <button onclick="exportToWord('Resolucion', document.getElementById('exportableHomework').innerHTML)" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xs text-white transition">📥 .doc</button>
-              </div>
-            </div>
-            <div id="homeworkResultText" class="bg-slate-900 p-6 rounded-2xl text-base whitespace-pre-wrap leading-relaxed border border-indigo-500/30 text-slate-100 font-medium">${data.result}</div>
-          </div>
-        `;
-      } catch (err) { alert('Error: ' + err.message); }
-    }
-
-    function exportToWord(title, contentHtml) {
-      const htmlContent = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body><h1>${title}</h1>${contentHtml}</body></html>`;
-      const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/msword' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = `${title}.doc`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    }
-
-    function closeFullScreenViewer() {
-      const v = document.getElementById('viewerArea');
-      v.classList.remove('fullscreen-mode');
-      v.classList.add('hidden');
-      window.speechSynthesis.cancel();
-    }
-
-    // ================= FUNCIONES DE ASIMILACIÓN =================
-    async function generateTimelineMap() {
-      const v = document.getElementById('viewerArea'); 
-      v.classList.add('fullscreen-mode'); 
-      v.classList.remove('hidden'); 
-      v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-amber-300 font-black text-xl">🗺️ Mapeando Evolución Teórica...</p></div>`;
-      
-      try { 
-        const res = await fetch('/api/generate-timeline-map', { 
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value }) 
-        }); 
-        const data = await res.json(); 
-        if (!res.ok) return alert(data.error); 
-        currentUser = data.user; 
-        renderDashboard(); 
-        const tm = data.timelineMap; 
-        
-        v.innerHTML = `
-          <div class="max-w-6xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-amber-500 relative shadow-2xl">
-            <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs hover:bg-red-900 transition">✕ Cerrar</button>
-            <h2 class="text-2xl font-black text-amber-300 text-center">🗺️ ${tm.timelineTitle}</h2>
-            <div class="space-y-4 pt-4">
-              ${tm.eras.map((e, idx) => `
-                <div class="p-5 rounded-2xl bg-slate-900 border-2 border-cyan-500/40 space-y-2 shadow-xl">
-                  <span class="text-xs font-black px-2.5 py-1 rounded bg-cyan-500 text-slate-950">FASE ${idx + 1}:${e.eraName}</span>
-                  <h4 class="font-extrabold text-sm text-teal-300">Autor: ${e.mainAuthor}</h4>
-                  <p class="text-sm text-slate-200 mt-2 leading-relaxed"><b>Idea Central:</b> ${e.coreIdea}</p>
-                  <p class="text-xs text-amber-300 mt-1"><b>Conexión:</b> ${e.refutationOrLink}</p>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `; 
-      } catch (err) { alert('Error: ' + err.message); }
-    }
-
-    async function generateFlashcards() {
-      const v = document.getElementById('viewerArea'); 
-      v.classList.add('fullscreen-mode'); 
-      v.classList.remove('hidden'); 
-      v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-purple-300 font-black text-xl">🃏 Generando Fichas Teóricas...</p></div>`;
-      
-      try { 
-        const res = await fetch('/api/generate-flashcards', { 
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value }) 
-        }); 
-        const data = await res.json(); 
-        if (!res.ok) return alert(data.error); 
-        currentUser = data.user; 
-        renderDashboard(); 
-        
-        v.innerHTML = `
-          <div class="max-w-5xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-purple-500 relative shadow-2xl">
-            <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs hover:bg-red-900 transition">✕ Cerrar</button>
-            <h2 class="text-2xl font-black text-purple-300 text-center">🃏 Fichas Académicas</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-              ${data.flashcards.map((fc, i) => `
-                <div onclick="this.classList.toggle('flipped')" class="flashcard h-64 cursor-pointer relative">
-                  <div class="flashcard-inner w-full h-full relative rounded-2xl shadow-xl">
-                    <div class="flashcard-front bg-slate-900 border-2 border-purple-500/60 p-5 rounded-2xl flex flex-col justify-between">
-                      <span class="text-xs font-black text-purple-400">FICHA #${i+1}</span>
-                      <p class="text-sm font-bold text-center text-slate-200 mt-2">${fc.question}</p>
-                      <span class="text-xs text-slate-500 text-center mt-4">Click para girar 🔄</span>
-                    </div>
-                    <div class="flashcard-back bg-indigo-950 border-2 border-indigo-400 p-5 rounded-2xl flex flex-col justify-between">
-                      <span class="text-xs font-black text-emerald-400">RESPUESTA</span>
-                      <p class="text-sm text-slate-200 text-center font-medium leading-relaxed">${fc.answer}</p>
-                      <span class="text-[11px] text-amber-300 text-center font-bold mt-2">💡 ${fc.hint}</span>
-                    </div>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `; 
-      } catch (err) { alert('Error: ' + err.message); }
-    }
-
-    async function generateMindMap() {
-      const v = document.getElementById('viewerArea'); 
-      v.classList.add('fullscreen-mode'); 
-      v.classList.remove('hidden'); 
-      v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-teal-300 font-black text-xl">🧠 Construyendo Mapa Conceptual...</p></div>`;
-      
-      try { 
-        const res = await fetch('/api/generate-mindmap', { 
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value }) 
-        }); 
-        const data = await res.json(); 
-        if (!res.ok) return alert(data.error); 
-        currentUser = data.user; 
-        renderDashboard(); 
-        const mm = data.mindmap; 
-        
-        v.innerHTML = `
-          <div class="max-w-6xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-teal-500 relative shadow-2xl">
-            <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs hover:bg-red-900 transition">✕ Cerrar</button>
-            <h2 class="text-2xl font-black text-teal-300 text-center">🧠 Mapa Conceptual: ${mm.centralTopic}</h2>
-            <div class="flex flex-col items-center space-y-6 pt-4">
-              <div class="px-6 py-3 rounded-2xl bg-gradient-to-r from-teal-600 to-cyan-600 font-black text-white text-lg shadow-2xl border-2 border-teal-300">
-                ⭐ ${mm.centralTopic} ⭐
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full pt-4">
-                ${mm.branches.map(b => `
-                  <div class="p-5 rounded-2xl bg-slate-900 border-2 border-teal-500/40 space-y-3 shadow-xl">
-                    <h4 class="font-black text-sm text-amber-300 border-b border-indigo-500/30 pb-2">📌 ${b.branchName}</h4>
-                    <ul class="space-y-3 text-sm text-slate-300 font-medium mt-2">
-                      ${b.subitems.map(sub => `<li class="bg-slate-950 p-3 rounded-xl border border-slate-800 shadow-sm">• ${sub}</li>`).join('')}
-                    </ul>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          </div>
-        `; 
-      } catch (err) { alert('Error: ' + err.message); }
-    }
-
-    async function generateStorybook() {
-      const v = document.getElementById('viewerArea'); 
-      v.classList.add('fullscreen-mode'); 
-      v.classList.remove('hidden'); 
-      v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-cyan-300 font-black text-xl">📖 Redactando Monografía y Trivia Gamificada...</p></div>`;
-      
-      try { 
-        const res = await fetch('/api/generate-storybook', { 
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value, focusTopic: document.getElementById('focusTopic').value }) 
-        }); 
-        const data = await res.json(); 
-        if (res.ok) { 
-          currentUser = data.user; 
-          renderDashboard(); 
-          openStorybook(data.storybook); 
-        } else {
-          alert(data.error); 
-        }
-      } catch (e) { alert('Error.'); }
-    }
-
-    // ================= STORYBOOK (ESTILO CARTOON) =================
-    function openStorybook(sb) {
-      const v = document.getElementById('viewerArea'); 
-      v.classList.add('fullscreen-mode'); 
-      v.classList.remove('hidden');
-      
-      v.innerHTML = `
-        <div id="exportableStorybook" class="max-w-6xl mx-auto glass-edu rounded-3xl p-6 md:p-10 space-y-8 cartoon-card relative shadow-2xl">
-          <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 hover:bg-red-900 text-red-300 font-black text-xs shadow-lg z-20">✕ Cerrar</button>
-          
-          <div class="flex flex-wrap justify-between items-center gap-4 border-b-4 border-cyan-400 pb-4 pr-32">
-            <div>
-              <span class="px-3 py-1 rounded-full text-xs font-black bg-cyan-400 text-slate-950 uppercase">Monografía Académica</span>
-              <h2 class="text-3xl font-black mt-2 bg-gradient-to-r from-cyan-300 via-teal-200 to-indigo-300 bg-clip-text text-transparent">${sb.title}</h2>
-            </div>
-            <div class="flex gap-2.5">
-              <button onclick="speakText('${sb.summary.replace(/'/g, "")}')" class="px-4 py-2.5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 font-black text-xs text-white shadow-lg transition">🔊 Escuchar Resumen</button>
-              <button onclick="exportToWord('${sb.title}', document.getElementById('exportableStorybook').innerHTML)" class="px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-black text-xs text-white shadow-lg transition">📥 .doc</button>
-            </div>
-          </div>
-          
-          <div class="speech-bubble p-6 text-sm font-bold shadow-2xl flex items-center gap-6">
-            <div>
-              <p class="text-emerald-900 font-black mb-2 text-lg">Resumen Conceptual:</p>
-              <p class="text-emerald-950 font-semibold leading-relaxed text-base">${sb.summary}</p>
-            </div>
-          </div>
-          
-          <div class="bg-slate-950/95 rounded-3xl p-6 border-4 border-cyan-400 shadow-2xl space-y-4">
-            <h3 class="font-black text-base text-cyan-300 uppercase">⏳ Línea de Evolución Teórica</h3>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-              ${(sb.timeline || []).map(t => `
-                <div class="p-4 rounded-2xl bg-slate-900 border-2 border-cyan-400/60 shadow-lg">
-                  <span class="text-[10px] font-black px-2.5 py-0.5 rounded bg-cyan-400 text-slate-950">FASE ${t.step}</span>
-                  <h4 class="font-black text-sm mt-2 text-amber-300">${t.title}</h4>
-                  <p class="text-sm text-slate-300 mt-2 font-medium leading-relaxed">${t.description}</p>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-          
-          <div class="space-y-6">
-            <h3 class="font-black text-base text-teal-300 uppercase">📚 Exposición por Autores e Intervinientes</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              ${(sb.scenes || []).map(sc => `
-                <div class="cartoon-card rounded-3xl p-6 space-y-4 flex flex-col justify-between shadow-xl">
-                  <div class="flex justify-between items-center border-b-2 border-indigo-500/30 pb-3">
-                    <span class="text-xs font-black px-3 py-1 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-400/40">MÓDULO #${sc.sceneNumber} ·${sc.characterName}</span>
-                    <button onclick="speakText('${sc.storyDialogue.replace(/'/g, "")}')" class="text-xs px-3 py-1.5 bg-cyan-700 hover:bg-cyan-600 text-white rounded-xl font-black shadow transition">🔊 Audio</button>
-                  </div>
-                  <div class="speech-bubble p-5 text-sm font-bold leading-relaxed shadow-md">
-                    <p class="text-emerald-950 font-black mb-2 text-base">📘 Concepto Clave: ${sc.academicConcept}</p>
-                    <p class="text-emerald-900 italic font-bold text-sm leading-relaxed">"${sc.storyDialogue}"</p>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-          
-          <div class="bg-slate-950/95 rounded-3xl p-6 border-4 border-amber-400 space-y-4 shadow-2xl">
-            <div class="flex items-center gap-3">
-              <span class="text-2xl">🏆</span>
-              <h3 class="font-black text-base text-amber-300 uppercase">Trivia Gamificada (Evaluación de Retención)</h3>
-            </div>
-            <div class="space-y-4">
-              ${(sb.quiz || []).map((q, idx) => `
-                <div class="p-5 rounded-2xl bg-slate-900 border-2 border-indigo-500/40 space-y-3">
-                  <p class="text-sm font-black text-slate-100">Pregunta ${idx + 1}:${q.question}</p>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    ${(q.options || []).map((opt, oIdx) => `
-                      <button onclick="alert('${oIdx === q.correctIndex ? '🏆 ¡CORRECTO! +100 XP (Nivel Académico Avanzado desbloqueado)' : '❌ Incorrecto. '} ' + ${JSON.stringify(q.heroExplanation).replace(/'/g, "\\'")})" class="text-left text-sm font-bold p-3.5 rounded-xl bg-slate-950 hover:bg-cyan-950 border-2 border-indigo-500/30 text-slate-200 transition">${opt}</button>
-                    `).join('')}
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        </div>
-      `;
-      v.scrollIntoView({ behavior: 'smooth' });
-    }
-  </script>
-</body>
-</html>
+                
+                <!-- Columna 2: Transcripción del Capítulo Activo -->
+                <div class="lg:col-span-2 bg-slate-900 p-8 rounded-3xl border-2 border-indigo-500/20 max-h-[500px] overflow-y-auto space-y-4 shadow-inner custom-scrollbar relative">
+                  <p class="text-xs font-black text-rose-300 uppercase tracking-widest sticky top-0 bg-slate-900/90 py-2 backdrop-blur-sm border-b border-indigo-500/30">
+                    Transcripción del Texto Extraído:
+                  </p>
+                  <p class="text-base text-slate-200 leading-relaxed font-medium whitespace-pre-wrap
