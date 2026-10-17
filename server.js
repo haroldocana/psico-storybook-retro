@@ -191,7 +191,6 @@ app.delete('/api/subjects/:subjectId', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ENDPOINT DE CARGA (SOPORTA ARCHIVOS Y YOUTUBE CON ANÁLISIS PROFUNDO)
 app.post('/api/documents', upload.any(), async (req, res) => {
   try {
     const { username, subjectId, docTitle, customText, youtubeUrl } = req.body;
@@ -337,6 +336,48 @@ app.post('/api/generate-timeline-map', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// 🧠 MAPA CONCEPTUAL INTERACTIVO
+app.post('/api/generate-mindmap', async (req, res) => {
+  try {
+    const { username, subjectId, documentId } = req.body;
+    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
+    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
+    const subject = user.subjects.find(s => s.id === subjectId);
+    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
+
+    const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
+    const contents = [];
+    for (const doc of docs) {
+      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
+    }
+    contents.push(`Genera un mapa conceptual estructurado con un tema central y ramas detalladas para ${subject.name} basado en los documentos.`);
+
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        centralTopic: { type: Type.STRING },
+        branches: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              branchName: { type: Type.STRING },
+              subitems: { type: Type.ARRAY, items: { type: Type.STRING } }
+            },
+            required: ["branchName", "subitems"]
+          }
+        }
+      },
+      required: ["centralTopic", "branches"]
+    };
+
+    const response = await generateWithFallback(contents, schema);
+    user.aiConsumptionUSD += 0.15;
+    await user.save();
+    res.json({ mindmap: JSON.parse(response.text), user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.post('/api/rag-search', async (req, res) => {
   try {
     const { username, subjectId, query } = req.body;
@@ -356,61 +397,6 @@ app.post('/api/rag-search', async (req, res) => {
     user.aiConsumptionUSD += 0.10;
     await user.save();
     res.json({ answer: response.text, user: await serializeUser(user) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.post('/api/generate-analogy', async (req, res) => {
-  try {
-    const { username, subjectId, concept } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
-    const subject = user.subjects.find(s => s.id === subjectId);
-    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
-
-    const contents = `Explica el concepto "${concept}" usando una analogía sencilla bajo el enfoque existencial y humano.`;
-    const response = await generateWithFallback(contents, null);
-    user.aiConsumptionUSD += 0.08;
-    await user.save();
-    res.json({ analogy: response.text, user: await serializeUser(user) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.post('/api/generate-matrix', async (req, res) => {
-  try {
-    const { username, subjectId, documentId } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
-    const subject = user.subjects.find(s => s.id === subjectId);
-    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
-
-    const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
-    const contents = [];
-    for (const doc of docs) {
-      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
-    }
-    contents.push(`Genera una matriz comparativa con lenguaje humano sobre ${subject.name}.`);
-
-    const schema = {
-      type: Type.OBJECT,
-      properties: {
-        matrixTitle: { type: Type.STRING },
-        columns: { type: Type.ARRAY, items: { type: Type.STRING } },
-        rows: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: { categoryName: { type: Type.STRING }, values: { type: Type.ARRAY, items: { type: Type.STRING } } },
-            required: ["categoryName", "values"]
-          }
-        }
-      },
-      required: ["matrixTitle", "columns", "rows"]
-    };
-
-    const response = await generateWithFallback(contents, schema);
-    user.aiConsumptionUSD += 0.20;
-    await user.save();
-    res.json({ matrix: JSON.parse(response.text), user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -451,44 +437,6 @@ app.post('/api/generate-flashcards', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/generate-mindmap', async (req, res) => {
-  try {
-    const { username, subjectId, documentId } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
-    const subject = user.subjects.find(s => s.id === subjectId);
-    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
-
-    const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
-    const contents = [];
-    for (const doc of docs) {
-      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
-    }
-    contents.push(`Genera un esquema mental claro sobre ${subject.name}.`);
-
-    const schema = {
-      type: Type.OBJECT,
-      properties: {
-        centralTopic: { type: Type.STRING },
-        branches: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: { branchName: { type: Type.STRING }, subitems: { type: Type.ARRAY, items: { type: Type.STRING } } },
-            required: ["branchName", "subitems"]
-          }
-        }
-      },
-      required: ["centralTopic", "branches"]
-    };
-
-    const response = await generateWithFallback(contents, schema);
-    user.aiConsumptionUSD += 0.15;
-    await user.save();
-    res.json({ mindmap: JSON.parse(response.text), user: await serializeUser(user) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
 app.post('/api/generate-storybook', async (req, res) => {
   try {
     const { username, subjectId, documentId, focusTopic } = req.body;
@@ -503,7 +451,7 @@ app.post('/api/generate-storybook', async (req, res) => {
       if (doc.textContent) contents.push(`Texto (${doc.title}):\n${doc.textContent}`);
     }
 
-    contents.push(`Crea una monografía explicada con palabras humanas sobre ${subject.name}. Incluye trivia.`);
+    contents.push(`Crea una monografía explicada con palabras humanas sobre ${subject.name}.`);
 
     const schema = {
       type: Type.OBJECT,
