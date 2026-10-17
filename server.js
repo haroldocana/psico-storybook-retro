@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(express.json({ limit: '35mb' }));
+app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const upload = multer({
@@ -18,11 +18,8 @@ const upload = multer({
 });
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-// Modelo predeterminado actualizado a gemini-3.8-flash
 const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 
-// Función inteligente que ejecuta el modelo y hace fallback automático si cambia el nombre en la API
 async function generateWithFallback(contents, responseSchema) {
   const modelsToTry = [
     DEFAULT_GEMINI_MODEL,
@@ -37,10 +34,7 @@ async function generateWithFallback(contents, responseSchema) {
       const response = await ai.models.generateContent({
         model: modelName,
         contents,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema
-        }
+        config: responseSchema ? { responseMimeType: 'application/json', responseSchema } : {}
       });
       return response;
     } catch (err) {
@@ -51,7 +45,20 @@ async function generateWithFallback(contents, responseSchema) {
   throw lastErr;
 }
 
-// Esquema de Usuario en MongoDB
+const DocumentSchema = new mongoose.Schema({
+  docId: { type: String, unique: true, index: true },
+  username: { type: String, lowercase: true, index: true },
+  subjectId: { type: String, index: true },
+  title: String,
+  fileName: String,
+  mimeType: String,
+  base64Data: String,
+  textContent: String,
+  uploadedAt: String
+});
+
+const DocumentModel = mongoose.model('Document', DocumentSchema);
+
 const UserSchema = new mongoose.Schema({
   username: { type: String, unique: true, lowercase: true },
   fullName: String,
@@ -59,7 +66,6 @@ const UserSchema = new mongoose.Schema({
   password: String,
   career: String,
   subscriptionActive: { type: Boolean, default: true },
-  subscriptionBaseUSD: { type: Number, default: 6.00 },
   aiConsumptionUSD: { type: Number, default: 0 },
   storybooksCreated: { type: Number, default: 0 },
   examsCreated: { type: Number, default: 0 },
@@ -68,7 +74,6 @@ const UserSchema = new mongoose.Schema({
 
 const UserModel = mongoose.model('User', UserSchema);
 
-// Materias iniciales según la carrera
 const getInitialSubjectsForCareer = (career) => {
   if (career === 'Medicina') {
     return [
@@ -90,7 +95,6 @@ const getInitialSubjectsForCareer = (career) => {
   }
 };
 
-// Inicializar usuario haroldocana automáticamente al conectar
 async function initUser() {
   try {
     let user = await UserModel.findOne({ username: 'haroldocana' });
@@ -104,69 +108,63 @@ async function initUser() {
         subjects: getInitialSubjectsForCareer('Psicología Clínica')
       });
       await user.save();
-      console.log('👤 Usuario principal haroldocana creado en MongoDB Atlas.');
     }
   } catch (e) {
     console.error('Error inicializando usuario:', e.message);
   }
 }
 
-// Conexión a MongoDB Atlas con diagnóstico en vivo y reconexión automática
 const MONGO_URI = (process.env.MONGO_URI || '').trim();
-let lastMongoError = 'Iniciando conexión...';
-
 async function connectDB() {
-  if (!MONGO_URI) {
-    lastMongoError = 'La variable MONGO_URI no está configurada en Render (Environment).';
-    return;
-  }
-  if (mongoose.connection.readyState === 1) return;
-
+  if (!MONGO_URI || mongoose.connection.readyState === 1) return;
   try {
-    await mongoose.connect(MONGO_URI, {
-      serverSelectionTimeoutMS: 6000
-    });
-    lastMongoError = null;
-    console.log('🔥 Conectado exitosamente a MongoDB Atlas');
+    await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 6000 });
     await initUser();
   } catch (err) {
-    lastMongoError = err.message;
-    console.error('❌ Error conectando a MongoDB:', err.message);
+    console.error('Error conectando a MongoDB:', err.message);
   }
 }
 connectDB();
 
-// Middleware que verifica la conexión en las rutas /api y reconecta si es necesario
 app.use('/api', async (req, res, next) => {
   if (mongoose.connection.readyState !== 1) {
     await connectDB();
     if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({
-        error: `Error de conexión a MongoDB: ${lastMongoError}`
-      });
+      return res.status(503).json({ error: "Base de datos conectándose, intenta de nuevo en unos segundos." });
     }
   }
   next();
 });
 
-function serializeUser(user) {
+async function serializeUser(user) {
   const obj = user.toObject();
   delete obj.password;
-  obj.subjects = (obj.subjects || []).map(s => ({
-    ...s,
-    documents: (s.documents || []).map(d => ({
-      id: d.id,
-      title: d.title,
-      fileName: d.fileName,
-      mimeType: d.mimeType,
-      uploadedAt: d.uploadedAt,
-      hasText: !!d.textContent
-    }))
-  }));
+
+  const savedDocs = await DocumentModel.find(
+    { username: obj.username },
+    { base64Data: 0, textContent: 0 }
+  ).lean();
+
+  obj.subjects = (obj.subjects || []).map(s => {
+    const embeddedDocs = (s.documents || []).map(d => ({
+      id: d.id, title: d.title, fileName: d.fileName, mimeType: d.mimeType, uploadedAt: d.uploadedAt
+    }));
+
+    const collectionDocs = savedDocs
+      .filter(cd => cd.subjectId === s.id)
+      .map(cd => ({
+        id: cd.docId, title: cd.title, fileName: cd.fileName, mimeType: cd.mimeType, uploadedAt: cd.uploadedAt
+      }));
+
+    const map = new Map();
+    [...embeddedDocs, ...collectionDocs].forEach(item => map.set(item.id, item));
+
+    return { ...s, documents: Array.from(map.values()) };
+  });
+
   return obj;
 }
 
-// 1. REGISTRO DE USUARIO
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { fullName, username, email, password, career } = req.body;
@@ -177,45 +175,41 @@ app.post('/api/auth/register', async (req, res) => {
     if (existing) return res.status(400).json({ error: "El usuario ya existe." });
 
     const newUser = new UserModel({
-      username: cleanUsername,
-      fullName,
-      email: (email || `${cleanUsername}@universidad.edu`).trim().toLowerCase(),
-      password,
-      career: selectedCareer,
-      subjects: getInitialSubjectsForCareer(selectedCareer)
+      username: cleanUsername, fullName, email: (email || `${cleanUsername}@universidad.edu`).toLowerCase(),
+      password, career: selectedCareer, subjects: getInitialSubjectsForCareer(selectedCareer)
     });
 
     await newUser.save();
-    res.json({ user: serializeUser(newUser) });
+    res.json({ user: await serializeUser(newUser) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// 2. INICIO DE SESIÓN
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { identifier, password } = req.body;
     const cleanId = (identifier || '').trim().toLowerCase();
-    
-    if (cleanId === 'haroldocana') {
-      await initUser();
-    }
+    if (cleanId === 'haroldocana') await initUser();
 
-    const user = await UserModel.findOne({
-      $or: [{ username: cleanId }, { email: cleanId }]
-    });
-
-    if (!user || user.password !== password) {
-      return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
-    }
-    res.json({ user: serializeUser(user) });
+    const user = await UserModel.findOne({ $or: [{ username: cleanId }, { email: cleanId }] });
+    if (!user || user.password !== password) return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
+    res.json({ user: await serializeUser(user) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// 3. CREAR NUEVA MATERIA
+app.get('/api/auth/session/:username', async (req, res) => {
+  try {
+    const user = await UserModel.findOne({ username: (req.params.username || '').trim().toLowerCase() });
+    if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+    res.json({ user: await serializeUser(user) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/subjects', async (req, res) => {
   try {
     const { username, name, section, schedule, defaultHero } = req.body;
@@ -223,106 +217,208 @@ app.post('/api/subjects', async (req, res) => {
     if (!user) return res.status(401).json({ error: "Sesión no válida" });
 
     const newSubj = {
-      id: 'subj-' + Date.now(),
-      name,
-      section: section || 'Sección A',
-      schedule: schedule || 'Semestre Actual',
-      defaultHero: defaultHero || 'CANDY_CANDY',
-      documents: [],
-      storybooks: [],
-      exams: []
+      id: 'subj-' + Date.now(), name, section: section || 'Sección A', schedule: schedule || 'Semestre Actual',
+      defaultHero: defaultHero || 'CANDY_CANDY', documents: [], storybooks: [], exams: []
     };
     user.subjects.push(newSubj);
     user.markModified('subjects');
     await user.save();
-    res.json({ user: serializeUser(user), newSubjectId: newSubj.id });
+    res.json({ user: await serializeUser(user), newSubjectId: newSubj.id });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// 4. SUBIR DOCUMENTO MULTIFORMATO (PDF, PPTX, Word, Imagen, TXT)
-app.post('/api/documents', upload.single('document'), async (req, res) => {
+app.delete('/api/subjects/:subjectId', async (req, res) => {
+  try {
+    const { username } = req.body;
+    const cleanUsername = (username || '').toLowerCase();
+    const { subjectId } = req.params;
+    await DocumentModel.deleteMany({ username: cleanUsername, subjectId });
+    const user = await UserModel.findOne({ username: cleanUsername });
+    if (user) {
+      user.subjects = user.subjects.filter(s => s.id !== subjectId);
+      user.markModified('subjects');
+      await user.save();
+    }
+    res.json({ user: await serializeUser(user) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/documents', upload.any(), async (req, res) => {
   try {
     const { username, subjectId, docTitle, customText } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
+    const cleanUsername = (username || '').toLowerCase();
+    const user = await UserModel.findOne({ username: cleanUsername });
     if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
 
     const subject = user.subjects.find(s => s.id === subjectId);
     if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
 
-    const newDoc = {
-      id: 'doc-' + Date.now(),
-      title: docTitle || (req.file ? req.file.originalname : 'Material de Estudio'),
-      fileName: req.file ? req.file.originalname : 'Apuntes.txt',
-      mimeType: req.file ? req.file.mimetype : 'text/plain',
-      base64Data: req.file ? req.file.buffer.toString("base64") : null,
-      textContent: customText || '',
-      uploadedAt: new Date().toLocaleDateString('es-GT')
-    };
+    const files = req.files || [];
+    const createdIds = [];
+    const dateStr = new Date().toLocaleDateString('es-GT');
 
-    subject.documents.push(newDoc);
-    user.markModified('subjects');
-    await user.save();
-    res.json({ user: serializeUser(user), documentId: newDoc.id });
+    if (files.length > 0) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const docId = `doc-${Date.now()}-${i}`;
+        const finalTitle = files.length === 1 && docTitle ? docTitle : (docTitle ? `${docTitle} (${file.originalname})` : file.originalname);
+
+        const newDocRecord = new DocumentModel({
+          docId, username: cleanUsername, subjectId, title: finalTitle,
+          fileName: file.originalname, mimeType: file.mimetype,
+          base64Data: file.buffer.toString("base64"), textContent: (i === 0 && customText) ? customText : '', uploadedAt: dateStr
+        });
+        await newDocRecord.save();
+        createdIds.push(docId);
+      }
+    } else if (customText && customText.trim() !== '') {
+      const docId = `doc-${Date.now()}-txt`;
+      const newDocRecord = new DocumentModel({
+        docId, username: cleanUsername, subjectId, title: docTitle || 'Apuntes Dictados / Texto',
+        fileName: 'Apuntes.txt', mimeType: 'text/plain', base64Data: null, textContent: customText, uploadedAt: dateStr
+      });
+      await newDocRecord.save();
+      createdIds.push(docId);
+    } else {
+      return res.status(400).json({ error: "Selecciona archivos o ingresa texto." });
+    }
+
+    res.json({ user: await serializeUser(user), uploadedCount: createdIds.length });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// 5. GENERAR STORYBOOK + LÍNEA DE TIEMPO CON GEMINI 3.8 FLASH / ARGON 4
+app.delete('/api/documents/:docId', async (req, res) => {
+  try {
+    const { username, subjectId } = req.body;
+    const cleanUsername = (username || '').toLowerCase();
+    const { docId } = req.params;
+    await DocumentModel.deleteOne({ docId, username: cleanUsername });
+    const user = await UserModel.findOne({ username: cleanUsername });
+    if (user) {
+      const subj = user.subjects.find(s => s.id === subjectId);
+      if (subj) {
+        subj.documents = subj.documents.filter(d => d.id !== docId);
+        user.markModified('subjects');
+        await user.save();
+      }
+    }
+    res.json({ user: await serializeUser(user) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/storybooks/:sbId', async (req, res) => {
+  try {
+    const { username, subjectId } = req.body;
+    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
+    if (user) {
+      const subj = user.subjects.find(s => s.id === subjectId);
+      if (subj) {
+        subj.storybooks = subj.storybooks.filter(sb => sb.id !== req.params.sbId);
+        user.markModified('subjects');
+        await user.save();
+      }
+    }
+    res.json({ user: await serializeUser(user) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/exams/:examId', async (req, res) => {
+  try {
+    const { username, subjectId } = req.body;
+    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
+    if (user) {
+      const subj = user.subjects.find(s => s.id === subjectId);
+      if (subj) {
+        subj.exams = subj.exams.filter(ex => ex.id !== req.params.examId);
+        user.markModified('subjects');
+        await user.save();
+      }
+    }
+    res.json({ user: await serializeUser(user) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+async function getFullDocumentsForSubject(username, subject, documentId) {
+  const savedDocs = await DocumentModel.find({ username: username.toLowerCase(), subjectId: subject.id }).lean();
+  const embeddedDocs = (subject.documents || []).filter(d => d.base64Data || d.textContent);
+  const allDocs = [...embeddedDocs, ...savedDocs.map(cd => ({
+    id: cd.docId, title: cd.title, fileName: cd.fileName, mimeType: cd.mimeType, base64Data: cd.base64Data, textContent: cd.textContent
+  }))];
+  if (!documentId || documentId === 'ALL') return allDocs;
+  return allDocs.filter(d => d.id === documentId);
+}
+
+// 7. TRADUCCIÓN ACADÉMICA INSTANTÁNEA DE DOCUMENTOS O LIBROS
+app.post('/api/translate-document', async (req, res) => {
+  try {
+    const { username, subjectId, documentId, targetLanguage } = req.body;
+    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
+    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
+    const subject = user.subjects.find(s => s.id === subjectId);
+    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
+
+    const docsToTranslate = await getFullDocumentsForSubject(user.username, subject, documentId);
+    if (docsToTranslate.length === 0) return res.status(400).json({ error: "No hay documentos para traducir." });
+
+    const contents = [];
+    for (const doc of docsToTranslate) {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+      if (doc.textContent) contents.push(`Texto (${doc.title}):\n${doc.textContent}`);
+    }
+
+    contents.push(`Realiza una traducción académica rigurosa al idioma "${targetLanguage || 'Español'}" de los materiales adjuntos para la carrera de ${user.career} (${subject.name}), manteniendo la terminología técnica exacta.`);
+
+    const response = await generateWithFallback(contents, null);
+    user.aiConsumptionUSD += 0.20;
+    await user.save();
+
+    res.json({ translation: response.text, user: await serializeUser(user) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 5. GENERAR STORYBOOK
 app.post('/api/generate-storybook', async (req, res) => {
   try {
     const { username, subjectId, documentId, focusTopic, universe } = req.body;
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
     if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
-
     const subject = user.subjects.find(s => s.id === subjectId);
     if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
 
+    const selectedDocs = await getFullDocumentsForSubject(user.username, subject, documentId);
     const contents = [];
-    let selectedDocs = documentId === 'ALL' ? subject.documents : subject.documents.filter(d => d.id === documentId);
-
     for (const doc of selectedDocs) {
-      if (doc.base64Data) {
-        contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
-      }
-      if (doc.textContent) {
-        contents.push(`Texto del material (${doc.title}):\n${doc.textContent}`);
-      }
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+      if (doc.textContent) contents.push(`Texto (${doc.title}):\n${doc.textContent}`);
     }
 
-    const prompt = `
-      Eres el Motor Pedagógico Multidisciplinario del estudiante ${user.fullName} (${user.career}).
-      Materia: "${subject.name}". Tema de estudio: "${focusTopic || 'Análisis integral de los archivos'}".
-      Universo / Estilo pedagógico: "${universe}".
-
-      INSTRUCCIÓN:
-      Analiza los archivos cargados y genera:
-      1. Un Storybook interactivo de 5 escenas profundas con rigor universitario.
-      2. Una Línea de Tiempo Causal (array de 4 a 5 hitos secuenciales o cronológicos clave).
-      3. Un Quiz de 3 preguntas con explicaciones del personaje.
-    `;
-    contents.push(prompt);
+    contents.push(`Estudiante: ${user.fullName} (${user.career}). Materia: ${subject.name}. Tema: ${focusTopic || 'General'}. Universo: ${universe}. Genera Storybook de 5 escenas, línea de tiempo causal y quiz de 3 preguntas.`);
 
     const schema = {
       type: Type.OBJECT,
       properties: {
-        title: { type: Type.STRING },
-        universe: { type: Type.STRING },
-        summary: { type: Type.STRING },
+        title: { type: Type.STRING }, universe: { type: Type.STRING }, summary: { type: Type.STRING },
         scenes: {
           type: Type.ARRAY,
           items: {
             type: Type.OBJECT,
             properties: {
-              sceneNumber: { type: Type.INTEGER },
-              characterName: { type: Type.STRING },
-              academicConcept: { type: Type.STRING },
-              storyDialogue: { type: Type.STRING },
-              memoryTrick: { type: Type.STRING },
-              visualPromptRetro: { type: Type.STRING },
-              animationEffect: { type: Type.STRING }
+              sceneNumber: { type: Type.INTEGER }, characterName: { type: Type.STRING }, academicConcept: { type: Type.STRING },
+              storyDialogue: { type: Type.STRING }, memoryTrick: { type: Type.STRING }, visualPromptRetro: { type: Type.STRING }, animationEffect: { type: Type.STRING }
             },
             required: ["sceneNumber", "characterName", "academicConcept", "storyDialogue", "memoryTrick", "visualPromptRetro", "animationEffect"]
           }
@@ -331,11 +427,7 @@ app.post('/api/generate-storybook', async (req, res) => {
           type: Type.ARRAY,
           items: {
             type: Type.OBJECT,
-            properties: {
-              step: { type: Type.INTEGER },
-              title: { type: Type.STRING },
-              description: { type: Type.STRING }
-            },
+            properties: { step: { type: Type.INTEGER }, title: { type: Type.STRING }, description: { type: Type.STRING } },
             required: ["step", "title", "description"]
           }
         },
@@ -343,12 +435,7 @@ app.post('/api/generate-storybook', async (req, res) => {
           type: Type.ARRAY,
           items: {
             type: Type.OBJECT,
-            properties: {
-              question: { type: Type.STRING },
-              options: { type: Type.ARRAY, items: { type: Type.STRING } },
-              correctIndex: { type: Type.INTEGER },
-              heroExplanation: { type: Type.STRING }
-            },
+            properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctIndex: { type: Type.INTEGER }, heroExplanation: { type: Type.STRING } },
             required: ["question", "options", "correctIndex", "heroExplanation"]
           }
         }
@@ -357,64 +444,48 @@ app.post('/api/generate-storybook', async (req, res) => {
     };
 
     const response = await generateWithFallback(contents, schema);
-
     const sbData = JSON.parse(response.text);
+
     user.aiConsumptionUSD += 0.25;
     user.storybooksCreated += 1;
-
-    const newStorybook = {
-      id: 'sb-' + Date.now(),
-      createdAt: new Date().toLocaleString('es-GT'),
-      sourceDocTitle: selectedDocs.map(d => d.title).join(', ') || focusTopic,
-      billedUSD: 0.25,
-      ...sbData
-    };
-
+    const newStorybook = { id: 'sb-' + Date.now(), createdAt: new Date().toLocaleString('es-GT'), sourceDocTitle: selectedDocs.map(d => d.title).join(' + ') || focusTopic, ...sbData };
     subject.storybooks.push(newStorybook);
     user.markModified('subjects');
     await user.save();
 
-    res.json({ storybook: newStorybook, user: serializeUser(user) });
+    res.json({ storybook: newStorybook, user: await serializeUser(user) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// 6. GENERAR EXAMEN PRÁCTICO CON GEMINI 3.8 FLASH / ARGON 4
+// 6. GENERAR EXAMEN
 app.post('/api/generate-exam', async (req, res) => {
   try {
     const { username, subjectId, documentId, universe } = req.body;
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
     if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
-
     const subject = user.subjects.find(s => s.id === subjectId);
     if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
 
+    const docsToUse = await getFullDocumentsForSubject(user.username, subject, documentId);
     const contents = [];
-    const docsToUse = documentId === 'ALL' ? subject.documents : subject.documents.filter(d => d.id === documentId);
-
     for (const doc of docsToUse) {
       if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`Material (${doc.title}):\n${doc.textContent}`);
     }
 
-    contents.push(`Genera un examen universitario de 5 preguntas rigurosas sobre ${subject.name} con tono ${universe}.`);
+    contents.push(`Genera un examen universitario de 5 preguntas sobre ${subject.name} con tono ${universe}.`);
 
     const schema = {
       type: Type.OBJECT,
       properties: {
-        examTitle: { type: Type.STRING },
-        universe: { type: Type.STRING },
+        examTitle: { type: Type.STRING }, universe: { type: Type.STRING },
         questions: {
           type: Type.ARRAY,
           items: {
             type: Type.OBJECT,
-            properties: {
-              question: { type: Type.STRING },
-              options: { type: Type.ARRAY, items: { type: Type.STRING } },
-              correctIndex: { type: Type.INTEGER },
-              heroExplanation: { type: Type.STRING }
-            },
+            properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctIndex: { type: Type.INTEGER }, heroExplanation: { type: Type.STRING } },
             required: ["question", "options", "correctIndex", "heroExplanation"]
           }
         }
@@ -423,26 +494,20 @@ app.post('/api/generate-exam', async (req, res) => {
     };
 
     const response = await generateWithFallback(contents, schema);
-
     const examData = JSON.parse(response.text);
+
     user.aiConsumptionUSD += 0.15;
     user.examsCreated += 1;
-
-    const newExam = {
-      id: 'ex-' + Date.now(),
-      createdAt: new Date().toLocaleString('es-GT'),
-      ...examData
-    };
-
+    const newExam = { id: 'ex-' + Date.now(), createdAt: new Date().toLocaleString('es-GT'), ...examData };
     subject.exams.push(newExam);
     user.markModified('subjects');
     await user.save();
 
-    res.json({ exam: newExam, user: serializeUser(user) });
+    res.json({ exam: newExam, user: await serializeUser(user) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor Multicarrera activo en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Servidor activo en puerto ${PORT}`));
