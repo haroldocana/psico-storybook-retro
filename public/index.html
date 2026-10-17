@@ -8,20 +8,20 @@
   <style>
     @keyframes pulseRetro {
       0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-4px); }
+      50% { transform: translateY(-3px); }
     }
-    .retro-box { animation: pulseRetro 3.5s ease-in-out infinite; border: 2px solid #f59e0b; box-shadow: 5px 5px 0px #0f172a; }
+    .retro-box { animation: pulseRetro 4s ease-in-out infinite; border: 2px solid #f59e0b; box-shadow: 5px 5px 0px #0f172a; }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
 
-  <!-- PANTALLA DE LOGIN Y REGISTRO -->
+  <!-- PANTALLA DE LOGIN / REGISTRO -->
   <div id="authScreen" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950">
     <div class="bg-slate-900 p-8 rounded-2xl max-w-md w-full border border-indigo-500/40 shadow-2xl">
       <div class="text-center mb-6">
         <span class="px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full text-xs font-bold uppercase">Centro de Estudio IA</span>
         <h1 class="text-3xl font-extrabold mt-2 bg-gradient-to-r from-pink-400 via-amber-300 to-cyan-400 bg-clip-text text-transparent">PsicoStorybook Retro</h1>
-        <p class="text-slate-400 text-xs mt-1">He-Man • Candy Candy • Transformers • G.I. Joe • Ositos Cariñositos</p>
+        <p class="text-slate-400 text-xs mt-1">Aprende tus materias con He-Man, Candy Candy, Transformers, G.I. Joe y Ositos Cariñositos</p>
       </div>
 
       <div class="grid grid-cols-2 gap-2 mb-6 bg-slate-800 p-1 rounded-xl text-xs font-bold">
@@ -31,10 +31,9 @@
 
       <div id="authError" class="hidden mb-4 p-3 rounded-lg bg-rose-950 border border-rose-500 text-rose-200 text-xs"></div>
 
-      <!-- LOGIN CON USUARIO haroldocana PRECARGADO -->
       <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
         <div>
-          <label class="block text-xs text-slate-400 mb-1">Usuario o Correo Electrónico</label>
+          <label class="block text-xs text-slate-400 mb-1">Usuario o Correo</label>
           <input type="text" id="loginIdentifier" value="haroldocana" required class="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm" />
         </div>
         <div>
@@ -42,46 +41,26 @@
           <input type="password" id="loginPassword" value="admin123" required class="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm" />
         </div>
         <div class="p-3 rounded-lg bg-slate-800/80 border border-slate-700 text-[11px] text-slate-300">
-          👤 <strong>Usuario Principal:</strong> <code>haroldocana</code> | <strong>Clave:</strong> <code>admin123</code>
+          👤 <strong>Usuario:</strong> <code>haroldocana</code> | <strong>Clave:</strong> <code>admin123</code>
         </div>
-        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-pink-600 to-indigo-600 hover:opacity-95 font-bold text-white shadow-lg text-sm">
-          Entrar al Centro de Estudio
+        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-pink-600 to-indigo-600 font-bold text-white shadow-lg text-sm">
+          Entrar a Mi Centro de Estudio
         </button>
       </form>
 
-      <!-- REGISTRO DE NUEVOS ESTUDIANTES -->
       <form id="registerForm" onsubmit="handleRegister(event)" class="hidden space-y-3">
-        <div>
-          <label class="block text-xs text-slate-400 mb-1">Nombre Completo</label>
-          <input type="text" id="regFullName" placeholder="Ej. Estudiante Psicología" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
-        </div>
+        <input type="text" id="regFullName" placeholder="Nombre Completo" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
         <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="block text-xs text-slate-400 mb-1">Usuario</label>
-            <input type="text" id="regUsername" placeholder="usuario123" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
-          </div>
-          <div>
-            <label class="block text-xs text-slate-400 mb-1">Carrera</label>
-            <input type="text" id="regCareer" value="Psicología Clínica" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
-          </div>
+          <input type="text" id="regUsername" placeholder="Usuario" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
+          <input type="text" id="regCareer" value="Psicología Clínica" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
         </div>
-        <div>
-          <label class="block text-xs text-slate-400 mb-1">Correo Electrónico</label>
-          <input type="email" id="regEmail" placeholder="correo@universidad.edu" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
-        </div>
-        <div>
-          <label class="block text-xs text-slate-400 mb-1">Contraseña</label>
-          <input type="password" id="regPassword" placeholder="••••••••" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
-        </div>
-        <label class="flex items-center gap-2 text-xs text-slate-300 pt-1">
-          <input type="checkbox" id="regLoadPsico" checked class="rounded bg-slate-800" />
-          Precargar las 6 materias de Psicología (Semestre 2, 2026)
+        <input type="email" id="regEmail" placeholder="Correo electrónico" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
+        <input type="password" id="regPassword" placeholder="Contraseña" required class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
+        <label class="flex items-center gap-2 text-xs text-slate-300">
+          <input type="checkbox" id="regLoadPsico" checked /> Incluir las 6 materias de Psicología
         </label>
-        <div class="p-3 rounded-lg bg-indigo-950/70 border border-indigo-500/40 text-xs text-indigo-200">
-          💳 <strong>Plan Mensual: $6.00 USD/mes</strong> + Consumo IA ($0.25 USD por Storybook).
-        </div>
-        <button type="submit" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-white shadow-lg text-sm">
-          Activar Suscripción ($6.00) y Crear Usuario
+        <button type="submit" class="w-full py-3 rounded-xl bg-emerald-600 font-bold text-white text-sm">
+          Activar Suscripción ($6.00/mes) y Crear Cuenta
         </button>
       </form>
     </div>
@@ -102,12 +81,12 @@
 
         <div class="flex flex-wrap items-center gap-4 bg-slate-800 px-4 py-2 rounded-xl border border-slate-700 text-xs">
           <div>
-            <span class="text-slate-400 block">Suscripción</span>
+            <span class="text-slate-400 block">Suscripción Base</span>
             <strong class="text-emerald-400">$6.00 USD</strong>
           </div>
           <div class="h-6 w-px bg-slate-700"></div>
           <div>
-            <span class="text-slate-400 block">Consumo IA (<span id="headerSbCount">0</span> Storybooks)</span>
+            <span class="text-slate-400 block">Consumo IA (<span id="headerSbCount">0</span> SB / <span id="headerExCount">0</span> Ex)</span>
             <strong class="text-amber-400" id="headerAiCost">$0.00 USD</strong>
           </div>
           <div class="h-6 w-px bg-slate-700"></div>
@@ -115,101 +94,153 @@
             <span class="text-slate-400 block">Total Mes</span>
             <strong class="text-white text-sm" id="headerTotalBill">$6.00 USD</strong>
           </div>
-          <button onclick="logout()" class="ml-2 px-2.5 py-1 rounded bg-rose-600/20 text-rose-300 hover:bg-rose-600 hover:text-white font-bold">
-            Salir
-          </button>
+          <button onclick="logout()" class="px-2.5 py-1 rounded bg-rose-600/20 text-rose-300 hover:bg-rose-600 hover:text-white font-bold">Salir</button>
         </div>
       </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-      <!-- CATÁLOGO DE MATERIAS -->
-      <section class="lg:col-span-4 space-y-4">
+    <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- COLUMNA IZQUIERDA: CATÁLOGO DE MATERIAS -->
+      <section class="lg:col-span-3 space-y-4">
         <div class="flex items-center justify-between">
-          <h3 class="text-base font-bold text-white">📚 Catálogo de Materias</h3>
-          <button onclick="toggleNewSubjectBox()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold">
-            + Agregar Materia
-          </button>
+          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300">📚 Mis Materias</h3>
+          <button onclick="toggleNewSubjectBox()" class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold">+ Materia</button>
         </div>
 
-        <div id="newSubjectBox" class="hidden p-4 rounded-xl bg-slate-900 border border-indigo-500/40 space-y-3">
-          <h4 class="text-xs font-bold uppercase text-indigo-300">Crear Nueva Materia</h4>
-          <input id="newSubjName" type="text" placeholder="Nombre de la materia" class="w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 text-sm" />
-          <input id="newSubjSchedule" type="text" placeholder="Horario o Semestre" class="w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 text-sm" />
-          <select id="newSubjHero" class="w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 text-sm">
-            <option value="CANDY_CANDY">🌸 Candy Candy (Clínica / Evolutiva)</option>
-            <option value="TRANSFORMERS">🤖 Transformers (Neurociencia)</option>
-            <option value="GI_JOE">🎖️ G.I. Joe (Investigación)</option>
-            <option value="HE_MAN">⚔️ He-Man (Filosofía / Escuelas)</option>
-            <option value="OSITOS_CARINOSITOS">🌈 Ositos Cariñositos (Sociología)</option>
+        <div id="newSubjectBox" class="hidden p-3 rounded-xl bg-slate-900 border border-indigo-500/40 space-y-2">
+          <input id="newSubjName" type="text" placeholder="Nombre de la materia" class="w-full px-3 py-1.5 rounded bg-slate-800 border border-slate-700 text-xs" />
+          <input id="newSubjSchedule" type="text" placeholder="Horario o Semestre" class="w-full px-3 py-1.5 rounded bg-slate-800 border border-slate-700 text-xs" />
+          <select id="newSubjHero" class="w-full px-3 py-1.5 rounded bg-slate-800 border border-slate-700 text-xs">
+            <option value="CANDY_CANDY">🌸 Candy Candy</option>
+            <option value="TRANSFORMERS">🤖 Transformers</option>
+            <option value="GI_JOE">🎖️ G.I. Joe</option>
+            <option value="HE_MAN">⚔️ He-Man</option>
+            <option value="OSITOS_CARINOSITOS">🌈 Ositos Cariñositos</option>
           </select>
-          <button onclick="createNewSubject()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 rounded font-bold text-xs">Guardar Materia</button>
+          <button onclick="createNewSubject()" class="w-full py-1.5 bg-emerald-600 rounded font-bold text-xs">Guardar Materia</button>
         </div>
 
-        <div id="subjectsList" class="space-y-3"></div>
+        <div id="subjectsList" class="space-y-2.5"></div>
       </section>
 
-      <!-- GENERADOR Y VISOR DE STORYBOOK -->
-      <section class="lg:col-span-8 space-y-6">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-          <span class="text-xs uppercase font-bold text-pink-400" id="activeSubjectSchedule"></span>
-          <h3 class="text-2xl font-black text-white mt-1 mb-4" id="activeSubjectName">Selecciona una materia</h3>
-
-          <form onsubmit="generateStorybook(event)" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-xs text-slate-400 mb-1">Tema o Capítulo del Libro</label>
-                <input type="text" id="topicTitle" required placeholder="Ej. El Método Científico / Sinapsis Neuronal" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm" />
-              </div>
-              <div>
-                <label class="block text-xs text-slate-400 mb-1">Personaje / Universo Retro-Manga</label>
-                <select id="universeSelect" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm font-semibold">
-                  <option value="CANDY_CANDY">🌸 Candy Candy (Manga Shōjo Clásico)</option>
-                  <option value="TRANSFORMERS">🤖 Transformers (Cybertron G1)</option>
-                  <option value="GI_JOE">🎖️ G.I. Joe (Comando Táctico 80s)</option>
-                  <option value="HE_MAN">⚔️ He-Man (Maestros del Universo)</option>
-                  <option value="OSITOS_CARINOSITOS">🌈 Ositos Cariñositos (Quiereme Mucho)</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-xs text-slate-400 mb-1">Subir Documento PDF de la Clase</label>
-              <input type="file" id="pdfFile" accept=".pdf,.txt" class="w-full text-xs text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-600 file:text-white" />
-            </div>
-
-            <div>
-              <label class="block text-xs text-slate-400 mb-1">O pegar texto / apuntes del libro:</label>
-              <textarea id="customText" rows="3" placeholder="Pega aquí el contenido del capítulo o guía de estudio..." class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm"></textarea>
-            </div>
-
-            <button type="submit" id="btnGenerate" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 via-pink-600 to-indigo-600 font-extrabold text-sm shadow-lg">
-              ✨ Crear Storybook Animado + Examen de Prueba (+$0.25 USD consumo IA)
-            </button>
-          </form>
+      <!-- COLUMNA DERECHA: CENTRO DE ESTUDIO DE LA MATERIA SELECCIONADA -->
+      <section class="lg:col-span-9 space-y-6">
+        <!-- Encabezado de la Materia -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <span class="text-xs uppercase font-bold text-pink-400" id="activeSubjectSchedule"></span>
+            <h2 class="text-2xl font-black text-white" id="activeSubjectName"></h2>
+          </div>
+          <div class="flex gap-2 text-xs">
+            <span class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700">📄 <strong id="statDocs">0</strong> Documentos</span>
+            <span class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700">📖 <strong id="statSbs">0</strong> Storybooks</span>
+            <span class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700">🎯 <strong id="statExams">0</strong> Exámenes</span>
+          </div>
         </div>
 
+        <!-- PASO 1: BIBLIOTECA DE DOCUMENTOS DE LA MATERIA + SUBIR ARCHIVOS -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+          <!-- Subir Documento a la Materia -->
+          <div class="md:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <h3 class="text-sm font-bold text-indigo-300">1️⃣ Cargar Material a esta Materia</h3>
+            <p class="text-xs text-slate-400">Sube tus PDFs, folletos o apuntes. Quedarán guardados en la biblioteca de esta materia para generar todos los Storybooks y Exámenes que quieras.</p>
+            <form onsubmit="uploadDocumentToSubject(event)" class="space-y-3">
+              <input type="text" id="docTitle" required placeholder="Título (ej. Unidad 1: Neurotransmisores)" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs" />
+              <input type="file" id="pdfFile" accept=".pdf,.txt" class="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-600 file:text-white" />
+              <textarea id="customText" rows="3" placeholder="O pega aquí el texto / apuntes de la clase..." class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs"></textarea>
+              <button type="submit" id="btnUploadDoc" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xs text-white">
+                📥 Guardar Documento en la Materia (Gratis)
+              </button>
+            </form>
+          </div>
+
+          <!-- Paso 2: Generar Storybooks o Exámenes desde los Documentos Guardados -->
+          <div class="md:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <h3 class="text-sm font-bold text-amber-300">2️⃣ Generar Storybooks o Exámenes desde tus Documentos</h3>
+
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Selecciona qué documento(s) de la materia quieres estudiar:</label>
+                <select id="docSelector" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs font-semibold"></select>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1">Elige tu Personaje / Universo:</label>
+                  <select id="universeSelect" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs font-bold">
+                    <option value="CANDY_CANDY">🌸 Candy Candy (Clínica / Empatía)</option>
+                    <option value="TRANSFORMERS">🤖 Transformers (Neurociencia / Sistemas)</option>
+                    <option value="GI_JOE">🎖️ G.I. Joe (Investigación / Táctica)</option>
+                    <option value="HE_MAN">⚔️ He-Man (Filosofía / Escuelas)</option>
+                    <option value="OSITOS_CARINOSITOS">🌈 Ositos Cariñositos (Sociología)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1">Enfoque específico (Opcional):</label>
+                  <input type="text" id="focusTopic" placeholder="Ej. Explicar solo las leyes de Gestalt" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <button onclick="generateStorybookFromDocs()" id="btnGenSb" class="py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-pink-600 to-indigo-600 font-extrabold text-xs text-white shadow-lg">
+                  ✨ Crear Storybook Animado (+$0.25 IA)
+                </button>
+                <button onclick="generateExamFromDocs()" id="btnGenExam" class="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-extrabold text-xs text-white shadow-lg">
+                  🎯 Generar Examen de Práctica (+$0.15 IA)
+                </button>
+              </div>
+            </div>
+
+            <!-- Galería de Storybooks y Exámenes guardados en esta materia -->
+            <div class="border-t border-slate-800 pt-3">
+              <span class="text-[11px] uppercase font-bold text-slate-400 block mb-2">🗂️ Historial Guardado en esta Materia (Clic para abrir):</span>
+              <div id="savedItemsGallery" class="flex flex-wrap gap-2"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VISOR INTERACTIVO DE STORYBOOK -->
         <div id="storybookViewer" class="hidden space-y-6">
           <div class="bg-slate-900 border-2 border-amber-400/60 rounded-2xl p-6 space-y-5">
-            <div>
-              <span id="sbUniverseBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-pink-500/20 text-pink-300"></span>
-              <h2 id="sbTitle" class="text-2xl font-black text-white mt-2"></h2>
-              <p id="sbSummary" class="text-sm text-slate-400 mt-1"></p>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <span id="sbUniverseBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-pink-500/20 text-pink-300"></span>
+                <h2 id="sbTitle" class="text-2xl font-black text-white mt-2"></h2>
+                <p id="sbSummary" class="text-sm text-slate-400 mt-1"></p>
+              </div>
             </div>
 
             <div id="sceneContainer" class="retro-box bg-slate-800/90 p-6 rounded-xl space-y-4"></div>
 
             <div class="flex items-center justify-between">
-              <button onclick="prevScene()" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold">⬅ Anterior</button>
+              <button onclick="prevScene()" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold">⬅ Viñeta Anterior</button>
               <span id="sceneIndicator" class="text-xs font-bold text-amber-400"></span>
-              <button onclick="nextScene()" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold">Siguiente ➡</button>
+              <button onclick="nextScene()" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold">Siguiente Viñeta ➡</button>
             </div>
           </div>
 
           <div class="bg-slate-900 border border-emerald-500/40 rounded-2xl p-6 space-y-4">
-            <h3 class="text-lg font-extrabold text-emerald-400">🎯 Segmento de Prueba (Autoevaluación)</h3>
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-extrabold text-emerald-400">🎯 Autoevaluación Rápida del Storybook</h3>
+              <span id="quizScoreBadge" class="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold"></span>
+            </div>
             <div id="quizContainer" class="space-y-4"></div>
           </div>
+        </div>
+
+        <!-- VISOR DE SIMULADOR DE EXAMEN ACUMULATIVO -->
+        <div id="examViewer" class="hidden bg-slate-900 border-2 border-emerald-500/60 rounded-2xl p-6 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div>
+              <span class="text-xs uppercase font-bold text-emerald-400">Simulador de Examen Universitario</span>
+              <h3 id="examTitleDisplay" class="text-2xl font-black text-white"></h3>
+            </div>
+            <div class="text-right">
+              <span class="text-xs text-slate-400 block">Tu Calificación</span>
+              <strong id="examFinalGrade" class="text-2xl font-black text-amber-400">0 / 100 pts</strong>
+            </div>
+          </div>
+          <div id="examQuestionsContainer" class="space-y-4"></div>
         </div>
       </section>
     </main>
@@ -219,7 +250,9 @@
     let currentUser = null;
     let activeSubjectId = null;
     let activeStorybook = null;
+    let activeExam = null;
     let currentSceneIdx = 0;
+    let examHits = 0;
 
     function switchAuthTab(tab) {
       document.getElementById('authError').classList.add('hidden');
@@ -275,14 +308,11 @@
       document.getElementById('authScreen').classList.add('hidden');
       document.getElementById('appScreen').classList.remove('hidden');
       refreshUserUI();
-      if (currentUser.subjects.length > 0) {
-        selectSubject(currentUser.subjects[0].id);
-      }
+      if (currentUser.subjects.length > 0) selectSubject(currentUser.subjects[0].id);
     }
 
     function logout() {
       currentUser = null;
-      activeSubjectId = null;
       document.getElementById('appScreen').classList.add('hidden');
       document.getElementById('authScreen').classList.remove('hidden');
     }
@@ -291,7 +321,8 @@
       document.getElementById('headerUserName').textContent = currentUser.fullName;
       document.getElementById('headerUsername').textContent = `@${currentUser.username}`;
       document.getElementById('headerUserCareer').textContent = currentUser.career;
-      document.getElementById('headerSbCount').textContent = currentUser.storybooksCreated;
+      document.getElementById('headerSbCount').textContent = currentUser.storybooksCreated || 0;
+      document.getElementById('headerExCount').textContent = currentUser.examsCreated || 0;
       document.getElementById('headerAiCost').textContent = `$${currentUser.aiConsumptionUSD.toFixed(2)} USD`;
       const total = currentUser.subscriptionBaseUSD + currentUser.aiConsumptionUSD;
       document.getElementById('headerTotalBill').textContent = `$${total.toFixed(2)} USD`;
@@ -301,13 +332,13 @@
     function renderSubjects() {
       const container = document.getElementById('subjectsList');
       container.innerHTML = currentUser.subjects.map(s => `
-        <div onclick="selectSubject('${s.id}')" class="cursor-pointer p-4 rounded-xl border transition ${s.id === activeSubjectId ? 'bg-indigo-950/90 border-pink-500 shadow-lg' : 'bg-slate-900 border-slate-800 hover:border-slate-700'}">
+        <div onclick="selectSubject('${s.id}')" class="cursor-pointer p-3.5 rounded-xl border transition ${s.id === activeSubjectId ? 'bg-indigo-950/90 border-pink-500 shadow-lg' : 'bg-slate-900 border-slate-800 hover:border-slate-700'}">
           <div class="flex items-center justify-between">
-            <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-800 text-amber-300">${s.defaultHero}</span>
-            <span class="text-[11px] text-slate-400">${s.schedule}</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-amber-300">${s.defaultHero}</span>
+            <span class="text-[10px] text-slate-400">${s.schedule}</span>
           </div>
-          <h4 class="font-bold text-white mt-1.5">${s.name}</h4>
-          <p class="text-xs text-slate-400 mt-1">${s.storybooks.length} Storybooks guardados</p>
+          <h4 class="font-bold text-sm text-white mt-1.5">${s.name}</h4>
+          <p class="text-[11px] text-slate-400 mt-1">📄 ${s.documents.length} docs • 📖 ${s.storybooks.length} storybooks • 🎯 ${s.exams.length} exámenes</p>
         </div>
       `).join('');
     }
@@ -316,14 +347,45 @@
       activeSubjectId = id;
       const subj = currentUser.subjects.find(s => s.id === id);
       if (!subj) return;
+
       document.getElementById('activeSubjectSchedule').textContent = `${subj.section} • ${subj.schedule}`;
       document.getElementById('activeSubjectName').textContent = subj.name;
       document.getElementById('universeSelect').value = subj.defaultHero;
+      document.getElementById('statDocs').textContent = subj.documents.length;
+      document.getElementById('statSbs').textContent = subj.storybooks.length;
+      document.getElementById('statExams').textContent = subj.exams.length;
+
+      // Actualizar selector de documentos de esta materia
+      const docSelect = document.getElementById('docSelector');
+      if (subj.documents.length === 0) {
+        docSelect.innerHTML = `<option value="NONE">-- Sin documentos aún (Sube un PDF a la izquierda o escribe un tema) --</option>`;
+      } else {
+        docSelect.innerHTML = `
+          <option value="ALL">📚 TODOS los documentos de ${subj.name} (${subj.documents.length} archivos)</option>
+          ${subj.documents.map(d => `<option value="${d.id}">📄 ${d.title} (${d.fileName})</option>`).join('')}
+        `;
+      }
+
+      // Renderizar galería de Storybooks y Exámenes guardados en esta materia
+      const gallery = document.getElementById('savedItemsGallery');
+      const sbButtons = subj.storybooks.map((sb, i) => `
+        <button onclick="openStorybookById('${sb.id}')" class="px-3 py-1.5 rounded-lg bg-pink-500/20 hover:bg-pink-500/30 border border-pink-500/40 text-pink-200 text-xs font-bold">
+          📖 SB #${i + 1}: ${sb.title} (${sb.universe})
+        </button>
+      `);
+      const exButtons = subj.exams.map((ex, i) => `
+        <button onclick="openExamById('${ex.id}')" class="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-200 text-xs font-bold">
+          🎯 Examen #${i + 1}: ${ex.examTitle}
+        </button>
+      `);
+      gallery.innerHTML = [...sbButtons, ...exButtons].join('') || `<span class="text-xs text-slate-500">Aún no has generado Storybooks ni exámenes en esta materia.</span>`;
+
       renderSubjects();
       if (subj.storybooks.length > 0) {
         openStorybook(subj.storybooks[subj.storybooks.length - 1]);
       } else {
         document.getElementById('storybookViewer').classList.add('hidden');
+        document.getElementById('examViewer').classList.add('hidden');
       }
     }
 
@@ -343,48 +405,121 @@
         body: JSON.stringify({ username: currentUser.username, name, schedule, defaultHero })
       });
       const data = await res.json();
-      currentUser.subjects.push(data.subject);
+      currentUser = data.user;
       document.getElementById('newSubjName').value = '';
       toggleNewSubjectBox();
-      selectSubject(data.subject.id);
+      refreshUserUI();
+      selectSubject(data.newSubjectId);
     }
 
-    async function generateStorybook(e) {
+    async function uploadDocumentToSubject(e) {
       e.preventDefault();
-      const btn = document.getElementById('btnGenerate');
+      const btn = document.getElementById('btnUploadDoc');
       btn.disabled = true;
-      btn.textContent = '⏳ Leyendo documento con Gemini y armando Storybook...';
+      btn.textContent = '⏳ Guardando en la materia...';
 
       const formData = new FormData();
       formData.append('username', currentUser.username);
       formData.append('subjectId', activeSubjectId);
-      formData.append('topicTitle', document.getElementById('topicTitle').value);
-      formData.append('universe', document.getElementById('universeSelect').value);
+      formData.append('docTitle', document.getElementById('docTitle').value);
       formData.append('customText', document.getElementById('customText').value);
       const fileInput = document.getElementById('pdfFile');
       if (fileInput.files[0]) formData.append('document', fileInput.files[0]);
 
       try {
-        const res = await fetch('/api/generate-storybook', { method: 'POST', body: formData });
+        const res = await fetch('/api/documents', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        currentUser = data.user;
+        document.getElementById('docTitle').value = '';
+        document.getElementById('customText').value = '';
+        fileInput.value = '';
+        selectSubject(activeSubjectId);
+        document.getElementById('docSelector').value = data.documentId;
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '📥 Guardar Documento en la Materia (Gratis)';
+      }
+    }
+
+    async function generateStorybookFromDocs() {
+      const btn = document.getElementById('btnGenSb');
+      btn.disabled = true;
+      btn.textContent = '⏳ Creando Storybook Retro-Manga...';
+
+      try {
+        const res = await fetch('/api/generate-storybook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: currentUser.username,
+            subjectId: activeSubjectId,
+            documentId: document.getElementById('docSelector').value,
+            universe: document.getElementById('universeSelect').value,
+            focusTopic: document.getElementById('focusTopic').value
+          })
+        });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
 
         currentUser = data.user;
         refreshUserUI();
+        selectSubject(activeSubjectId);
         openStorybook(data.storybook);
       } catch (err) {
         alert('Error: ' + err.message);
       } finally {
         btn.disabled = false;
-        btn.textContent = '✨ Crear Storybook Animado + Examen de Prueba (+$0.25 USD consumo IA)';
+        btn.textContent = '✨ Crear Storybook Animado (+$0.25 IA)';
       }
+    }
+
+    async function generateExamFromDocs() {
+      const btn = document.getElementById('btnGenExam');
+      btn.disabled = true;
+      btn.textContent = '⏳ Generando Examen Universitario...';
+
+      try {
+        const res = await fetch('/api/generate-exam', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: currentUser.username,
+            subjectId: activeSubjectId,
+            documentId: document.getElementById('docSelector').value,
+            universe: document.getElementById('universeSelect').value
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        currentUser = data.user;
+        refreshUserUI();
+        selectSubject(activeSubjectId);
+        openExam(data.exam);
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🎯 Generar Examen de Práctica (+$0.15 IA)';
+      }
+    }
+
+    function openStorybookById(sbId) {
+      const subj = currentUser.subjects.find(s => s.id === activeSubjectId);
+      const sb = subj.storybooks.find(x => x.id === sbId);
+      if (sb) openStorybook(sb);
     }
 
     function openStorybook(sb) {
       activeStorybook = sb;
       currentSceneIdx = 0;
+      document.getElementById('examViewer').classList.add('hidden');
       document.getElementById('storybookViewer').classList.remove('hidden');
-      document.getElementById('sbUniverseBadge').textContent = `Universo: ${sb.universe} • Tokens IA: ${sb.tokensUsed}`;
+      document.getElementById('sbUniverseBadge').textContent = `Universo: ${sb.universe} • Basado en: ${sb.sourceDocTitle || 'Materia'}`;
       document.getElementById('sbTitle').textContent = sb.title;
       document.getElementById('sbSummary').textContent = sb.summary;
       renderScene();
@@ -397,14 +532,17 @@
       document.getElementById('sceneContainer').innerHTML = `
         <div class="flex items-center justify-between">
           <span class="px-3 py-1 rounded bg-amber-500/20 text-amber-300 text-xs font-bold">🗣 ${s.characterName}</span>
-          <span class="text-xs text-cyan-400 font-mono">✨ Animación: ${s.animationEffect}</span>
+          <span class="text-xs text-cyan-400 font-mono">✨ Efecto: ${s.animationEffect}</span>
         </div>
         <div class="p-3 rounded bg-slate-950 border border-slate-700 text-xs text-indigo-300">
-          <strong>Concepto Universitario:</strong> ${s.academicConcept}
+          <strong>Concepto Académico:</strong> ${s.academicConcept}
         </div>
         <p class="text-base text-white leading-relaxed font-medium">"${s.storyDialogue}"</p>
-        <div class="p-3 rounded bg-slate-950/60 border border-dashed border-slate-700 text-[11px] text-slate-400">
-          🎨 <strong>Arte de la Viñeta:</strong> ${s.visualPromptRetro}
+        <div class="p-3 rounded-lg bg-emerald-950/50 border border-emerald-500/40 text-xs text-emerald-200">
+          🧠 <strong>Truco de Memoria para el Examen (Mnemotecnia):</strong> ${s.memoryTrick}
+        </div>
+        <div class="p-2.5 rounded bg-slate-950/60 border border-dashed border-slate-700 text-[11px] text-slate-400">
+          🎨 <strong>Viñeta Retro-Manga:</strong> ${s.visualPromptRetro}
         </div>
       `;
     }
@@ -437,7 +575,54 @@
         fb.innerHTML = `✅ <strong>¡Correcto!</strong> ${q.heroExplanation}`;
       } else {
         fb.className = 'p-3 rounded text-xs mt-2 bg-rose-950 border border-rose-500 text-rose-200';
-        fb.innerHTML = `❌ <strong>Revisa el concepto:</strong> ${q.heroExplanation}`;
+        fb.innerHTML = `❌ <strong>Repasa:</strong> ${q.heroExplanation}`;
+      }
+    }
+
+    function openExamById(exId) {
+      const subj = currentUser.subjects.find(s => s.id === activeSubjectId);
+      const ex = subj.exams.find(x => x.id === exId);
+      if (ex) openExam(ex);
+    }
+
+    function openExam(ex) {
+      activeExam = ex;
+      examHits = 0;
+      document.getElementById('storybookViewer').classList.add('hidden');
+      document.getElementById('examViewer').classList.remove('hidden');
+      document.getElementById('examTitleDisplay').textContent = `${ex.examTitle} (${ex.universe})`;
+      document.getElementById('examFinalGrade').textContent = `0 / 100 pts`;
+
+      document.getElementById('examQuestionsContainer').innerHTML = ex.questions.map((q, qIdx) => `
+        <div class="p-4 rounded-xl bg-slate-800 border border-slate-700 space-y-2">
+          <p class="font-bold text-sm text-white">${qIdx + 1}. ${q.question}</p>
+          <div class="space-y-1.5">
+            ${q.options.map((opt, oIdx) => `
+              <button id="exBtn-${qIdx}-${oIdx}" onclick="checkExamAnswer(${qIdx},${oIdx})" class="w-full text-left px-3 py-2 rounded bg-slate-900 hover:bg-indigo-950 border border-slate-700 text-xs">
+                ${opt}
+              </button>
+            `).join('')}
+          </div>
+          <div id="exFb-${qIdx}" class="hidden p-3 rounded text-xs mt-2"></div>
+        </div>
+      `).join('');
+    }
+
+    function checkExamAnswer(qIdx, oIdx) {
+      const q = activeExam.questions[qIdx];
+      const fb = document.getElementById(`exFb-${qIdx}`);
+      if (!fb.classList.contains('hidden')) return; // Ya respondida
+      fb.classList.remove('hidden');
+
+      if (oIdx === q.correctIndex) {
+        examHits++;
+        const score = Math.round((examHits / activeExam.questions.length) * 100);
+        document.getElementById('examFinalGrade').textContent = `${score} / 100 pts`;
+        fb.className = 'p-3 rounded text-xs mt-2 bg-emerald-950 border border-emerald-500 text-emerald-200';
+        fb.innerHTML = `✅ <strong>¡Excelente (+20 pts)!</strong> ${q.heroExplanation}`;
+      } else {
+        fb.className = 'p-3 rounded text-xs mt-2 bg-rose-950 border border-rose-500 text-rose-200';
+        fb.innerHTML = `❌ <strong>Respuesta incorrecta:</strong> ${q.heroExplanation}`;
       }
     }
   </script>
