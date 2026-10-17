@@ -262,7 +262,6 @@ async function getFullDocumentsForSubject(username, subject, documentId) {
   return allDocs.filter(d => d.id === documentId);
 }
 
-// 🤼‍♂️ SIMULADOR DE DEBATE SOCRÁTICO
 app.post('/api/socratic-debate', async (req, res) => {
   try {
     const { username, subjectId, philosopher, message, history } = req.body;
@@ -292,7 +291,6 @@ app.post('/api/socratic-debate', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 🗺️ LÍNEA DE TIEMPO HISTÓRICA CRUZADA
 app.post('/api/generate-timeline-map', async (req, res) => {
   try {
     const { username, subjectId, documentId } = req.body;
@@ -336,7 +334,6 @@ app.post('/api/generate-timeline-map', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 🧠 MAPA CONCEPTUAL INTERACTIVO
 app.post('/api/generate-mindmap', async (req, res) => {
   try {
     const { username, subjectId, documentId } = req.body;
