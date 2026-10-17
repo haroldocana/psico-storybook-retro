@@ -191,6 +191,7 @@ app.delete('/api/subjects/:subjectId', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ENDPOINT DE CARGA (SOPORTA ARCHIVOS Y YOUTUBE CON ANÁLISIS PROFUNDO)
 app.post('/api/documents', upload.any(), async (req, res) => {
   try {
     const { username, subjectId, docTitle, customText, youtubeUrl } = req.body;
@@ -262,7 +263,7 @@ async function getFullDocumentsForSubject(username, subject, documentId) {
   return allDocs.filter(d => d.id === documentId);
 }
 
-// 2. SIMULADOR DE DEBATE SOCRÁTICO
+// 🤼‍♂️ SIMULADOR DE DEBATE SOCRÁTICO
 app.post('/api/socratic-debate', async (req, res) => {
   try {
     const { username, subjectId, philosopher, message, history } = req.body;
@@ -292,7 +293,7 @@ app.post('/api/socratic-debate', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 3. LÍNEA DE TIEMPO HISTÓRICA CRUZADA
+// 🗺️ LÍNEA DE TIEMPO HISTÓRICA CRUZADA
 app.post('/api/generate-timeline-map', async (req, res) => {
   try {
     const { username, subjectId, documentId } = req.body;
@@ -333,29 +334,6 @@ app.post('/api/generate-timeline-map', async (req, res) => {
     user.aiConsumptionUSD += 0.20;
     await user.save();
     res.json({ timelineMap: JSON.parse(response.text), user: await serializeUser(user) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.post('/api/human-homework', async (req, res) => {
-  try {
-    const { username, subjectId, taskPrompt } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
-    const subject = user.subjects.find(s => s.id === subjectId);
-    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
-
-    const allDocs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
-    const contents = [];
-    for (const doc of allDocs) {
-      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
-    }
-
-    contents.push(`Explica de forma humana, existencial y clara para una tarea universitaria: "${taskPrompt}"`);
-
-    const response = await generateWithFallback(contents, null);
-    user.aiConsumptionUSD += 0.12;
-    await user.save();
-    res.json({ result: response.text, user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
