@@ -70,17 +70,13 @@ const UserModel = mongoose.model('User', UserSchema);
 
 const getInitialSubjectsForCareer = (career) => {
   if (career === 'Medicina') {
-    return [
-      { id: 'med-1', name: 'Fisiología Humana', section: 'Sección A', schedule: 'Semestre 2', defaultHero: 'TRANSFORMERS', documents: [], storybooks: [], exams: [] }
-    ];
+    return [{ id: 'med-1', name: 'Fisiología Humana', section: 'Sección A', schedule: 'Semestre 2', defaultHero: 'TRANSFORMERS', documents: [], storybooks: [], exams: [] }];
   } else if (career === 'Abogacía') {
-    return [
-      { id: 'der-1', name: 'Derecho Civil I', section: 'Sección A', schedule: 'Semestre 2', defaultHero: 'HE_MAN', documents: [], storybooks: [], exams: [] }
-    ];
+    return [{ id: 'der-1', name: 'Derecho Civil I', section: 'Sección A', schedule: 'Semestre 2', defaultHero: 'HE_MAN', documents: [], storybooks: [], exams: [] }];
   } else {
     return [
-      { id: "lpc-ep2", name: "Escuelas Psicológicas II", section: "Sección A", schedule: "Semestre 2, 2026", defaultHero: "HE_MAN", documents: [], storybooks: [], exams: [] },
-      { id: "lpc-pe2", name: "Psicología Evolutiva II", section: "Sección A", schedule: "Semestre 2, 2026", defaultHero: "CANDY_CANDY", documents: [], storybooks: [], exams: [] }
+      { id: "lpc-ep2", name: "Escuelas Psicológicas II", section: "Sección A", schedule: "Semestre 2", defaultHero: 'PSICO_CLINICA', documents: [], storybooks: [], exams: [] },
+      { id: "lpc-pe2", name: "Psicología Evolutiva II", section: "Sección A", schedule: "Semestre 2", defaultHero: 'PSICO_CLINICA', documents: [], storybooks: [], exams: [] }
     ];
   }
 };
@@ -173,7 +169,7 @@ app.post('/api/subjects', async (req, res) => {
     const { username, name, section, schedule, defaultHero } = req.body;
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
     if (!user) return res.status(401).json({ error: "Sesión no válida" });
-    const newSubj = { id: 'subj-' + Date.now(), name, section: section || 'Sección A', schedule: schedule || 'Actual', defaultHero: defaultHero || 'CANDY_CANDY', documents: [], storybooks: [], exams: [] };
+    const newSubj = { id: 'subj-' + Date.now(), name, section: section || 'Sección A', schedule: schedule || 'Actual', defaultHero: defaultHero || 'PSICO_CLINICA', documents: [], storybooks: [], exams: [] };
     user.subjects.push(newSubj);
     user.markModified('subjects');
     await user.save();
@@ -251,7 +247,6 @@ async function getFullDocumentsForSubject(username, subject, documentId) {
   return allDocs.filter(d => d.id === documentId);
 }
 
-// 1. BÚSQUEDA SEMÁNTICA GLOBAL (RAG) EN BIBLIOTECA
 app.post('/api/rag-search', async (req, res) => {
   try {
     const { username, subjectId, query } = req.body;
@@ -261,14 +256,12 @@ app.post('/api/rag-search', async (req, res) => {
     if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
 
     const allDocs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
-    if (allDocs.length === 0) return res.status(400).json({ error: "No hay archivos en la biblioteca para buscar." });
-
     const contents = [];
     for (const doc of allDocs) {
       if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Basándote estrictamente en los documentos anteriores de la materia ${subject.name}, responde de forma precisa y citando la fuente a la siguiente pregunta del estudiante: "${query}"`);
+    contents.push(`Basándote en los documentos de ${subject.name}, responde con rigor académico a: "${query}"`);
 
     const response = await generateWithFallback(contents, null);
     user.aiConsumptionUSD += 0.10;
@@ -277,7 +270,6 @@ app.post('/api/rag-search', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 2. GENERADOR DE FLASHCARDS (ANKI)
 app.post('/api/generate-flashcards', async (req, res) => {
   try {
     const { username, subjectId, documentId } = req.body;
@@ -292,7 +284,7 @@ app.post('/api/generate-flashcards', async (req, res) => {
       if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Genera 6 flashcards o tarjetas de memoria clave (pregunta/respuesta corta) para repasar los conceptos fundamentales de ${subject.name}.`);
+    contents.push(`Genera 6 flashcards clave (pregunta/respuesta) para ${subject.name}.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -316,7 +308,6 @@ app.post('/api/generate-flashcards', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 3. MAPA MENTAL JERÁRQUICO
 app.post('/api/generate-mindmap', async (req, res) => {
   try {
     const { username, subjectId, documentId } = req.body;
@@ -331,7 +322,7 @@ app.post('/api/generate-mindmap', async (req, res) => {
       if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Genera un mapa mental jerárquico estructurado (Tema Central, Ramas Principales y Subramas) para ${subject.name}.`);
+    contents.push(`Genera un mapa mental jerárquico para ${subject.name}.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -356,7 +347,6 @@ app.post('/api/generate-mindmap', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 4. SIMULADOR DE CASOS CLÍNICOS / LEGALES (ROLEPLAY)
 app.post('/api/roleplay-chat', async (req, res) => {
   try {
     const { username, subjectId, message, history } = req.body;
@@ -364,9 +354,7 @@ app.post('/api/roleplay-chat', async (req, res) => {
     if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
     const subject = user.subjects.find(s => s.id === subjectId);
 
-    const contents = [
-      `Eres un simulador de casos prácticos universitarios para la materia "${subject?.name || 'Estudio'}". Si la carrera es de Psicología/Medicina, actúas como un paciente con sintomatología clínica compleja o un caso de estudio. Si es Abogacía, actúas como un juez o cliente en un caso legal. Responde al estudiante: "${message}"`
-    ];
+    const contents = [`Eres un simulador de casos clínicos y psicológicos para "${subject?.name || 'Psicología'}". Actúas como un paciente con psicopatología compleja o un supervisor clínico evaluando al estudiante: "${message}"`];
     if (history) contents.unshift(history);
 
     const response = await generateWithFallback(contents, null);
@@ -376,7 +364,6 @@ app.post('/api/roleplay-chat', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// GENERAR STORYBOOK
 app.post('/api/generate-storybook', async (req, res) => {
   try {
     const { username, subjectId, documentId, focusTopic, universe } = req.body;
@@ -392,7 +379,7 @@ app.post('/api/generate-storybook', async (req, res) => {
       if (doc.textContent) contents.push(`Texto (${doc.title}):\n${doc.textContent}`);
     }
 
-    contents.push(`Estudiante: ${user.fullName} (${user.career}). Materia: ${subject.name}. Tema: ${focusTopic || 'General'}. Universo: ${universe}. Genera Storybook de 5 escenas detalladas, línea de tiempo evolutiva independiente y quiz.`);
+    contents.push(`Estudiante: ${user.fullName} (${user.career}). Materia: ${subject.name}. Tema: ${focusTopic || 'General'}. Universo pedagógico: ${universe}. Genera Storybook clínico/académico con avatares de personajes expertos (Freud, Rogers, Piaget, Beck o héroes), línea de tiempo evolutiva y quiz.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -443,7 +430,6 @@ app.post('/api/generate-storybook', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// GENERAR EXAMEN
 app.post('/api/generate-exam', async (req, res) => {
   try {
     const { username, subjectId, documentId, universe } = req.body;
