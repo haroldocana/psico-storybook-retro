@@ -6,11 +6,10 @@
   <title>Plataforma Académica Universitaria</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* Diseño Vibrante - Plataforma Educativa / Cartoon Moderno */
     body { 
       background: radial-gradient(circle at top right, #1e1b4b, #0f172a 70%); 
       color: #f8fafc; 
-      font-family: system-ui, -apple-system, sans-serif; 
+      font-family: system-ui, sans-serif; 
       min-height: 100vh; 
     }
     .glass-edu { 
@@ -64,7 +63,7 @@
 </head>
 <body class="text-slate-100 flex flex-col min-h-screen">
 
-  <!-- ================= AUTH SCREEN & SELECCIÓN DE CARRERA ================= -->
+  <!-- ================= PANTALLA DE AUTENTICACIÓN ================= -->
   <div id="authScreen" class="min-h-screen flex items-center justify-center p-4">
     <div class="glass-edu max-w-lg w-full rounded-3xl p-8 shadow-2xl">
       <div class="text-center mb-6">
@@ -80,7 +79,7 @@
 
       <div id="authError" class="hidden mb-4 p-3 rounded-2xl bg-red-950/90 border border-red-500 text-red-200 text-xs font-bold"></div>
 
-      <!-- Login Form -->
+      <!-- Formulario Login -->
       <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
         <div>
           <label class="text-xs font-bold text-cyan-300">Usuario o Correo</label>
@@ -93,7 +92,7 @@
         <button type="submit" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 font-black text-sm shadow-xl hover:brightness-110 transition">Ingresar a mi Entorno</button>
       </form>
 
-      <!-- Register Form -->
+      <!-- Formulario Registro -->
       <form id="registerForm" onsubmit="handleRegister(event)" class="hidden space-y-3">
         <div>
           <label class="text-xs font-bold text-cyan-300">Nombre Completo</label>
@@ -129,7 +128,7 @@
 
   <!-- ================= DASHBOARD PRINCIPAL ================= -->
   <div id="appScreen" class="hidden min-h-screen flex flex-col">
-    <!-- Header -->
+    <!-- Cabecera -->
     <header class="glass-edu sticky top-0 z-30 px-6 py-4 flex flex-wrap items-center justify-between gap-4 border-b border-indigo-500/30">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-2xl bg-cyan-500/20 border-2 border-cyan-400 flex items-center justify-center text-xl shadow">🚀</div>
@@ -147,7 +146,8 @@
     </header>
 
     <div class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <!-- SIDEBAR MATERIAS -->
+      
+      <!-- MENÚ LATERAL DE MATERIAS -->
       <aside class="lg:col-span-3 space-y-4">
         <div class="glass-edu rounded-3xl p-5 border border-indigo-500/30">
           <div class="flex items-center justify-between mb-4">
@@ -158,10 +158,10 @@
         </div>
       </aside>
 
-      <!-- ÁREA CENTRAL -->
+      <!-- ÁREA DE TRABAJO CENTRAL -->
       <main class="lg:col-span-9 space-y-6">
         
-        <!-- Header de la Materia -->
+        <!-- Tarjeta de Materia Activa -->
         <div class="glass-edu rounded-3xl p-6 flex flex-wrap items-center justify-between gap-4 border border-indigo-500/30">
           <div>
             <span id="activeSubjMeta" class="text-xs font-black text-cyan-400 uppercase"></span>
@@ -179,7 +179,7 @@
           </div>
         </div>
 
-        <!-- 🏛️ SANTUARIO FENOMENOLÓGICO (HUSSERL Y HEIDEGGER) -->
+        <!-- 🏛️ SANTUARIO FENOMENOLÓGICO -->
         <div class="glass-edu rounded-3xl p-6 border-2 border-amber-500/50 shadow-2xl space-y-5 bg-gradient-to-br from-amber-950/40 to-slate-900">
           <div class="flex items-center justify-between border-b border-amber-500/30 pb-3">
             <div class="flex items-center gap-3">
@@ -193,12 +193,10 @@
           </div>
 
           <div id="phenomenologyDocs" class="hidden space-y-4 pt-2">
-            <!-- Trayectoria -->
             <div class="bg-slate-900 p-4 rounded-2xl border border-amber-500/40">
               <h4 class="font-black text-sm text-cyan-300 mb-2">📜 De la Consciencia al Ser</h4>
-              <p class="text-xs text-slate-300 leading-relaxed"><b>Edmund Husserl</b> funda la fenomenología para ir "a las cosas mismas", estableciendo que la <i>Consciencia</i> siempre es intencional (siempre es consciencia <i>de</i> algo). Su alumno, <b>Martin Heidegger</b>, lleva este método a la existencia humana concreta, creando la ontología fundamental y descubriendo al <i>Dasein</i> (el Ser-ahí).</p>
+              <p class="text-xs text-slate-300 leading-relaxed"><b>Edmund Husserl</b> funda la fenomenología para ir "a las cosas mismas", estableciendo que la <i>Consciencia</i> siempre es intencional. Su alumno, <b>Martin Heidegger</b>, lleva este método a la existencia humana concreta, creando la ontología fundamental y descubriendo al <i>Dasein</i> (el Ser-ahí).</p>
             </div>
-            <!-- Consciencia SC vs Conciencia C -->
             <div class="bg-slate-900 p-4 rounded-2xl border border-amber-500/40">
               <h4 class="font-black text-sm text-amber-300 mb-2">⚖️ Consciencia (SC) vs. Conciencia (C)</h4>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
@@ -212,7 +210,6 @@
                 </div>
               </div>
             </div>
-            <!-- Lenguaje -->
             <div class="bg-slate-900 p-4 rounded-2xl border border-amber-500/40">
               <h4 class="font-black text-sm text-rose-300 mb-2">🗣️ Teoría del Lenguaje y Glosario</h4>
               <p class="text-xs text-slate-300 mb-2"><i>"El lenguaje es la casa del ser. En su morada habita el hombre"</i> - Heidegger.</p>
@@ -234,7 +231,7 @@
           </div>
         </div>
 
-        <!-- 📝 MÓDULO DE SOLICITUD DE TAREAS Y RESÚMENES -->
+        <!-- 📝 MÓDULO DE SOLICITUD DE TAREAS -->
         <div class="glass-edu rounded-3xl p-6 border-2 border-emerald-500/50 shadow-2xl space-y-4">
           <div class="flex items-center gap-3">
             <span class="text-3xl">📝</span>
@@ -249,7 +246,7 @@
           </div>
         </div>
 
-        <!-- REPOSITORIO Y HERRAMIENTAS DIVIDIDO EN 2 COLUMNAS -->
+        <!-- REPOSITORIO Y HERRAMIENTAS (2 COLUMNAS) -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           
           <!-- COLUMNA 1: REPOSITORIO -->
@@ -290,15 +287,15 @@
               <h3 class="font-black text-sm text-teal-300">2️⃣ Asimilación y Audiolibros</h3>
               
               <div>
-                <label class="text-xs text-slate-300 font-bold">Material de análisis:</label>
+                <label class="text-xs text-slate-300 font-bold">Material de análisis para herramientas:</label>
                 <select id="selectDocForAI" class="w-full mt-1 px-4 py-2.5 rounded-2xl bg-slate-900 border border-indigo-500/40 text-xs text-white font-bold"></select>
               </div>
               <input type="text" id="focusTopic" placeholder="Enfoque (ej. Conceptos Clave)" class="w-full px-4 py-2.5 rounded-2xl bg-slate-900 border border-indigo-500/40 text-xs text-white font-medium" />
 
               <div class="grid grid-cols-2 gap-2.5 pt-1">
-                <button onclick="generateStorybook()" class="py-2.5 px-2 rounded-2xl bg-gradient-to-r from-cyan-600 to-indigo-600 font-black text-xs text-white shadow-lg">📖 Monografía</button>
+                <button onclick="generateStorybook()" class="py-2.5 px-2 rounded-2xl bg-gradient-to-r from-cyan-600 to-indigo-600 font-black text-xs text-white shadow-lg hover:brightness-110">📖 Monografía</button>
                 <button onclick="generateFlashcards()" class="py-2.5 px-2 rounded-2xl bg-purple-600 hover:bg-purple-500 font-black text-xs text-white shadow-lg">🃏 Fichas Teóricas</button>
-                <button onclick="generateMindMap()" class="py-2.5 px-2 rounded-2xl bg-teal-600 hover:bg-teal-500 font-black text-xs text-white shadow-lg">🧠 Mapa Conceptual</button>
+                <button onclick="generateMindMap()" class="py-2.5 px-2 rounded-2xl bg-teal-600 hover:bg-teal-500 font-black text-xs text-white shadow-lg">🧠 Mapa</button>
                 <button onclick="generateTimelineMap()" class="py-2.5 px-2 rounded-2xl bg-amber-600 hover:bg-amber-500 font-black text-xs text-white shadow-lg">🗺️ Línea de Tiempo</button>
               </div>
 
@@ -319,7 +316,7 @@
           </div>
         </div>
 
-        <!-- VISOR DINÁMICO FULL SCREEN (Para Monografía, Fichas, Mapas, Audiolibros y Debate) -->
+        <!-- VISOR DINÁMICO FULL SCREEN -->
         <div id="viewerArea" class="hidden space-y-6"></div>
       </main>
     </div>
@@ -330,7 +327,7 @@
     <div class="glass-edu max-w-2xl w-full rounded-3xl p-6 space-y-4 border-2 border-indigo-500 shadow-2xl">
       <div class="flex justify-between items-center border-b border-indigo-500/30 pb-3">
         <h3 class="font-black text-base text-indigo-300">🤼‍♂️ Seminario y Debate Académico</h3>
-        <button onclick="openSocraticModal()" class="text-slate-400 font-bold text-lg">✕</button>
+        <button onclick="openSocraticModal()" class="text-slate-400 font-bold text-lg hover:text-white">✕</button>
       </div>
       <div class="space-y-2 text-xs">
         <label class="text-slate-300 font-bold">Experto con quien debatir:</label>
@@ -347,7 +344,7 @@
         </div>
       </div>
       <div class="flex gap-2">
-        <input type="text" id="socraticInput" placeholder="Escribe tu argumento..." class="flex-1 px-4 py-3 rounded-2xl bg-slate-900 border border-indigo-500/40 text-xs text-white font-medium" />
+        <input type="text" id="socraticInput" placeholder="Escribe tu argumento..." class="flex-1 px-4 py-3 rounded-2xl bg-slate-900 border border-indigo-500/40 text-xs text-white font-medium focus:border-indigo-400" />
         <button onclick="sendSocraticMessage()" class="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-black text-xs text-white shadow">Argumentar</button>
       </div>
     </div>
@@ -360,13 +357,13 @@
       <input type="text" id="newSubjName" placeholder="Nombre (ej. Psicopatología)" class="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-indigo-500/40 text-sm text-white font-bold" />
       <input type="text" id="newSubjSchedule" placeholder="Semestre / Horario" class="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-indigo-500/40 text-sm text-white font-bold" />
       <div class="flex justify-end gap-2 pt-2">
-        <button onclick="toggleNewSubjectModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 text-xs font-bold">Cancelar</button>
-        <button onclick="createNewSubject()" class="px-4 py-2.5 rounded-xl bg-cyan-600 font-black text-xs text-white shadow">Guardar</button>
+        <button onclick="toggleNewSubjectModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white transition">Cancelar</button>
+        <button onclick="createNewSubject()" class="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-black text-xs text-white shadow transition">Guardar</button>
       </div>
     </div>
   </div>
 
-  <!-- SCRIPTS Y LÓGICA DE LA APLICACIÓN -->
+  <!-- SCRIPTS Y LÓGICA -->
   <script>
     let currentUser = null;
     let activeSubjectId = null;
@@ -423,7 +420,13 @@
       try {
         const res = await fetch('/api/auth/register', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fullName: document.getElementById('regName').value, username: document.getElementById('regUser').value, career: document.getElementById('regCareer').value, email: document.getElementById('regEmail').value, password: document.getElementById('regPass').value })
+          body: JSON.stringify({ 
+            fullName: document.getElementById('regName').value, 
+            username: document.getElementById('regUser').value, 
+            career: document.getElementById('regCareer').value, 
+            email: document.getElementById('regEmail').value, 
+            password: document.getElementById('regPass').value 
+          })
         });
         const data = await res.json();
         if (!res.ok) return showAuthError(data.error);
@@ -457,7 +460,6 @@
       document.getElementById('userHeaderInfo').innerHTML = `👤 <b>${currentUser.fullName}</b>`;
       document.getElementById('aiBilling').textContent = `$${(currentUser.aiConsumptionUSD || 0).toFixed(2)} USD`;
 
-      // Render Subjects
       const list = document.getElementById('subjectsList');
       list.innerHTML = currentUser.subjects.map(s => `
         <button onclick="selectSubject('${s.id}')" class="w-full text-left p-3.5 rounded-2xl border-2 transition ${s.id === activeSubjectId ? 'bg-cyan-950/80 border-cyan-400 shadow-lg text-white' : 'bg-slate-900/70 border-indigo-500/30 text-slate-300 hover:border-indigo-400'}">
@@ -481,7 +483,6 @@
       document.getElementById('savedLibraryBadge').textContent = docs.length;
       document.getElementById('btnClearAllDocs').classList.toggle('hidden', docs.length === 0);
 
-      // Render Documents
       document.getElementById('savedDocsList').innerHTML = docs.length === 0 ? `<p class="text-xs text-slate-500 italic">Sin documentos.</p>` : docs.map(d => `
         <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-900 border border-indigo-500/30 text-xs gap-2">
           <div class="truncate text-slate-200 font-medium">📄 ${d.title}</div>
@@ -489,19 +490,17 @@
         </div>
       `).join('');
 
-      // Render Selectors (For AI and Audiobook)
-      const optionsHTML = `<option value="ALL">📚 USAR TODOS (${docs.length})</option>` + docs.map(d => `<option value="${d.id}">📄 ${d.title}</option>`).join('');
+      const optionsHTML = `<option value="ALL">📚 USAR TODOS LOS ARCHIVOS (${docs.length})</option>` + docs.map(d => `<option value="${d.id}">📄 ${d.title}</option>`).join('');
       document.getElementById('selectDocForAI').innerHTML = optionsHTML;
       document.getElementById('audiobookDocSelect').innerHTML = `<option value="">-- Elige un libro para escuchar --</option>` + docs.map(d => `<option value="${d.id}">📖 ${d.title}</option>`).join('');
 
-      // Render History
       const hist = document.getElementById('savedHistoryList');
       hist.innerHTML = (subj.storybooks || []).slice().reverse().map(sb => `
         <div class="p-2.5 rounded-xl bg-slate-900 border border-indigo-500/30 flex justify-between items-center text-xs">
           <div onclick='openStorybook(${JSON.stringify(sb).replace(/'/g, "&#39;")})' class="cursor-pointer truncate flex-1 text-slate-200 font-bold hover:text-cyan-300">📖 <b>${sb.title}</b></div>
           <button onclick="deleteSavedStorybook('${sb.id}')" class="text-red-400 ml-2 font-bold">🗑️</button>
         </div>
-      `).join('') || '<p class="text-xs text-slate-500 italic">Sin monografías.</p>';
+      `).join('') || '<p class="text-xs text-slate-500 italic">Sin monografías generadas.</p>';
     }
 
     function selectSubject(id) { 
@@ -511,7 +510,9 @@
       renderDashboard(); 
     }
 
-    function toggleNewSubjectModal() { document.getElementById('modalSubject').classList.toggle('hidden'); }
+    function toggleNewSubjectModal() { 
+      document.getElementById('modalSubject').classList.toggle('hidden'); 
+    }
 
     async function createNewSubject() {
       const name = document.getElementById('newSubjName').value.trim();
@@ -521,7 +522,12 @@
         body: JSON.stringify({ username: currentUser.username, name, schedule: document.getElementById('newSubjSchedule').value })
       });
       const data = await res.json();
-      if (res.ok) { currentUser = data.user; activeSubjectId = data.newSubjectId; toggleNewSubjectModal(); renderDashboard(); }
+      if (res.ok) { 
+        currentUser = data.user; 
+        activeSubjectId = data.newSubjectId; 
+        toggleNewSubjectModal(); 
+        renderDashboard(); 
+      }
     }
 
     async function deleteActiveSubject() {
@@ -530,7 +536,12 @@
         method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username })
       });
       const data = await res.json();
-      if (res.ok) { currentUser = data.user; activeSubjectId = currentUser.subjects[0]?.id || null; document.getElementById('viewerArea').classList.add('hidden'); renderDashboard(); }
+      if (res.ok) { 
+        currentUser = data.user; 
+        activeSubjectId = currentUser.subjects[0]?.id || null; 
+        document.getElementById('viewerArea').classList.add('hidden'); 
+        renderDashboard(); 
+      }
     }
 
     async function handleUploadDoc(e) {
@@ -576,7 +587,6 @@
       if (res.ok) { currentUser = data.user; renderDashboard(); }
     }
 
-    // 🏛️ FUNCIONES DEL MÓDULO FENOMENOLÓGICO
     function togglePhenomenologyDocs() { 
       document.getElementById('phenomenologyDocs').classList.toggle('hidden'); 
     }
@@ -586,7 +596,8 @@
       if (!query) return alert('Escribe tu duda sobre Husserl o Heidegger.');
       
       const v = document.getElementById('viewerArea');
-      v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
+      v.classList.add('fullscreen-mode'); 
+      v.classList.remove('hidden');
       v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-amber-300 font-black text-xl">🏛️ Consultando al Oráculo Fenomenológico...</p></div>`;
 
       try {
@@ -612,7 +623,7 @@
       } catch (err) { alert('Error: ' + err.message); }
     }
 
-    // 🎧 AUDIOLIBRO INTERACTIVO CON SELECTOR ESPECÍFICO
+    // ================= MÓDULO DE AUDIOLIBRO INTERACTIVO =================
     async function generateAudiobook() {
       const selectedDocId = document.getElementById('audiobookDocSelect').value;
       if(!selectedDocId) return alert('Por favor, selecciona un libro del menú rojo para escuchar.');
@@ -667,15 +678,14 @@
 
         function renderAudiobookUI() {
           v.innerHTML = `
-            <div class="max-w-4xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-rose-500 relative shadow-2xl">
+            <div class="max-w-5xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-rose-500 relative shadow-2xl">
               <button onclick="closeFullScreenViewer(); window.speechSynthesis.cancel();" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs hover:bg-red-900 transition">✕ Cerrar</button>
               
               <div class="border-b border-indigo-500/30 pb-4 pr-16">
-                <span class="px-3 py-1 rounded-full text-xs font-black bg-rose-500 text-slate-950 uppercase">🎧 Audiolibre Interactivo</span>
+                <span class="px-3 py-1 rounded-full text-xs font-black bg-rose-500 text-slate-950 uppercase">🎧 Audiolibre Interactivo (Tus Libros)</span>
                 <h2 class="text-2xl font-black mt-2 text-rose-300">${ab.audiobookTitle}</h2>
               </div>
 
-              <!-- REPRODUCTOR CONTROLES -->
               <div class="bg-slate-900 p-5 rounded-2xl border-2 border-rose-500/40 flex flex-wrap items-center justify-between gap-4 shadow-xl">
                 <div>
                   <p class="text-xs text-slate-400 font-bold uppercase">Reproduciendo:</p>
@@ -689,9 +699,8 @@
                 </div>
               </div>
 
-              <!-- LISTA DE CAPÍTULOS Y TRANSCRIPCIÓN -->
               <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-                <div class="space-y-2 max-h-96 overflow-y-auto pr-2">
+                <div class="space-y-2 max-h-[400px] overflow-y-auto pr-2">
                   <p class="text-xs font-black text-slate-400 mb-2">ÍNDICE DE CAPÍTULOS:</p>
                   ${ab.chapters.map((ch, idx) => `
                     <button onclick="jumpToChapter(${idx})" class="w-full text-left p-3 rounded-xl border transition text-xs font-bold ${idx === currentChapterIdx ? 'bg-rose-950/80 border-rose-400 text-white shadow' : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'}">
@@ -699,9 +708,9 @@
                     </button>
                   `).join('')}
                 </div>
-                <div class="md:col-span-2 bg-slate-900 p-6 rounded-2xl border border-indigo-500/30 max-h-96 overflow-y-auto space-y-3">
-                  <p class="text-xs font-black text-rose-300 uppercase">Transcripción (Texto original):</p>
-                  <p class="text-xs text-slate-200 leading-relaxed font-medium whitespace-pre-wrap">${ab.chapters[currentChapterIdx].chapterContent}</p>
+                <div class="md:col-span-2 bg-slate-900 p-6 rounded-2xl border border-indigo-500/30 max-h-[400px] overflow-y-auto space-y-3">
+                  <p class="text-xs font-black text-rose-300 uppercase">Transcripción del Texto Extraído:</p>
+                  <p class="text-sm text-slate-200 leading-relaxed font-medium whitespace-pre-wrap">${ab.chapters[currentChapterIdx].chapterContent}</p>
                 </div>
               </div>
             </div>
@@ -714,13 +723,14 @@
       } catch (err) { alert('Error al generar audiolibre: ' + err.message); }
     }
 
-    // 📝 TAREAS Y RESÚMENES PROMPT
+    // ================= TAREAS Y RESÚMENES PROMPT =================
     async function submitUniversityHomework() {
       const promptTask = document.getElementById('homeworkPromptInput').value.trim();
       if (!promptTask) return alert('Escribe qué tarea o resumen necesitas que el profesor IA te resuelva.');
       
       const v = document.getElementById('viewerArea');
-      v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
+      v.classList.add('fullscreen-mode'); 
+      v.classList.remove('hidden');
       v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-emerald-300 font-black text-xl">📝 Redactando resolución...</p></div>`;
 
       try {
@@ -730,7 +740,8 @@
         });
         const data = await res.json();
         if (!res.ok) return alert(data.error);
-        currentUser = data.user; renderDashboard();
+        currentUser = data.user; 
+        renderDashboard();
 
         v.innerHTML = `
           <div id="exportableHomework" class="max-w-4xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-emerald-500 relative shadow-2xl">
@@ -745,7 +756,7 @@
                 <button onclick="exportToWord('Resolucion', document.getElementById('exportableHomework').innerHTML)" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xs text-white transition">📥 .doc</button>
               </div>
             </div>
-            <div id="homeworkResultText" class="bg-slate-900 p-6 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed border border-indigo-500/30 text-slate-100 font-medium">${data.result}</div>
+            <div id="homeworkResultText" class="bg-slate-900 p-6 rounded-2xl text-base whitespace-pre-wrap leading-relaxed border border-indigo-500/30 text-slate-100 font-medium">${data.result}</div>
           </div>
         `;
       } catch (err) { alert('Error: ' + err.message); }
@@ -765,14 +776,23 @@
       window.speechSynthesis.cancel();
     }
 
-    // Funciones RESTANTES DE ASIMILACIÓN (Storybook, Fichas, Mapas, Timeline)
+    // ================= FUNCIONES DE ASIMILACIÓN =================
     async function generateTimelineMap() {
-      const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden'); v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-amber-300 font-black text-xl">🗺️ Mapeando Evolución Teórica...</p></div>`;
+      const v = document.getElementById('viewerArea'); 
+      v.classList.add('fullscreen-mode'); 
+      v.classList.remove('hidden'); 
+      v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-amber-300 font-black text-xl">🗺️ Mapeando Evolución Teórica...</p></div>`;
+      
       try { 
-        const res = await fetch('/api/generate-timeline-map', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value }) }); 
+        const res = await fetch('/api/generate-timeline-map', { 
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value }) 
+        }); 
         const data = await res.json(); 
         if (!res.ok) return alert(data.error); 
-        currentUser = data.user; renderDashboard(); const tm = data.timelineMap; 
+        currentUser = data.user; 
+        renderDashboard(); 
+        const tm = data.timelineMap; 
         
         v.innerHTML = `
           <div class="max-w-6xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-amber-500 relative shadow-2xl">
@@ -783,8 +803,8 @@
                 <div class="p-5 rounded-2xl bg-slate-900 border-2 border-cyan-500/40 space-y-2 shadow-xl">
                   <span class="text-xs font-black px-2.5 py-1 rounded bg-cyan-500 text-slate-950">FASE ${idx + 1}:${e.eraName}</span>
                   <h4 class="font-extrabold text-sm text-teal-300">Autor: ${e.mainAuthor}</h4>
-                  <p class="text-xs text-slate-200"><b>Idea Central:</b> ${e.coreIdea}</p>
-                  <p class="text-xs text-amber-300"><b>Conexión:</b> ${e.refutationOrLink}</p>
+                  <p class="text-sm text-slate-200 mt-2 leading-relaxed"><b>Idea Central:</b> ${e.coreIdea}</p>
+                  <p class="text-xs text-amber-300 mt-1"><b>Conexión:</b> ${e.refutationOrLink}</p>
                 </div>
               `).join('')}
             </div>
@@ -794,12 +814,20 @@
     }
 
     async function generateFlashcards() {
-      const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden'); v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-purple-300 font-black text-xl">🃏 Generando Fichas Teóricas...</p></div>`;
+      const v = document.getElementById('viewerArea'); 
+      v.classList.add('fullscreen-mode'); 
+      v.classList.remove('hidden'); 
+      v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-purple-300 font-black text-xl">🃏 Generando Fichas Teóricas...</p></div>`;
+      
       try { 
-        const res = await fetch('/api/generate-flashcards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value }) }); 
+        const res = await fetch('/api/generate-flashcards', { 
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value }) 
+        }); 
         const data = await res.json(); 
         if (!res.ok) return alert(data.error); 
-        currentUser = data.user; renderDashboard(); 
+        currentUser = data.user; 
+        renderDashboard(); 
         
         v.innerHTML = `
           <div class="max-w-5xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-purple-500 relative shadow-2xl">
@@ -807,17 +835,17 @@
             <h2 class="text-2xl font-black text-purple-300 text-center">🃏 Fichas Académicas</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
               ${data.flashcards.map((fc, i) => `
-                <div onclick="this.classList.toggle('flipped')" class="flashcard h-60 cursor-pointer relative">
+                <div onclick="this.classList.toggle('flipped')" class="flashcard h-64 cursor-pointer relative">
                   <div class="flashcard-inner w-full h-full relative rounded-2xl shadow-xl">
                     <div class="flashcard-front bg-slate-900 border-2 border-purple-500/60 p-5 rounded-2xl flex flex-col justify-between">
                       <span class="text-xs font-black text-purple-400">FICHA #${i+1}</span>
-                      <p class="text-sm font-bold text-center text-slate-200">${fc.question}</p>
-                      <span class="text-xs text-slate-500 text-center">Click para girar 🔄</span>
+                      <p class="text-sm font-bold text-center text-slate-200 mt-2">${fc.question}</p>
+                      <span class="text-xs text-slate-500 text-center mt-4">Click para girar 🔄</span>
                     </div>
                     <div class="flashcard-back bg-indigo-950 border-2 border-indigo-400 p-5 rounded-2xl flex flex-col justify-between">
                       <span class="text-xs font-black text-emerald-400">RESPUESTA</span>
-                      <p class="text-xs text-slate-200 text-center font-medium leading-relaxed">${fc.answer}</p>
-                      <span class="text-[11px] text-amber-300 text-center font-bold">💡 ${fc.hint}</span>
+                      <p class="text-sm text-slate-200 text-center font-medium leading-relaxed">${fc.answer}</p>
+                      <span class="text-[11px] text-amber-300 text-center font-bold mt-2">💡 ${fc.hint}</span>
                     </div>
                   </div>
                 </div>
@@ -829,27 +857,36 @@
     }
 
     async function generateMindMap() {
-      const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden'); v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-teal-300 font-black text-xl">🧠 Construyendo Mapa Conceptual...</p></div>`;
+      const v = document.getElementById('viewerArea'); 
+      v.classList.add('fullscreen-mode'); 
+      v.classList.remove('hidden'); 
+      v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-teal-300 font-black text-xl">🧠 Construyendo Mapa Conceptual...</p></div>`;
+      
       try { 
-        const res = await fetch('/api/generate-mindmap', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value }) }); 
+        const res = await fetch('/api/generate-mindmap', { 
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value }) 
+        }); 
         const data = await res.json(); 
         if (!res.ok) return alert(data.error); 
-        currentUser = data.user; renderDashboard(); const mm = data.mindmap; 
+        currentUser = data.user; 
+        renderDashboard(); 
+        const mm = data.mindmap; 
         
         v.innerHTML = `
           <div class="max-w-6xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-teal-500 relative shadow-2xl">
             <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs hover:bg-red-900 transition">✕ Cerrar</button>
             <h2 class="text-2xl font-black text-teal-300 text-center">🧠 Mapa Conceptual: ${mm.centralTopic}</h2>
             <div class="flex flex-col items-center space-y-6 pt-4">
-              <div class="px-6 py-3 rounded-2xl bg-gradient-to-r from-teal-600 to-cyan-600 font-black text-white text-base shadow-2xl border-2 border-teal-300">
+              <div class="px-6 py-3 rounded-2xl bg-gradient-to-r from-teal-600 to-cyan-600 font-black text-white text-lg shadow-2xl border-2 border-teal-300">
                 ⭐ ${mm.centralTopic} ⭐
               </div>
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full pt-4">
                 ${mm.branches.map(b => `
                   <div class="p-5 rounded-2xl bg-slate-900 border-2 border-teal-500/40 space-y-3 shadow-xl">
                     <h4 class="font-black text-sm text-amber-300 border-b border-indigo-500/30 pb-2">📌 ${b.branchName}</h4>
-                    <ul class="space-y-2 text-xs text-slate-300 font-medium">
-                      ${b.subitems.map(sub => `<li class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">• ${sub}</li>`).join('')}
+                    <ul class="space-y-3 text-sm text-slate-300 font-medium mt-2">
+                      ${b.subitems.map(sub => `<li class="bg-slate-950 p-3 rounded-xl border border-slate-800 shadow-sm">• ${sub}</li>`).join('')}
                     </ul>
                   </div>
                 `).join('')}
@@ -861,17 +898,32 @@
     }
 
     async function generateStorybook() {
-      const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden'); v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-cyan-300 font-black text-xl">📖 Redactando Monografía y Trivia Gamificada...</p></div>`;
+      const v = document.getElementById('viewerArea'); 
+      v.classList.add('fullscreen-mode'); 
+      v.classList.remove('hidden'); 
+      v.innerHTML = `<div class="text-center animate-pulse pt-28"><p class="text-cyan-300 font-black text-xl">📖 Redactando Monografía y Trivia Gamificada...</p></div>`;
+      
       try { 
-        const res = await fetch('/api/generate-storybook', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value, focusTopic: document.getElementById('focusTopic').value }) }); 
+        const res = await fetch('/api/generate-storybook', { 
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value, focusTopic: document.getElementById('focusTopic').value }) 
+        }); 
         const data = await res.json(); 
-        if (res.ok) { currentUser = data.user; renderDashboard(); openStorybook(data.storybook); } 
-        else alert(data.error); 
+        if (res.ok) { 
+          currentUser = data.user; 
+          renderDashboard(); 
+          openStorybook(data.storybook); 
+        } else {
+          alert(data.error); 
+        }
       } catch (e) { alert('Error.'); }
     }
 
+    // ================= STORYBOOK (ESTILO CARTOON) =================
     function openStorybook(sb) {
-      const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
+      const v = document.getElementById('viewerArea'); 
+      v.classList.add('fullscreen-mode'); 
+      v.classList.remove('hidden');
       
       v.innerHTML = `
         <div id="exportableStorybook" class="max-w-6xl mx-auto glass-edu rounded-3xl p-6 md:p-10 space-y-8 cartoon-card relative shadow-2xl">
@@ -880,7 +932,7 @@
           <div class="flex flex-wrap justify-between items-center gap-4 border-b-4 border-cyan-400 pb-4 pr-32">
             <div>
               <span class="px-3 py-1 rounded-full text-xs font-black bg-cyan-400 text-slate-950 uppercase">Monografía Académica</span>
-              <h2 class="text-3xl font-black mt-1 bg-gradient-to-r from-cyan-300 via-teal-200 to-indigo-300 bg-clip-text text-transparent">${sb.title}</h2>
+              <h2 class="text-3xl font-black mt-2 bg-gradient-to-r from-cyan-300 via-teal-200 to-indigo-300 bg-clip-text text-transparent">${sb.title}</h2>
             </div>
             <div class="flex gap-2.5">
               <button onclick="speakText('${sb.summary.replace(/'/g, "")}')" class="px-4 py-2.5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 font-black text-xs text-white shadow-lg transition">🔊 Escuchar Resumen</button>
@@ -890,8 +942,8 @@
           
           <div class="speech-bubble p-6 text-sm font-bold shadow-2xl flex items-center gap-6">
             <div>
-              <p class="text-emerald-900 font-black mb-1.5 text-base">Resumen Conceptual:</p>
-              <p class="text-emerald-950 font-semibold leading-relaxed text-sm">${sb.summary}</p>
+              <p class="text-emerald-900 font-black mb-2 text-lg">Resumen Conceptual:</p>
+              <p class="text-emerald-950 font-semibold leading-relaxed text-base">${sb.summary}</p>
             </div>
           </div>
           
@@ -902,7 +954,7 @@
                 <div class="p-4 rounded-2xl bg-slate-900 border-2 border-cyan-400/60 shadow-lg">
                   <span class="text-[10px] font-black px-2.5 py-0.5 rounded bg-cyan-400 text-slate-950">FASE ${t.step}</span>
                   <h4 class="font-black text-sm mt-2 text-amber-300">${t.title}</h4>
-                  <p class="text-xs text-slate-300 mt-2 font-medium">${t.description}</p>
+                  <p class="text-sm text-slate-300 mt-2 font-medium leading-relaxed">${t.description}</p>
                 </div>
               `).join('')}
             </div>
@@ -917,9 +969,9 @@
                     <span class="text-xs font-black px-3 py-1 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-400/40">MÓDULO #${sc.sceneNumber} ·${sc.characterName}</span>
                     <button onclick="speakText('${sc.storyDialogue.replace(/'/g, "")}')" class="text-xs px-3 py-1.5 bg-cyan-700 hover:bg-cyan-600 text-white rounded-xl font-black shadow transition">🔊 Audio</button>
                   </div>
-                  <div class="speech-bubble p-4 text-xs font-bold leading-relaxed shadow-md">
-                    <p class="text-emerald-950 font-black mb-1 text-sm">📘 Concepto Clave: ${sc.academicConcept}</p>
-                    <p class="text-emerald-900 italic font-bold text-xs leading-relaxed">"${sc.storyDialogue}"</p>
+                  <div class="speech-bubble p-5 text-sm font-bold leading-relaxed shadow-md">
+                    <p class="text-emerald-950 font-black mb-2 text-base">📘 Concepto Clave: ${sc.academicConcept}</p>
+                    <p class="text-emerald-900 italic font-bold text-sm leading-relaxed">"${sc.storyDialogue}"</p>
                   </div>
                 </div>
               `).join('')}
@@ -933,11 +985,11 @@
             </div>
             <div class="space-y-4">
               ${(sb.quiz || []).map((q, idx) => `
-                <div class="p-4 rounded-2xl bg-slate-900 border-2 border-indigo-500/40 space-y-2">
-                  <p class="text-xs font-black text-slate-100">Pregunta ${idx + 1}:${q.question}</p>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div class="p-5 rounded-2xl bg-slate-900 border-2 border-indigo-500/40 space-y-3">
+                  <p class="text-sm font-black text-slate-100">Pregunta ${idx + 1}:${q.question}</p>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     ${(q.options || []).map((opt, oIdx) => `
-                      <button onclick="alert('${oIdx === q.correctIndex ? '🏆 ¡CORRECTO! +100 XP' : '❌ Incorrecto. '} ' + ${JSON.stringify(q.heroExplanation).replace(/'/g, "\\'")})" class="text-left text-xs font-bold p-3 rounded-xl bg-slate-950 hover:bg-cyan-950 border-2 border-indigo-500/30 text-slate-200 transition">${opt}</button>
+                      <button onclick="alert('${oIdx === q.correctIndex ? '🏆 ¡CORRECTO! +100 XP (Nivel Académico Avanzado desbloqueado)' : '❌ Incorrecto. '} ' + ${JSON.stringify(q.heroExplanation).replace(/'/g, "\\'")})" class="text-left text-sm font-bold p-3.5 rounded-xl bg-slate-950 hover:bg-cyan-950 border-2 border-indigo-500/30 text-slate-200 transition">${opt}</button>
                     `).join('')}
                   </div>
                 </div>
@@ -947,34 +999,6 @@
         </div>
       `;
       v.scrollIntoView({ behavior: 'smooth' });
-    }
-    
-    // Funciones del Debate Socrático
-    function openSocraticModal() { document.getElementById('modalSocratic').classList.toggle('hidden'); }
-    
-    async function sendSocraticMessage() {
-      const input = document.getElementById('socraticInput');
-      const msg = input.value.trim();
-      if (!msg) return;
-      const box = document.getElementById('socraticChatBox');
-      const philosopher = document.getElementById('socraticPhilosopher').value;
-
-      box.innerHTML += `<div class="p-3 rounded-xl bg-slate-800 text-right text-slate-200 font-medium"><b>Tú:</b> ${msg}</div>`;
-      input.value = '';
-      socraticHistory += `\nEstudiante: ${msg}`;
-
-      try {
-        const res = await fetch('/api/socratic-debate', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, philosopher, message: msg, history: socraticHistory })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          socraticHistory += `\n${philosopher}: ${data.reply}`;
-          box.innerHTML += `<div class="p-3 rounded-xl bg-indigo-950/90 border border-indigo-800 text-indigo-200 font-medium"><b>${philosopher}:</b> ${data.reply}</div>`;
-          box.scrollTop = box.scrollHeight;
-        }
-      } catch (e) { alert('Error en el debate.'); }
     }
   </script>
 </body>
