@@ -247,6 +247,7 @@ async function getFullDocumentsForSubject(username, subject, documentId) {
   return allDocs.filter(d => d.id === documentId);
 }
 
+// RAG SEARCH
 app.post('/api/rag-search', async (req, res) => {
   try {
     const { username, subjectId, query } = req.body;
@@ -267,6 +268,99 @@ app.post('/api/rag-search', async (req, res) => {
     user.aiConsumptionUSD += 0.10;
     await user.save();
     res.json({ answer: response.text, user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// CHAT RAG CONVERSACIONAL (Memoria de Casos)
+app.post('/api/rag-chat', async (req, res) => {
+  try {
+    const { username, subjectId, message, history } = req.body;
+    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
+    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
+    const subject = user.subjects.find(s => s.id === subjectId);
+    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
+
+    const allDocs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
+    const contents = [];
+    for (const doc of allDocs) {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
+    }
+    contents.push(`Eres un tutor experto y asistente clínico basado en los documentos anteriores de la materia ${subject.name}. Historial: ${history || ''}. Pregunta del estudiante: "${message}"`);
+
+    const response = await generateWithFallback(contents, null);
+    user.aiConsumptionUSD += 0.08;
+    await user.save();
+    res.json({ reply: response.text, user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// CRONOGRAMA DE ESTUDIO CON IA
+app.post('/api/generate-schedule', async (req, res) => {
+  try {
+    const { username, subjectId } = req.body;
+    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
+    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
+    const subject = user.subjects.find(s => s.id === subjectId);
+    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
+
+    const docs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
+    const contents = [`Materia: ${subject.name}. Cantidad de documentos guardados: ${docs.length}. Genera un cronograma de estudio semanal de 5 días (bloques Pomodoro) adaptado para dominar esta materia.`];
+
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        scheduleTitle: { type: Type.STRING },
+        days: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: { dayName: { type: Type.STRING }, focusTask: { type: Type.STRING }, pomodoroBlocks: { type: Type.STRING } },
+            required: ["dayName", "focusTask", "pomodoroBlocks"]
+          }
+        }
+      },
+      required: ["scheduleTitle", "days"]
+    };
+
+    const response = await generateWithFallback(contents, schema);
+    user.aiConsumptionUSD += 0.12;
+    await user.save();
+    res.json({ schedule: JSON.parse(response.text), user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// EVALUADOR DE ENSAYOS / PREGUNTAS ABIERTAS CON RÚBRICA
+app.post('/api/evaluate-essay', async (req, res) => {
+  try {
+    const { username, subjectId, promptQuestion, studentEssay } = req.body;
+    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
+    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
+    const subject = user.subjects.find(s => s.id === subjectId);
+    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
+
+    const contents = [
+      `Actúas como un profesor universitario estricto y experto en ${subject.name}. 
+      Pregunta planteada: "${promptQuestion}". 
+      Ensayo / Respuesta del estudiante: "${studentEssay}". 
+      Evalúa la respuesta bajo una rúbrica de 0 a 100, señala aciertos, conceptos clave omitidos y da una retroalimentación detallada.`
+    ];
+
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        score: { type: Type.INTEGER },
+        generalFeedback: { type: Type.STRING },
+        omittedConcepts: { type: Type.ARRAY, items: { type: Type.STRING } },
+        recommendations: { type: Type.STRING }
+      },
+      required: ["score", "generalFeedback", "omittedConcepts", "recommendations"]
+    };
+
+    const response = await generateWithFallback(contents, schema);
+    user.aiConsumptionUSD += 0.15;
+    await user.save();
+    res.json({ evaluation: JSON.parse(response.text), user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -444,7 +538,7 @@ app.post('/api/generate-exam', async (req, res) => {
       if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`Material (${doc.title}):\n${doc.textContent}`);
     }
-    contents.push(`Genera un examen universitario de 5 preguntas sobre ${subject.name} con tono ${universe}.`);
+    contents.push(`Genera un examen universitario de 5 preguntas sobre ${subject.name} con tono${universe}.`);
 
     const schema = {
       type: Type.OBJECT,
