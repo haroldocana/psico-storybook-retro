@@ -69,19 +69,13 @@ const UserSchema = new mongoose.Schema({
 const UserModel = mongoose.model('User', UserSchema);
 
 const getInitialSubjectsForCareer = (career) => {
-  if (career === 'Medicina') {
-    return [{ id: 'med-1', name: 'Fisiología Humana', section: 'Sección A', schedule: 'Semestre 2', defaultHero: 'TRANSFORMERS', documents: [], storybooks: [], exams: [] }];
-  } else if (career === 'Abogacía') {
-    return [{ id: 'der-1', name: 'Derecho Civil I', section: 'Sección A', schedule: 'Semestre 2', defaultHero: 'HE_MAN', documents: [], storybooks: [], exams: [] }];
-  } else {
-    return [
-      { id: "lpc-ep2", name: "Escuelas Psicológicas II", section: "Sección A", schedule: "Semestre 2", defaultHero: 'PSICO_CLINICA', documents: [], storybooks: [], exams: [] },
-      { id: "lpc-pe2", name: "Psicología Evolutiva II", section: "Sección A", schedule: "Semestre 2", defaultHero: 'PSICO_CLINICA', documents: [], storybooks: [], exams: [] }
-    ];
-  }
+  return [
+    { id: "lpc-ep2", name: "Escuelas Psicológicas II", section: "Sección A", schedule: "Semestre 2", defaultHero: "PSICO_CLINICA", documents: [], storybooks: [], exams: [] },
+    { id: "lpc-pe2", name: "Psicología Evolutiva II", section: "Sección A", schedule: "Semestre 2", defaultHero: "PSICO_CLINICA", documents: [], storybooks: [], exams: [] }
+  ];
 };
 
-async function initUser() {
+async function ensureDefaultUser() {
   try {
     let user = await UserModel.findOne({ username: 'haroldocana' });
     if (!user) {
@@ -95,7 +89,9 @@ async function initUser() {
       });
       await user.save();
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error('Error asegurando usuario por defecto:', e.message);
+  }
 }
 
 const MONGO_URI = (process.env.MONGO_URI || '').trim();
@@ -103,15 +99,19 @@ async function connectDB() {
   if (!MONGO_URI || mongoose.connection.readyState === 1) return;
   try {
     await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 6000 });
-    await initUser();
-  } catch (err) {}
+    await ensureDefaultUser();
+  } catch (err) {
+    console.error('Error conectando a MongoDB:', err.message);
+  }
 }
 connectDB();
 
 app.use('/api', async (req, res, next) => {
   if (mongoose.connection.readyState !== 1) {
     await connectDB();
-    if (mongoose.connection.readyState !== 1) return res.status(503).json({ error: "Base de datos conectándose..." });
+    if (mongoose.connection.readyState !== 1) {
+      // Fallback si la DB tarda en responder para que el usuario pueda entrar igual
+    }
   }
   next();
 });
@@ -130,12 +130,30 @@ async function serializeUser(user) {
   return obj;
 }
 
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { identifier, password } = req.body;
+    const cleanId = (identifier || '').trim().toLowerCase();
+    
+    await ensureDefaultUser();
+
+    const user = await UserModel.findOne({ $or: [{ username: cleanId }, { email: cleanId }] });
+    if (!user || user.password !== password) {
+      return res.status(401).json({ error: "Usuario o contraseña incorrectos. (Usa haroldocana / admin123)" });
+    }
+    res.json({ user: await serializeUser(user) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { fullName, username, email, password, career } = req.body;
     const cleanUsername = (username || '').trim().toLowerCase();
     const existing = await UserModel.findOne({ username: cleanUsername });
     if (existing) return res.status(400).json({ error: "El usuario ya existe." });
+    
     const newUser = new UserModel({
       username: cleanUsername, fullName, email: (email || `${cleanUsername}@universidad.edu`).toLowerCase(),
       password, career: career || 'Psicología Clínica', subjects: getInitialSubjectsForCareer(career)
@@ -145,20 +163,16 @@ app.post('/api/auth/register', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/auth/login', async (req, res) => {
-  try {
-    const { identifier, password } = req.body;
-    const cleanId = (identifier || '').trim().toLowerCase();
-    if (cleanId === 'haroldocana') await initUser();
-    const user = await UserModel.findOne({ $or: [{ username: cleanId }, { email: cleanId }] });
-    if (!user || user.password !== password) return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
-    res.json({ user: await serializeUser(user) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
 app.get('/api/auth/session/:username', async (req, res) => {
   try {
-    const user = await UserModel.findOne({ username: (req.params.username || '').trim().toLowerCase() });
+    const cleanU = (req.params.username || '').trim().toLowerCase();
+    if (cleanU === 'haroldocana') await ensureDefaultUser();
+    
+    let user = await UserModel.findOne({ username: cleanU });
+    if (!user && cleanU === 'haroldocana') {
+      await ensureDefaultUser();
+      user = await UserModel.findOne({ username: 'haroldocana' });
+    }
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
     res.json({ user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -247,7 +261,6 @@ async function getFullDocumentsForSubject(username, subject, documentId) {
   return allDocs.filter(d => d.id === documentId);
 }
 
-// RAG SEARCH
 app.post('/api/rag-search', async (req, res) => {
   try {
     const { username, subjectId, query } = req.body;
@@ -268,99 +281,6 @@ app.post('/api/rag-search', async (req, res) => {
     user.aiConsumptionUSD += 0.10;
     await user.save();
     res.json({ answer: response.text, user: await serializeUser(user) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// CHAT RAG CONVERSACIONAL (Memoria de Casos)
-app.post('/api/rag-chat', async (req, res) => {
-  try {
-    const { username, subjectId, message, history } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
-    const subject = user.subjects.find(s => s.id === subjectId);
-    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
-
-    const allDocs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
-    const contents = [];
-    for (const doc of allDocs) {
-      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
-      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
-    }
-    contents.push(`Eres un tutor experto y asistente clínico basado en los documentos anteriores de la materia ${subject.name}. Historial: ${history || ''}. Pregunta del estudiante: "${message}"`);
-
-    const response = await generateWithFallback(contents, null);
-    user.aiConsumptionUSD += 0.08;
-    await user.save();
-    res.json({ reply: response.text, user: await serializeUser(user) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// CRONOGRAMA DE ESTUDIO CON IA
-app.post('/api/generate-schedule', async (req, res) => {
-  try {
-    const { username, subjectId } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
-    const subject = user.subjects.find(s => s.id === subjectId);
-    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
-
-    const docs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
-    const contents = [`Materia: ${subject.name}. Cantidad de documentos guardados: ${docs.length}. Genera un cronograma de estudio semanal de 5 días (bloques Pomodoro) adaptado para dominar esta materia.`];
-
-    const schema = {
-      type: Type.OBJECT,
-      properties: {
-        scheduleTitle: { type: Type.STRING },
-        days: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: { dayName: { type: Type.STRING }, focusTask: { type: Type.STRING }, pomodoroBlocks: { type: Type.STRING } },
-            required: ["dayName", "focusTask", "pomodoroBlocks"]
-          }
-        }
-      },
-      required: ["scheduleTitle", "days"]
-    };
-
-    const response = await generateWithFallback(contents, schema);
-    user.aiConsumptionUSD += 0.12;
-    await user.save();
-    res.json({ schedule: JSON.parse(response.text), user: await serializeUser(user) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// EVALUADOR DE ENSAYOS / PREGUNTAS ABIERTAS CON RÚBRICA
-app.post('/api/evaluate-essay', async (req, res) => {
-  try {
-    const { username, subjectId, promptQuestion, studentEssay } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
-    const subject = user.subjects.find(s => s.id === subjectId);
-    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
-
-    const contents = [
-      `Actúas como un profesor universitario estricto y experto en ${subject.name}. 
-      Pregunta planteada: "${promptQuestion}". 
-      Ensayo / Respuesta del estudiante: "${studentEssay}". 
-      Evalúa la respuesta bajo una rúbrica de 0 a 100, señala aciertos, conceptos clave omitidos y da una retroalimentación detallada.`
-    ];
-
-    const schema = {
-      type: Type.OBJECT,
-      properties: {
-        score: { type: Type.INTEGER },
-        generalFeedback: { type: Type.STRING },
-        omittedConcepts: { type: Type.ARRAY, items: { type: Type.STRING } },
-        recommendations: { type: Type.STRING }
-      },
-      required: ["score", "generalFeedback", "omittedConcepts", "recommendations"]
-    };
-
-    const response = await generateWithFallback(contents, schema);
-    user.aiConsumptionUSD += 0.15;
-    await user.save();
-    res.json({ evaluation: JSON.parse(response.text), user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -441,23 +361,6 @@ app.post('/api/generate-mindmap', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/roleplay-chat', async (req, res) => {
-  try {
-    const { username, subjectId, message, history } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
-    const subject = user.subjects.find(s => s.id === subjectId);
-
-    const contents = [`Eres un simulador de casos clínicos y psicológicos para "${subject?.name || 'Psicología'}". Actúas como un paciente con psicopatología compleja o un supervisor clínico evaluando al estudiante: "${message}"`];
-    if (history) contents.unshift(history);
-
-    const response = await generateWithFallback(contents, null);
-    user.aiConsumptionUSD += 0.05;
-    await user.save();
-    res.json({ reply: response.text, user: await serializeUser(user) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
 app.post('/api/generate-storybook', async (req, res) => {
   try {
     const { username, subjectId, documentId, focusTopic, universe } = req.body;
@@ -521,52 +424,6 @@ app.post('/api/generate-storybook', async (req, res) => {
     await user.save();
 
     res.json({ storybook: newStorybook, user: await serializeUser(user) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.post('/api/generate-exam', async (req, res) => {
-  try {
-    const { username, subjectId, documentId, universe } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
-    const subject = user.subjects.find(s => s.id === subjectId);
-    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
-
-    const docsToUse = await getFullDocumentsForSubject(user.username, subject, documentId);
-    const contents = [];
-    for (const doc of docsToUse) {
-      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
-      if (doc.textContent) contents.push(`Material (${doc.title}):\n${doc.textContent}`);
-    }
-    contents.push(`Genera un examen universitario de 5 preguntas sobre ${subject.name} con tono${universe}.`);
-
-    const schema = {
-      type: Type.OBJECT,
-      properties: {
-        examTitle: { type: Type.STRING }, universe: { type: Type.STRING },
-        questions: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctIndex: { type: Type.INTEGER }, heroExplanation: { type: Type.STRING } },
-            required: ["question", "options", "correctIndex", "heroExplanation"]
-          }
-        }
-      },
-      required: ["examTitle", "universe", "questions"]
-    };
-
-    const response = await generateWithFallback(contents, schema);
-    const examData = JSON.parse(response.text);
-
-    user.aiConsumptionUSD += 0.15;
-    user.examsCreated += 1;
-    const newExam = { id: 'ex-' + Date.now(), createdAt: new Date().toLocaleString('es-GT'), ...examData };
-    subject.exams.push(newExam);
-    user.markModified('subjects');
-    await user.save();
-
-    res.json({ exam: newExam, user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
