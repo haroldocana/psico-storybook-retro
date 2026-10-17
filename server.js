@@ -70,8 +70,8 @@ const UserModel = mongoose.model('User', UserSchema);
 
 const getInitialSubjectsForCareer = (career) => {
   return [
-    { id: "lpc-ep2", name: "Escuelas Psicológicas II", section: "Sección A", schedule: "Semestre 2", defaultHero: "HISTORIA_PSICOLOGIA", documents: [], storybooks: [], exams: [] },
-    { id: "lpc-pe2", name: "Psicología Evolutiva II", section: "Sección A", schedule: "Semestre 2", defaultHero: "EVOLUCION_HUMANA", documents: [], storybooks: [], exams: [] }
+    { id: "lpc-ep2", name: "Escuelas Psicológicas II", section: "Sección A", schedule: "Semestre 2", documents: [], storybooks: [], exams: [] },
+    { id: "lpc-pe2", name: "Psicología Evolutiva II", section: "Sección A", schedule: "Semestre 2", documents: [], storybooks: [], exams: [] }
   ];
 };
 
@@ -168,7 +168,7 @@ app.post('/api/subjects', async (req, res) => {
     const { username, name, section, schedule } = req.body;
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
     if (!user) return res.status(401).json({ error: "Sesión no válida" });
-    const newSubj = { id: 'subj-' + Date.now(), name, section: section || 'Sección A', schedule: schedule || 'Actual', defaultHero: 'HISTORIA_PSICOLOGIA', documents: [], storybooks: [], exams: [] };
+    const newSubj = { id: 'subj-' + Date.now(), name, section: section || 'Sección A', schedule: schedule || 'Actual', documents: [], storybooks: [], exams: [] };
     user.subjects.push(newSubj);
     user.markModified('subjects');
     await user.save();
@@ -191,9 +191,10 @@ app.delete('/api/subjects/:subjectId', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ENDPOINT DE CARGA (SOPORTA ARCHIVOS Y YOUTUBE CON TRANSCRIPCIÓN PROFUNDA)
 app.post('/api/documents', upload.any(), async (req, res) => {
   try {
-    const { username, subjectId, docTitle, customText } = req.body;
+    const { username, subjectId, docTitle, customText, youtubeUrl } = req.body;
     const cleanUsername = (username || '').toLowerCase();
     const user = await UserModel.findOne({ username: cleanUsername });
     if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
@@ -202,6 +203,19 @@ app.post('/api/documents', upload.any(), async (req, res) => {
 
     const files = req.files || [];
     const dateStr = new Date().toLocaleDateString('es-GT');
+
+    if (youtubeUrl && youtubeUrl.includes('youtu')) {
+      const ytContents = [`Extrae y sintetiza detalladamente toda la información científica, filosófica o psicológica del siguiente enlace de clase magistral de YouTube: ${youtubeUrl}`];
+      const ytRes = await generateWithFallback(ytContents, null);
+
+      const newDoc = new DocumentModel({
+        docId: `doc-yt-${Date.now()}`, username: cleanUsername, subjectId,
+        title: docTitle || `Clase Magistral YouTube (${youtubeUrl})`, fileName: 'YouTube_Clase.txt', mimeType: 'text/plain',
+        base64Data: null, textContent: `Transcripción / Análisis de YouTube:\n${ytRes.text}`, uploadedAt: dateStr
+      });
+      await newDoc.save();
+    }
+
     if (files.length > 0) {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -213,7 +227,7 @@ app.post('/api/documents', upload.any(), async (req, res) => {
         });
         await newDoc.save();
       }
-    } else if (customText?.trim()) {
+    } else if (customText?.trim() && !youtubeUrl) {
       const newDoc = new DocumentModel({
         docId: `doc-${Date.now()}-txt`, username: cleanUsername, subjectId,
         title: docTitle || 'Apuntes Dictados', fileName: 'Apuntes.txt', mimeType: 'text/plain',
@@ -221,6 +235,9 @@ app.post('/api/documents', upload.any(), async (req, res) => {
       });
       await newDoc.save();
     }
+    
+    user.aiConsumptionUSD += 0.15;
+    await user.save();
     res.json({ user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -260,12 +277,68 @@ app.post('/api/rag-search', async (req, res) => {
       if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Basándote estrictamente en los documentos académicos de ${subject.name}, responde con rigor científico a: "${query}"`);
+    contents.push(`Basándote estrictamente en los documentos académicos y videos de ${subject.name}, responde con rigor científico a: "${query}"`);
 
     const response = await generateWithFallback(contents, null);
     user.aiConsumptionUSD += 0.10;
     await user.save();
     res.json({ answer: response.text, user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/generate-analogy', async (req, res) => {
+  try {
+    const { username, subjectId, concept } = req.body;
+    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
+    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
+    const subject = user.subjects.find(s => s.id === subjectId);
+    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
+
+    const contents = [`Toma el concepto psicológico o clínico "${concept}" de la materia ${subject.name} y explícalo mediante una analogía sencilla de la vida cotidiana y un caso clínico ficticio breve y fácil de asimilar.`];
+    const response = await generateWithFallback(contents, null);
+    user.aiConsumptionUSD += 0.08;
+    await user.save();
+    res.json({ analogy: response.text, user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/generate-matrix', async (req, res) => {
+  try {
+    const { username, subjectId, documentId } = req.body;
+    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
+    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
+    const subject = user.subjects.find(s => s.id === subjectId);
+    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
+
+    const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
+    const contents = [];
+    for (const doc of docs) {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
+    }
+    contents.push(`Genera una matriz comparativa cruzando las principales teorías, autores o patologías de ${subject.name} en formato estructurado.`);
+
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        matrixTitle: { type: Type.STRING },
+        columns: { type: Type.ARRAY, items: { type: Type.STRING } },
+        rows: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: { categoryName: { type: Type.STRING }, values: { type: Type.ARRAY, items: { type: Type.STRING } } },
+            required: ["categoryName", "values"]
+          }
+        }
+      },
+      required: ["matrixTitle", "columns", "rows"]
+    };
+
+    const response = await generateWithFallback(contents, schema);
+    user.aiConsumptionUSD += 0.20;
+    await user.save();
+    res.json({ matrix: JSON.parse(response.text), user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -283,7 +356,7 @@ app.post('/api/generate-flashcards', async (req, res) => {
       if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Genera 6 flashcards teóricas y clínicas clave para ${subject.name} basadas en los textos.`);
+    contents.push(`Genera 6 flashcards teóricas y clínicas clave para ${subject.name}.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -321,7 +394,7 @@ app.post('/api/generate-mindmap', async (req, res) => {
       if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
       if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
     }
-    contents.push(`Genera un mapa mental jerárquico de la evolución teórica para ${subject.name}.`);
+    contents.push(`Genera un mapa mental jerárquico para ${subject.name}.`);
 
     const schema = {
       type: Type.OBJECT,
@@ -346,10 +419,9 @@ app.post('/api/generate-mindmap', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// GENERADOR DE STORYBOOK ESTRICTAMENTE ACADÉMICO Y EVOLUTIVO
 app.post('/api/generate-storybook', async (req, res) => {
   try {
-    const { username, subjectId, documentId, focusTopic } = req.body;
+    const { username, subjectId, documentId, focusTopic, complexityLevel } = req.body;
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
     if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
     const subject = user.subjects.find(s => s.id === subjectId);
@@ -362,14 +434,12 @@ app.post('/api/generate-storybook', async (req, res) => {
       if (doc.textContent) contents.push(`Texto (${doc.title}):\n${doc.textContent}`);
     }
 
+    const levelDesc = complexityLevel === '3' ? 'Postgrado / Clínico experto' : (complexityLevel === '1' ? 'Divulgación simple' : 'Grado universitario estándar');
+
     contents.push(`
-      Estudiante: ${user.fullName} (${user.career}). Materia: ${subject.name}. Tema central: ${focusTopic || 'Evolución teórica y clínica'}.
-      INSTRUCCIÓN ESTRICTA: 
-      - Cero referencias a caricaturas, héroes de ficción u otros universos infantiles.
-      - Genera un Storybook/Monografía Académica Interactiva basada EXCLUSIVAMENTE en los documentos subidos.
-      - Organiza el contenido en orden cronológico e histórico según la evolución de la psicología y los teóricos/autores que intervinieron en cada etapa (ej. Freud, Piaget, Vygotsky, Rogers, Erikson, etc.).
-      - Cada escena debe estar narrada por el autor o investigador correspondiente explicando su aportación científica con rigor universitario.
-      - Incluye una línea de tiempo evolutiva causal y un quiz de evaluación científica.
+      Estudiante: ${user.fullName} (${user.career}). Materia: ${subject.name}. Tema: ${focusTopic || 'Evolución teórica'}. 
+      Nivel de Complejidad: ${levelDesc}.
+      INSTRUCCIÓN: Monografía académica estricta basada en los documentos y videos de YouTube subidos. Incluye Trivia Gamificada con 3 preguntas.
     `);
 
     const schema = {
@@ -428,4 +498,4 @@ app.post('/api/generate-storybook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor Académico activo en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Servidor con YouTube e IA activo en puerto ${PORT}`));
