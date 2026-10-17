@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Centro de Estudio Multicarrera AI · Storybook Retro</title>
+  <title>Centro de Estudio Multicarrera AI · Total Plus</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body { background: radial-gradient(circle at top right, #1e1b4b, #090d16 70%); color: #f8fafc; font-family: system-ui, sans-serif; min-height: 100vh; }
-    .glass { background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+    .glass { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.08); }
     .comic-box { border: 4px solid #f59e0b; background: #0b0f19; box-shadow: 8px 8px 0px #78350f; position: relative; }
     .speech-bubble { background: #fffbeb; color: #1e1b4b; border-radius: 1.25rem; border: 3px solid #78350f; position: relative; }
     .speech-bubble:after { content: ''; position: absolute; bottom: -14px; left: 28px; border-width: 14px 14px 0; border-style: solid; border-color: #fffbeb transparent; display: block; width: 0; }
@@ -16,6 +16,7 @@
     .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
     .flashcard-front, .flashcard-back { backface-visibility: hidden; position: absolute; inset: 0; }
     .flashcard-back { transform: rotateY(180deg); }
+    #viewerArea.fullscreen-mode { position: fixed; inset: 0; z-index: 100; overflow-y: auto; background: rgba(5, 7, 15, 0.98); padding: 2rem; }
   </style>
 </head>
 <body class="text-slate-100">
@@ -24,9 +25,9 @@
   <div id="authScreen" class="min-h-screen flex items-center justify-center p-4">
     <div class="glass max-w-md w-full rounded-2xl p-8 shadow-2xl">
       <div class="text-center mb-6">
-        <span class="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full text-xs font-bold">MULTICARRERA & IA TOTAL</span>
+        <span class="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full text-xs font-bold">PSICOLOGÍA CLÍNICA & IA</span>
         <h1 class="text-3xl font-extrabold mt-2 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">Centro de Estudio Retro</h1>
-        <p class="text-xs text-slate-400 mt-1">Storybooks con Avatares Reales · RAG · Flashcards · Simulador</p>
+        <p class="text-xs text-slate-400 mt-1">Text-to-Speech · Exportar Anki · Métricas · Full Screen</p>
       </div>
 
       <div class="flex bg-slate-900/90 p-1 rounded-xl mb-5 border border-slate-800">
@@ -51,12 +52,12 @@
       <form id="registerForm" onsubmit="handleRegister(event)" class="hidden space-y-3">
         <div>
           <label class="text-xs text-slate-400">Nombre Completo</label>
-          <input type="text" id="regName" required placeholder="Ej. Ángello Ocaña" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm" />
+          <input type="text" id="regName" required placeholder="Harold Benjamín Ocaña" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm" />
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div>
             <label class="text-xs text-slate-400">Usuario</label>
-            <input type="text" id="regUser" required placeholder="angello" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm" />
+            <input type="text" id="regUser" required placeholder="haroldocana" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm" />
           </div>
           <div>
             <label class="text-xs text-slate-400">Carrera</label>
@@ -69,7 +70,7 @@
         </div>
         <div>
           <label class="text-xs text-slate-400">Correo</label>
-          <input type="email" id="regEmail" required placeholder="correo@universidad.edu" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm" />
+          <input type="email" id="regEmail" required placeholder="haroldocana@psicologia.edu" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm" />
         </div>
         <div>
           <label class="text-xs text-slate-400">Contraseña</label>
@@ -111,26 +112,35 @@
       </aside>
 
       <main class="lg:col-span-9 space-y-6">
+        <!-- Encabezado con Panel de Métricas y Progreso -->
         <div class="glass rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
           <div>
             <span id="activeSubjMeta" class="text-xs font-bold text-indigo-400 uppercase"></span>
             <h2 id="activeSubjTitle" class="text-2xl font-extrabold mt-0.5">Selecciona una materia</h2>
           </div>
-          <div class="flex flex-wrap items-center gap-2 text-xs">
-            <span id="statDocs" class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800">📄 0 Archivos</span>
-            <span id="statSbs" class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800">📖 0 Storybooks</span>
-            <button onclick="deleteActiveSubject()" class="px-3 py-1.5 rounded-xl bg-red-950/70 hover:bg-red-900 text-red-300 border border-red-800/50 font-bold">🗑️ Borrar Materia</button>
+          <div class="flex flex-wrap items-center gap-3 text-xs">
+            <div class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-2">
+              <span>📈 Dominio:</span>
+              <div class="w-20 bg-slate-800 rounded-full h-2.5 overflow-hidden">
+                <div id="progressBar" class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-2.5 rounded-full" style="width: 0%"></div>
+              </div>
+              <span id="progressText" class="font-bold text-emerald-400">0%</span>
+            </div>
+            <button onclick="deleteActiveSubject()" class="px-3 py-1.5 rounded-xl bg-red-950/70 hover:bg-red-900 text-red-300 border border-red-800/50 font-bold">🗑️ Borrar</button>
           </div>
         </div>
 
         <!-- 🔍 RAG SEARCH -->
         <div class="glass rounded-2xl p-4 border-2 border-cyan-500/50 shadow-xl space-y-3">
-          <div class="flex items-center gap-2">
-            <span class="text-xl">🔍</span>
-            <h3 class="font-black text-sm text-cyan-300 uppercase">Buscador Inteligente en tus Documentos (RAG)</h3>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">🔍</span>
+              <h3 class="font-black text-sm text-cyan-300 uppercase">Buscador Inteligente en tus Documentos (RAG)</h3>
+            </div>
+            <button onclick="speakText(document.getElementById('ragAnswerText')?.textContent || '')" class="text-xs px-2.5 py-1 rounded-lg bg-cyan-950 text-cyan-300 border border-cyan-800 font-bold">🔊 Escuchar Respuesta</button>
           </div>
           <div class="flex gap-2">
-            <input type="text" id="ragQueryInput" placeholder="Pregúntale algo a tus archivos (ej. ¿Qué establece la norma sobre...)" class="flex-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
+            <input type="text" id="ragQueryInput" placeholder="Pregúntale algo a tus archivos..." class="flex-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white" />
             <button onclick="executeRagSearch()" class="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold text-xs shadow-lg">Buscar</button>
           </div>
         </div>
@@ -176,6 +186,7 @@
               </div>
               <div class="grid grid-cols-2 gap-2">
                 <select id="selectUniverse" class="px-2 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs">
+                  <option value="PSICO_CLINICA">🧠 Psico-Clínica (Freud, Rogers, Beck)</option>
                   <option value="HE_MAN">⚔️ He-Man</option>
                   <option value="CANDY_CANDY">🌹 Candy Candy</option>
                   <option value="TRANSFORMERS">🤖 Transformers</option>
@@ -199,6 +210,7 @@
           </div>
         </div>
 
+        <!-- VISOR DINÁMICO FULL SCREEN -->
         <div id="viewerArea" class="hidden space-y-6"></div>
       </main>
     </div>
@@ -208,12 +220,12 @@
   <div id="modalRoleplay" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
     <div class="glass max-w-2xl w-full rounded-2xl p-6 space-y-4 border-2 border-emerald-500">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-        <h3 class="font-extrabold text-base text-emerald-300">⚖️ Simulador de Casos Prácticos (Roleplay)</h3>
+        <h3 class="font-extrabold text-base text-emerald-300">⚖️ Simulador Clínico / Legal (Roleplay)</h3>
         <button onclick="toggleRoleplayModal()" class="text-slate-400 font-bold">✕</button>
       </div>
       <div id="roleplayChatBox" class="h-64 overflow-y-auto bg-slate-900 p-4 rounded-xl space-y-3 border border-slate-800 text-xs">
         <div class="p-3 rounded-xl bg-emerald-950/60 border border-emerald-800 text-emerald-200">
-          🤖 ¡Hola! Soy tu simulador clínico/legal. Cuéntame tu planteamiento para iniciar la simulación.
+          🤖 ¡Hola! Soy tu simulador clínico. Cuéntame el caso o síntoma para iniciar el análisis.
         </div>
       </div>
       <div class="flex gap-2">
@@ -230,7 +242,11 @@
       <input type="text" id="newSubjName" placeholder="Nombre de la materia" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm" />
       <input type="text" id="newSubjSchedule" placeholder="Horario" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm" />
       <select id="newSubjHero" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm">
-        <option value="HE_MAN">He-Man</option><option value="CANDY_CANDY">Candy Candy</option><option value="TRANSFORMERS">Transformers</option><option value="GI_JOE">G.I. Joe</option>
+        <option value="PSICO_CLINICA">🧠 Psico-Clínica</option>
+        <option value="HE_MAN">He-Man</option>
+        <option value="CANDY_CANDY">Candy Candy</option>
+        <option value="TRANSFORMERS">Transformers</option>
+        <option value="GI_JOE">G.I. Joe</option>
       </select>
       <div class="flex justify-end gap-2">
         <button onclick="toggleNewSubjectModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-xs">Cancelar</button>
@@ -244,6 +260,7 @@
     let activeSubjectId = null;
     let recognition = null, isRecording = false;
     let roleplayHistory = '';
+    let currentFlashcardsData = [];
 
     window.addEventListener('DOMContentLoaded', async () => {
       const savedUsername = localStorage.getItem('psico_active_user');
@@ -270,6 +287,17 @@
         };
       }
     }
+
+    // 1. TEXT-TO-SPEECH (Nativo Web Speech API)
+    function speakText(text) {
+      if (!('speechSynthesis' in window)) return alert('Tu navegador no soporta lectura de voz.');
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'es-ES';
+      utterance.rate = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+
     function toggleDictation() {
       if (!recognition) return alert('Sin soporte de voz.');
       if (isRecording) { recognition.stop(); isRecording = false; } else { recognition.start(); isRecording = true; }
@@ -319,7 +347,7 @@
       renderDashboard();
     }
 
-    function logout() { currentUser = null; localStorage.removeItem('psico_active_user'); document.getElementById('appScreen').classList.add('hidden'); document.getElementById('authScreen').classList.remove('hidden'); }
+    function logout() { currentUser = null; localStorage.removeItem('psico_active_user'); document.getElementById('appScreen').classList.add('hidden'); document.getElementById('authScreen').classList.add('hidden'); location.reload(); }
 
     function updateSelectedFilesList() {
       const input = document.getElementById('docFiles');
@@ -343,9 +371,16 @@
 
       document.getElementById('activeSubjMeta').textContent = `${subj.section || ''} · ${subj.schedule || ''}`;
       document.getElementById('activeSubjTitle').textContent = subj.name;
-      document.getElementById('statDocs').textContent = `📄 ${(subj.documents||[]).length} Archivos`;
-      document.getElementById('statSbs').textContent = `📖 ${(subj.storybooks||[]).length} Storybooks`;
-      document.getElementById('selectUniverse').value = subj.defaultHero || 'HE_MAN';
+      
+      // 3. CALCULAR MÉTRICAS Y PROGRESO DE DOMINIO ACADÉMICO
+      const docCount = (subj.documents || []).length;
+      const sbCount = (subj.storybooks || []).length;
+      const examCount = (subj.exams || []).length;
+      const domainScore = Math.min(100, (docCount * 25) + (sbCount * 20) + (examCount * 30));
+      document.getElementById('progressBar').style.width = domainScore + '%';
+      document.getElementById('progressText').textContent = domainScore + '%';
+
+      document.getElementById('selectUniverse').value = subj.defaultHero || 'PSICO_CLINICA';
 
       const docs = subj.documents || [];
       document.getElementById('savedLibraryBadge').textContent = docs.length;
@@ -433,13 +468,30 @@
       const a = document.createElement('a'); a.href = url; a.download = `${title}.doc`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
 
+    // 2. EXPORTAR FLASHCARDS A FORMATO ANKI (.TXT)
+    function exportAnkiFlashcards() {
+      if (!currentFlashcardsData || currentFlashcardsData.length === 0) return alert('No hay flashcards para exportar.');
+      let txtContent = `# Creado en Centro de Estudio Multicarrera AI\n# Separado por tabulador (Pregunta \t Respuesta)\n`;
+      currentFlashcardsData.forEach(fc => {
+        txtContent += `${fc.question}\t${fc.answer} (Pista: ${fc.hint})\n`;
+      });
+      const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `flashcards_anki_${Date.now()}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
     async function executeRagSearch() {
       const query = document.getElementById('ragQueryInput').value.trim();
       if (!query) return alert('Escribe una pregunta.');
       const v = document.getElementById('viewerArea');
+      v.classList.add('fullscreen-mode');
       v.classList.remove('hidden');
-      v.innerHTML = `<div class="glass rounded-2xl p-6 text-center animate-pulse"><p class="text-cyan-300 font-bold">🔍 Buscando en tus archivos con IA...</p></div>`;
-      v.scrollIntoView({ behavior: 'smooth' });
+      v.innerHTML = `<div class="text-center animate-pulse pt-20"><p class="text-cyan-300 font-bold text-lg">🔍 Buscando en tus archivos con IA...</p></div>`;
 
       try {
         const res = await fetch('/api/rag-search', {
@@ -451,9 +503,13 @@
         currentUser = data.user;
         renderDashboard();
         v.innerHTML = `
-          <div class="glass rounded-2xl p-6 space-y-4 border-2 border-cyan-500">
-            <h2 class="text-xl font-bold text-cyan-300">🔍 Resultado RAG</h2>
-            <div class="bg-slate-900 p-4 rounded-xl text-xs whitespace-pre-wrap leading-relaxed border border-slate-800">${data.answer}</div>
+          <div class="max-w-4xl mx-auto glass rounded-3xl p-8 space-y-6 border-2 border-cyan-500 relative">
+            <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs">✕ Cerrar Pantalla Completa</button>
+            <div class="flex justify-between items-center">
+              <h2 class="text-2xl font-bold text-cyan-300">🔍 Resultado de Búsqueda RAG</h2>
+              <button onclick="speakText(document.getElementById('ragAnswerText').textContent)" class="px-3 py-1.5 rounded-xl bg-cyan-700 font-bold text-xs">🔊 Escuchar</button>
+            </div>
+            <div id="ragAnswerText" class="bg-slate-900 p-6 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed border border-slate-800">${data.answer}</div>
           </div>
         `;
       } catch (err) { alert('Error: ' + err.message); }
@@ -461,9 +517,9 @@
 
     async function generateFlashcards() {
       const v = document.getElementById('viewerArea');
+      v.classList.add('fullscreen-mode');
       v.classList.remove('hidden');
-      v.innerHTML = `<div class="glass rounded-2xl p-6 text-center animate-pulse"><p class="text-purple-300 font-bold">🃏 Generando Flashcards Anki...</p></div>`;
-      v.scrollIntoView({ behavior: 'smooth' });
+      v.innerHTML = `<div class="text-center animate-pulse pt-20"><p class="text-purple-300 font-bold text-lg">🃏 Generando Flashcards Anki...</p></div>`;
 
       try {
         const res = await fetch('/api/generate-flashcards', {
@@ -473,23 +529,29 @@
         const data = await res.json();
         if (!res.ok) return alert(data.error);
         currentUser = data.user;
+        currentFlashcardsData = data.flashcards;
         renderDashboard();
+
         v.innerHTML = `
-          <div class="glass rounded-2xl p-6 space-y-4 border-2 border-purple-500">
-            <h2 class="text-xl font-bold text-purple-300">🃏 Tarjetas de Estudio Anki (Flashcards)</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="max-w-5xl mx-auto glass rounded-3xl p-8 space-y-6 border-2 border-purple-500 relative">
+            <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs">✕ Cerrar</button>
+            <div class="flex justify-between items-center">
+              <h2 class="text-2xl font-bold text-purple-300">🃏 Tarjetas de Estudio Anki (Flashcards)</h2>
+              <button onclick="exportAnkiFlashcards()" class="px-4 py-2 rounded-xl bg-purple-600 font-bold text-xs shadow-lg">📥 Exportar para Anki (.txt)</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
               ${data.flashcards.map((fc, i) => `
-                <div onclick="this.classList.toggle('flipped')" class="flashcard h-48 cursor-pointer relative">
+                <div onclick="this.classList.toggle('flipped')" class="flashcard h-56 cursor-pointer relative">
                   <div class="flashcard-inner w-full h-full relative rounded-2xl shadow-xl">
-                    <div class="flashcard-front bg-slate-900 border-2 border-purple-500/60 p-4 rounded-2xl flex flex-col justify-between">
-                      <span class="text-[10px] font-bold text-purple-400">TARJETA #${i+1}</span>
-                      <p class="text-xs font-bold text-center">${fc.question}</p>
-                      <span class="text-[10px] text-slate-500 text-center">Click para girar 🔄</span>
+                    <div class="flashcard-front bg-slate-900 border-2 border-purple-500/60 p-5 rounded-2xl flex flex-col justify-between">
+                      <span class="text-xs font-bold text-purple-400">TARJETA #${i+1}</span>
+                      <p class="text-sm font-bold text-center">${fc.question}</p>
+                      <span class="text-xs text-slate-500 text-center">Click para girar 🔄</span>
                     </div>
-                    <div class="flashcard-back bg-indigo-950 border-2 border-indigo-400 p-4 rounded-2xl flex flex-col justify-between">
-                      <span class="text-[10px] font-bold text-emerald-400">RESPUESTA</span>
-                      <p class="text-xs text-slate-200 text-center">${fc.answer}</p>
-                      <span class="text-[10px] text-amber-300 text-center">💡 Pista: ${fc.hint}</span>
+                    <div class="flashcard-back bg-indigo-950 border-2 border-indigo-400 p-5 rounded-2xl flex flex-col justify-between">
+                      <span class="text-xs font-bold text-emerald-400">RESPUESTA</span>
+                      <p class="text-xs text-slate-200 text-center leading-relaxed">${fc.answer}</p>
+                      <span class="text-[11px] text-amber-300 text-center">💡 ${fc.hint}</span>
                     </div>
                   </div>
                 </div>
@@ -502,9 +564,9 @@
 
     async function generateMindMap() {
       const v = document.getElementById('viewerArea');
+      v.classList.add('fullscreen-mode');
       v.classList.remove('hidden');
-      v.innerHTML = `<div class="glass rounded-2xl p-6 text-center animate-pulse"><p class="text-cyan-300 font-bold">🧠 Construyendo mapa mental...</p></div>`;
-      v.scrollIntoView({ behavior: 'smooth' });
+      v.innerHTML = `<div class="text-center animate-pulse pt-20"><p class="text-cyan-300 font-bold text-lg">🧠 Construyendo mapa mental...</p></div>`;
 
       try {
         const res = await fetch('/api/generate-mindmap', {
@@ -517,13 +579,14 @@
         renderDashboard();
         const mm = data.mindmap;
         v.innerHTML = `
-          <div class="glass rounded-2xl p-6 space-y-6 border-2 border-cyan-500">
-            <h2 class="text-xl font-bold text-cyan-300 text-center">🧠 Mapa Mental: ${mm.centralTopic}</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="max-w-6xl mx-auto glass rounded-3xl p-8 space-y-6 border-2 border-cyan-500 relative">
+            <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 text-red-300 font-bold text-xs">✕ Cerrar</button>
+            <h2 class="text-2xl font-bold text-cyan-300 text-center">🧠 Mapa Mental: ${mm.centralTopic}</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
               ${mm.branches.map(b => `
-                <div class="p-4 rounded-2xl bg-slate-900 border-2 border-cyan-500/40 space-y-2">
-                  <h4 class="font-black text-sm text-amber-300 border-b border-slate-800 pb-1">📌 ${b.branchName}</h4>
-                  <ul class="space-y-1 text-xs text-slate-300">
+                <div class="p-5 rounded-2xl bg-slate-900 border-2 border-cyan-500/40 space-y-3 shadow-lg">
+                  <h4 class="font-black text-sm text-amber-300 border-b border-slate-800 pb-2">📌 ${b.branchName}</h4>
+                  <ul class="space-y-1.5 text-xs text-slate-300">
                     ${b.subitems.map(sub => `<li>• ${sub}</li>`).join('')}
                   </ul>
                 </div>
@@ -561,9 +624,9 @@
 
     async function generateStorybook() {
       const v = document.getElementById('viewerArea');
+      v.classList.add('fullscreen-mode');
       v.classList.remove('hidden');
-      v.innerHTML = `<div class="glass rounded-2xl p-6 text-center animate-pulse"><p class="text-amber-300 font-bold">✨ Creando Storybook Cómic con Avatares Reales...</p></div>`;
-      v.scrollIntoView({ behavior: 'smooth' });
+      v.innerHTML = `<div class="text-center animate-pulse pt-20"><p class="text-amber-300 font-bold text-lg">✨ Creando Storybook Cómic con Avatares Reales en Pantalla Completa...</p></div>`;
 
       try {
         const res = await fetch('/api/generate-storybook', {
@@ -576,60 +639,54 @@
       } catch (e) { alert('Error.'); }
     }
 
-    // VISOR CÓMIC DEFINITIVO CON AVATARES ILUSTRADOS REALES
+    function closeFullScreenViewer() {
+      const v = document.getElementById('viewerArea');
+      v.classList.remove('fullscreen-mode');
+      v.classList.add('hidden');
+      window.speechSynthesis.cancel();
+    }
+
+    // VISOR CÓMIC FULL SCREEN CON TEXT-TO-SPEECH Y AVATARES
     function openStorybook(sb) {
       const v = document.getElementById('viewerArea');
+      v.classList.add('fullscreen-mode');
       v.classList.remove('hidden');
 
-      // URLs de avatares ilustrados clásicos oficiales y representativos para cada universo
-      const universeAvatars = {
-        'HE_MAN': { 
-          guideName: 'He-Man & Sorceress', 
-          guideImg: 'https://images.unsplash.com/photo-1563089145-599997674d42?w=150&h=150&fit=crop', 
-          bg: 'from-amber-600 to-yellow-500' 
-        },
-        'CANDY_CANDY': { 
-          guideName: 'Candy White', 
-          guideImg: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop', 
-          bg: 'from-pink-500 to-rose-400' 
-        },
-        'TRANSFORMERS': { 
-          guideName: 'Optimus Prime', 
-          guideImg: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&h=150&fit=crop', 
-          bg: 'from-blue-600 to-cyan-500' 
-        },
-        'GI_JOE': { 
-          guideName: 'General Hawk', 
-          guideImg: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop', 
-          bg: 'from-emerald-600 to-teal-500' 
-        }
+      const avatars = {
+        'PSICO_CLINICA': { name: 'Sigmund Freud & Carl Rogers', img: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=150&h=150&fit=crop', bg: 'from-purple-600 to-indigo-600' },
+        'HE_MAN': { name: 'He-Man & Sorceress', img: 'https://images.unsplash.com/photo-1563089145-599997674d42?w=150&h=150&fit=crop', bg: 'from-amber-600 to-yellow-500' },
+        'CANDY_CANDY': { name: 'Candy White', img: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop', bg: 'from-pink-500 to-rose-400' },
+        'TRANSFORMERS': { name: 'Optimus Prime', img: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&h=150&fit=crop', bg: 'from-blue-600 to-cyan-500' },
+        'GI_JOE': { name: 'General Hawk', img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop', bg: 'from-emerald-600 to-teal-500' }
       };
-      const uData = universeAvatars[sb.universe] || universeAvatars['HE_MAN'];
+      const uData = avatars[sb.universe] || avatars['PSICO_CLINICA'];
 
       v.innerHTML = `
-        <div id="exportableStorybook" class="glass rounded-3xl p-6 md:p-8 space-y-8 comic-box">
-          <!-- ENCABEZADO CÓMIC -->
-          <div class="flex flex-wrap justify-between items-center gap-4 border-b-4 border-amber-500 pb-4">
+        <div id="exportableStorybook" class="max-w-6xl mx-auto glass rounded-3xl p-6 md:p-10 space-y-8 comic-box relative">
+          <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-4 py-2 rounded-xl bg-red-950 hover:bg-red-900 text-red-300 font-extrabold text-xs shadow-lg z-20">✕ Cerrar Pantalla Completa</button>
+
+          <div class="flex flex-wrap justify-between items-center gap-4 border-b-4 border-amber-500 pb-4 pr-32">
             <div class="flex items-center gap-4">
-              <img src="${uData.guideImg}" class="w-16 h-16 rounded-2xl object-cover border-2 border-amber-400 shadow-xl" alt="Avatar" />
+              <img src="${uData.img}" class="w-16 h-16 rounded-2xl object-cover border-2 border-amber-400 shadow-xl" />
               <div>
                 <span class="px-3 py-1 rounded-full text-xs font-black bg-amber-500 text-slate-950 uppercase">Universo: ${sb.universe}</span>
                 <h2 class="text-3xl font-black mt-1 bg-gradient-to-r from-amber-300 via-pink-400 to-cyan-300 bg-clip-text text-transparent">${sb.title}</h2>
               </div>
             </div>
-            <button onclick="exportToWord('${sb.title}', document.getElementById('exportableStorybook').innerHTML)" class="px-4 py-2 rounded-xl bg-indigo-600 font-extrabold text-xs shadow-lg">📥 Descargar .doc</button>
-          </div>
-
-          <!-- RESUMEN NARRADO CON AVATAR -->
-          <div class="speech-bubble p-5 text-sm font-bold shadow-xl flex items-center gap-5">
-            <img src="${uData.guideImg}" class="w-14 h-14 rounded-full object-cover border-2 border-indigo-950 shrink-0" />
-            <div>
-              <p class="text-indigo-950 font-black mb-1">Narración Magistral (${uData.guideName}):</p>
-              <p class="text-slate-800 font-medium leading-relaxed">${sb.summary}</p>
+            <div class="flex gap-2">
+              <button onclick="speakText('${sb.summary.replace(/'/g, "")}')" class="px-3 py-2 rounded-xl bg-cyan-700 font-bold text-xs shadow-lg">🔊 Escuchar Resumen</button>
+              <button onclick="exportToWord('${sb.title}', document.getElementById('exportableStorybook').innerHTML)" class="px-4 py-2 rounded-xl bg-indigo-600 font-extrabold text-xs shadow-lg">📥 .doc</button>
             </div>
           </div>
 
-          <!-- LÍNEA DE TIEMPO EVOLUTIVA SEPARADA -->
+          <div class="speech-bubble p-6 text-sm font-bold shadow-2xl flex items-center gap-6">
+            <img src="${uData.img}" class="w-16 h-16 rounded-full object-cover border-2 border-indigo-950 shrink-0" />
+            <div>
+              <p class="text-indigo-950 font-black mb-1 text-base">Narración Magistral (${uData.name}):</p>
+              <p class="text-slate-800 font-medium leading-relaxed text-sm">${sb.summary}</p>
+            </div>
+          </div>
+
           <div class="bg-slate-950/95 rounded-2xl p-6 border-4 border-cyan-500 shadow-2xl space-y-4">
             <div class="flex items-center gap-2">
               <span class="text-2xl">⏳</span>
@@ -646,26 +703,22 @@
             </div>
           </div>
 
-          <!-- VIÑETAS DE CÓMIC CON AVATARES ILUSTRADOS REALES -->
           <div class="space-y-6">
-            <h3 class="font-black text-base text-amber-400 uppercase">🎬 Viñetas de Cómic con Personajes</h3>
+            <h3 class="font-black text-base text-amber-400 uppercase">🎬 Viñetas de Cómic Académico</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               ${(sb.scenes || []).map(sc => `
-                <div class="comic-box rounded-2xl p-5 space-y-4 flex flex-col justify-between shadow-xl">
+                <div class="comic-box rounded-2xl p-6 space-y-4 flex flex-col justify-between shadow-xl">
                   <div class="flex justify-between items-center border-b border-slate-800 pb-2">
                     <span class="text-xs font-black px-2.5 py-1 rounded bg-amber-500/20 text-amber-300">ESCENA #${sc.sceneNumber}</span>
-                    <span class="text-xs font-bold text-pink-400">⚡ ${sc.animationEffect || 'Diálogo'}</span>
+                    <button onclick="speakText('${sc.storyDialogue.replace(/'/g, "")}')" class="text-xs px-2 py-0.5 bg-cyan-900 text-cyan-200 rounded font-bold">🔊 Audio</button>
                   </div>
-
-                  <!-- FOTO AVATAR REAL + BURBUJA -->
                   <div class="flex items-start gap-4 my-2">
-                    <img src="${uData.guideImg}" class="w-14 h-14 rounded-2xl object-cover border-2 border-amber-400 shadow-md shrink-0 mt-1" alt="${sc.characterName}" />
+                    <img src="${uData.img}" class="w-14 h-14 rounded-2xl object-cover border-2 border-amber-400 shadow-md shrink-0 mt-1" />
                     <div class="speech-bubble p-4 text-xs font-bold leading-relaxed shadow-md flex-1">
-                      <p class="text-indigo-950 font-black mb-1">📘 ${sc.characterName} (${sc.academicConcept}):</p>
-                      <p class="text-slate-800 italic font-semibold">"${sc.storyDialogue}"</p>
+                      <p class="text-indigo-950 font-black mb-1 text-sm">📘 ${sc.characterName} (${sc.academicConcept}):</p>
+                      <p class="text-slate-800 italic font-semibold text-xs">"${sc.storyDialogue}"</p>
                     </div>
                   </div>
-
                   <div class="text-xs bg-amber-500/10 border border-amber-500/30 text-amber-200 p-3 rounded-xl font-medium">
                     💡 <b>Mnemotecnia:</b> ${sc.memoryTrick}
                   </div>
