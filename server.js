@@ -72,7 +72,6 @@ const UserModel = mongoose.model('User', UserSchema);
 
 async function ensureDefaultUsers() {
   try {
-    // FIX: Actualiza automáticamente el usuario master para que SIEMPRE tenga permisos de Admin.
     await UserModel.findOneAndUpdate(
       { username: 'master' },
       { 
@@ -190,7 +189,6 @@ app.get('/api/admin/users', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// FIX: Creación de usuarios por parte del Master
 app.post('/api/admin/create-user', async (req, res) => {
   try {
     const requester = await UserModel.findOne({ username: req.headers['x-user'] });
@@ -271,7 +269,6 @@ app.delete('/api/subjects/:subjectId', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// FIX: Restaurada la subida de YouTube y Múltiples formatos
 app.post('/api/documents', upload.any(), async (req, res) => {
   try {
     const { username, subjectId, docTitle, youtubeUrl } = req.body;
@@ -344,7 +341,7 @@ app.delete('/api/subjects/:subjectId/documents', async (req, res) => {
 async function consumeTokens(user, costUSD) {
   if (user.role === 'admin') return true; 
   const remaining = user.aiAllowanceUSD - user.aiConsumptionUSD;
-  if (remaining <= 0) throw new Error("Saldo de Tokens agotado. Solicita más saldo a tu profesor/administrador.");
+  if (remaining <= 0) throw new Error("Saldo de Tokens agotado. Solicita más saldo a tu administrador.");
   user.aiConsumptionUSD += costUSD;
   return true;
 }
@@ -361,9 +358,9 @@ app.post('/api/audiobook-chapters', async (req, res) => {
     const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
     await consumeTokens(user, 0.25);
     const docs = await getFullDocumentsForSubject(user.username, req.body.subjectId, req.body.documentId);
-    if (docs.length === 0) throw new Error("El libro está vacío o es ilegible.");
+    if (docs.length === 0) throw new Error("El documento está vacío o es ilegible.");
 
-    const contents = ["Analiza el siguiente documento y extrae la obra completa dividida en capítulos (chapterContent). NO HAGAS RESÚMENES, quiero la lectura íntegra. Genera también un resumen analítico descargable (bookSummary)."];
+    const contents = ["Analiza el siguiente documento y extrae la obra completa dividida en capítulos largos (chapterContent). NO HAGAS RESÚMENES, quiero el texto íntegro. Genera también un resumen analítico ejecutivo (bookSummary)."];
     docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
 
     const schema = { type: Type.OBJECT, properties: { audiobookTitle: { type: Type.STRING }, bookSummary: { type: Type.STRING }, chapters: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { chapterTitle: { type: Type.STRING }, chapterContent: { type: Type.STRING } }, required: ["chapterTitle", "chapterContent"] } } }, required: ["audiobookTitle", "bookSummary", "chapters"] };
