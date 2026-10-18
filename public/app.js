@@ -2,9 +2,13 @@ let currentUser = null;
 let activeSubjectId = null;
 let socraticHistory = '';
 
+// Variables globales para el resumen del audiolibro
 window.currentAudiobookSummary = "";
 window.currentAudiobookTitle = "";
 
+// ==========================================
+// 1. INICIALIZACIÓN Y SESIÓN
+// ==========================================
 window.addEventListener('DOMContentLoaded', async () => {
   const savedUsername = localStorage.getItem('psico_active_user');
   if (savedUsername) {
@@ -20,6 +24,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
+// ==========================================
+// 2. FUNCIÓN DE VOZ SINTÉTICA (TTS)
+// ==========================================
 window.speakText = function(text) {
   if (!('speechSynthesis' in window)) {
     return alert('Tu navegador no soporta síntesis de voz. Por favor usa Chrome, Edge o Safari.');
@@ -30,6 +37,9 @@ window.speakText = function(text) {
   window.speechSynthesis.speak(utterance);
 };
 
+// ==========================================
+// 3. FUNCIONES DE AUTENTICACIÓN Y VALIDACIÓN
+// ==========================================
 window.switchAuthTab = function(tab) {
   document.getElementById('authError').classList.add('hidden');
   document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
@@ -50,9 +60,7 @@ window.showAuthError = function(msg) {
   el.classList.remove('hidden'); 
 };
 
-// ==========================================
-// LOGIN CON VALIDACIÓN ROBUSTA
-// ==========================================
+// LOGIN CON VALIDACIÓN
 window.handleLogin = async function(e) {
   e.preventDefault();
   const loginId = document.getElementById('loginId').value.trim();
@@ -96,9 +104,7 @@ window.handleLogin = async function(e) {
   }
 };
 
-// ==========================================
 // REGISTRO CON VALIDACIÓN ROBUSTA
-// ==========================================
 window.handleRegister = async function(e) {
   e.preventDefault();
   
@@ -109,6 +115,7 @@ window.handleRegister = async function(e) {
   const regPass = document.getElementById('regPass').value;
   const regRecovery = document.getElementById('regRecovery') ? document.getElementById('regRecovery').value.trim() : 'clave123';
 
+  // Validaciones
   if (!regName || !regUser || !regCareer || !regEmail || !regPass) {
     return showAuthError("Todos los campos son obligatorios.");
   }
@@ -160,6 +167,7 @@ window.handleRegister = async function(e) {
   }
 };
 
+// RECUPERACIÓN DE CONTRASEÑA
 window.recoverPassword = async function() {
   const u = document.getElementById('resetUsername').value.trim();
   const w = document.getElementById('resetWord').value.trim();
@@ -194,6 +202,7 @@ window.enterApp = function(user) {
   document.getElementById('authScreen').classList.add('hidden');
   document.getElementById('appScreen').classList.remove('hidden');
   
+  // Mostrar Panel Master solo si es Admin
   const btnAdmin = document.getElementById('btnAdminPanel');
   if(btnAdmin) {
     if(user.role === 'admin') btnAdmin.classList.remove('hidden');
@@ -210,8 +219,9 @@ window.logout = function() {
 };
 
 // ==========================================
-// TOKENS IA Y PANEL ADMINISTRADOR
+// 4. SISTEMA DE TOKENS IA Y PANEL ADMINISTRADOR
 // ==========================================
+
 window.requestMoreTokens = async function() {
   if(!confirm("¿Deseas enviar una solicitud al Administrador Master para cargar más Saldo de Inteligencia Artificial?")) return;
   try {
@@ -223,7 +233,7 @@ window.requestMoreTokens = async function() {
     if(res.ok) {
       alert("✅ Solicitud enviada exitosamente al Master. Te avisaremos cuando se recargue tu saldo.");
       currentUser.pendingTokenRequest = true;
-      renderDashboard(); 
+      renderDashboard(); // Actualizar UI
     }
   } catch(e) {
     alert("Error al enviar la solicitud.");
@@ -258,6 +268,35 @@ window.loadAdminUsers = async function() {
   }
 };
 
+// ESTA ES LA FUNCIÓN QUE FALTABA PARA CREAR USUARIOS DESDE EL MASTER
+window.adminCreateUser = async function(e) {
+  e.preventDefault();
+  const n = document.getElementById('adminNewName').value.trim();
+  const u = document.getElementById('adminNewUser').value.trim();
+  const p = document.getElementById('adminNewPass').value;
+  const c = document.getElementById('adminNewCareer').value.trim();
+
+  if (!n || !u || !p || !c) return alert("Todos los campos son obligatorios.");
+
+  try {
+    const res = await fetch('/api/admin/create-user', {
+      method: 'POST', 
+      headers: {'Content-Type':'application/json', 'x-user': currentUser.username},
+      body: JSON.stringify({ fullName: n, username: u, password: p, career: c })
+    });
+    const data = await res.json();
+    if(res.ok) {
+      alert('Alumno creado exitosamente.');
+      document.getElementById('adminCreateUserForm').reset();
+      loadAdminUsers();
+    } else {
+      alert(data.error);
+    }
+  } catch(err) { 
+    alert('Error al crear usuario'); 
+  }
+};
+
 window.adminAddTokens = async function(username) {
   if(!confirm(`¿Añadir $5.00 USD de saldo a ${username}?`)) return;
   try {
@@ -288,6 +327,9 @@ window.adminResetPass = async function(username) {
   }
 };
 
+// ==========================================
+// 5. RENDERIZADO DEL DASHBOARD Y MATERIAS
+// ==========================================
 window.updateSelectedFilesList = function() {
   const input = document.getElementById('docFiles');
   document.getElementById('selectedFilesPreview').textContent = input.files.length > 0 
@@ -299,6 +341,7 @@ window.renderDashboard = function() {
   document.getElementById('careerTitleBanner').textContent = `Entorno: ${currentUser.career || 'Universitario'}`;
   document.getElementById('userHeaderInfo').innerHTML = `👤 <b>${currentUser.fullName}</b>`;
   
+  // Render de Saldo IA
   const balance = (currentUser.aiAllowanceUSD - currentUser.aiConsumptionUSD).toFixed(2);
   const billingEl = document.getElementById('aiBilling');
   if(billingEl) {
@@ -327,12 +370,14 @@ window.renderDashboard = function() {
   const docs = subj.documents || [];
   const sbCount = (subj.storybooks || []).length;
   
+  // Cálculo de Progreso
   const domainScore = Math.min(100, (docs.length * 25) + (sbCount * 20));
   document.getElementById('progressBar').style.width = domainScore + '%';
   document.getElementById('progressText').textContent = domainScore + '%';
 
   document.getElementById('savedLibraryBadge').textContent = docs.length;
   
+  // Render Archivos Guardados
   document.getElementById('savedDocsList').innerHTML = docs.length === 0 
     ? `<p class="text-xs text-slate-500 italic p-3 border border-dashed border-slate-700 rounded-xl text-center">Repositorio vacío. Sube material para comenzar.</p>` 
     : docs.map(d => `
@@ -342,10 +387,12 @@ window.renderDashboard = function() {
       </div>
     `).join('');
 
+  // Render Selectores (IA y Audiolibro)
   const optionsHTML = `<option value="ALL">📚 USAR TODOS LOS ARCHIVOS (${docs.length})</option>` + docs.map(d => `<option value="${d.id}">📄 ${d.title}</option>`).join('');
   document.getElementById('selectDocForAI').innerHTML = optionsHTML;
   document.getElementById('audiobookDocSelect').innerHTML = `<option value="">-- Elige el Libro Completo --</option>` + docs.map(d => `<option value="${d.id}">📖 ${d.title}</option>`).join('');
 
+  // Render Historial de Monografías
   const hist = document.getElementById('savedHistoryList');
   hist.innerHTML = (subj.storybooks || []).slice().reverse().map(sb => `
     <div class="p-3.5 rounded-xl bg-slate-900 border border-indigo-500/30 flex justify-between items-center text-sm shadow-sm hover:border-cyan-500 transition">
@@ -354,6 +401,7 @@ window.renderDashboard = function() {
     </div>
   `).join('') || '<p class="text-xs text-slate-500 italic p-3 border border-dashed border-slate-700 rounded-xl text-center">No hay monografías generadas aún.</p>';
 
+  // Render Bitácora de Audiolibros
   const abHist = document.getElementById('savedAudiobooksList');
   abHist.innerHTML = (subj.audiobooks || []).slice().reverse().map(ab => `
     <div class="p-3.5 rounded-xl bg-slate-900 border border-rose-500/30 flex justify-between items-center text-sm shadow-sm hover:border-rose-500 transition">
@@ -421,6 +469,9 @@ window.deleteActiveSubject = async function() {
   }
 };
 
+// ==========================================
+// 6. SUBIDA DE ARCHIVOS Y GESTIÓN DE REPOSITORIO
+// ==========================================
 window.handleUploadDoc = async function(e) {
   e.preventDefault();
   const btn = document.getElementById('btnUploadDoc');
@@ -514,6 +565,9 @@ window.deleteSavedAudiobook = async function(abId) {
   } catch(e) {}
 };
 
+// ==========================================
+// 7. EXPORTACIÓN A WORD Y VISOR FULL SCREEN
+// ==========================================
 window.exportToWord = function(title, contentHtml) {
   const htmlContent = `
     <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
@@ -553,6 +607,9 @@ window.closeFullScreenViewer = function() {
   window.speechSynthesis.cancel();
 };
 
+// ==========================================
+// 8. ORÁCULO FENOMENOLÓGICO Y TAREAS
+// ==========================================
 window.togglePhenomenologyDocs = function() { 
   document.getElementById('phenomenologyDocs').classList.toggle('hidden'); 
 };
@@ -655,6 +712,9 @@ window.submitUniversityHomework = async function() {
   } catch (err) { alert('Error al generar la tarea: ' + err.message); closeFullScreenViewer(); }
 };
 
+// ==========================================
+// 9. AUDIOLIBROS Y HERRAMIENTAS VISUALES
+// ==========================================
 window.downloadAudiobookSummary = () => {
   const safeTitle = window.currentAudiobookTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   const content = `
@@ -1151,6 +1211,9 @@ window.openStorybook = function(sb) {
   v.scrollIntoView({ behavior: 'smooth' });
 };
 
+// ==========================================
+// 11. DEBATE SOCRÁTICO
+// ==========================================
 window.openSocraticModal = function() { 
   document.getElementById('modalSocratic').classList.toggle('hidden'); 
 };
