@@ -110,28 +110,28 @@ async function ensureDefaultUser() {
       });
       await user.save();
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error("Error asegurando usuario por defecto:", e.message);
+  }
 }
 
 const MONGO_URI = (process.env.MONGO_URI || '').trim();
 
-// MANEJO ROBUSTO DE LA CONEXIÓN A BASE DE DATOS
+// CONEXIÓN ROBUSTA A BASE DE DATOS (NO CRASHEA SI FALLA)
 async function connectDB() {
   if (!MONGO_URI) {
-    console.error("❌ ERROR: MONGO_URI no está definido en las variables de entorno.");
-    throw new Error("Base de datos no configurada");
+    console.warn("⚠️ Advertencia: MONGO_URI no está definido en el servidor.");
+    return;
   }
   if (mongoose.connection.readyState === 1) return;
   
   try {
     console.log("⏳ Conectando a MongoDB...");
-    // Forzamos un timeout de 5 segundos para que no se quede cargando infinito
     await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 5000 });
     console.log("✅ MongoDB conectado correctamente.");
     await ensureDefaultUser();
   } catch (err) {
     console.error("❌ Error de conexión a MongoDB:", err.message);
-    throw err;
   }
 }
 
@@ -144,7 +144,7 @@ app.use('/api', async (req, res, next) => {
     }
     next();
   } catch (error) {
-    return res.status(500).json({ error: "Error Crítico: No hay conexión con la base de datos. Verifica tu MONGO_URI o los permisos de IP." });
+    return res.status(500).json({ error: "No hay conexión con la base de datos MongoDB. Espera unos segundos o verifica tu red." });
   }
 });
 
@@ -172,7 +172,7 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
     }
     res.json({ user: await serializeUser(user) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: "Error de servidor: " + err.message }); }
 });
 
 app.post('/api/auth/register', async (req, res) => {
@@ -331,7 +331,7 @@ async function getFullDocumentsForSubject(username, subject, documentId) {
   return allDocs.filter(d => d.id === documentId);
 }
 
-// 🎧 ENDPOINT AUDIOLIBRO (LECTURA EXTENSA DE PDFs Y RESUMEN DESCARGABLE)
+// 🎧 ENDPOINT AUDIOLIBRO INTERACTIVO
 app.post('/api/audiobook-chapters', async (req, res) => {
   try {
     const { username, subjectId, documentId } = req.body;
@@ -346,8 +346,8 @@ app.post('/api/audiobook-chapters', async (req, res) => {
     
     const contents = [
       `Analiza el siguiente documento de principio a fin de manera exhaustiva.
-       INSTRUCCIÓN CRÍTICA 1 (AUDIOLIBRO COMPLETO): Extrae y desarrolla el contenido de la obra de la forma más extensa, completa y detallada posible. Divide la obra completa en capítulos muy largos (chapterContent). NO hagas resúmenes cortos en los capítulos; transcribe o desarrolla ampliamente los argumentos principales de todo el libro para que el estudiante pueda escuchar la obra completa.
-       INSTRUCCIÓN CRÍTICA 2 (RESUMEN DESCARGABLE): Adicionalmente, genera un resumen analítico con los puntos clave, lecciones más importantes e ideas centrales del libro (bookSummary) para que el estudiante pueda descargarlo como documento de estudio.`
+       INSTRUCCIÓN CRÍTICA 1 (AUDIOLIBRO COMPLETO): Extrae y desarrolla el contenido de la obra. Divide la obra en capítulos extensos (chapterContent). NO hagas resúmenes cortos; transcribe y desarrolla los argumentos.
+       INSTRUCCIÓN CRÍTICA 2 (RESUMEN DESCARGABLE): Genera un resumen analítico con los puntos clave (bookSummary).`
     ];
 
     let hasContent = false;
@@ -390,7 +390,7 @@ app.post('/api/audiobook-chapters', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 🏛️ ENDPOINT: ORÁCULO FENOMENOLÓGICO (HUSSERL Y HEIDEGGER EXCLUSIVO)
+// 🏛️ ENDPOINT: ORÁCULO FENOMENOLÓGICO
 app.post('/api/phenomenology-query', async (req, res) => {
   try {
     const { username, query } = req.body;
@@ -399,7 +399,7 @@ app.post('/api/phenomenology-query', async (req, res) => {
 
     const contents = [
       `Actúa como un purista y máximo académico de la Fenomenología y el Existencialismo continental. 
-       REGLA ABSOLUTA: Te centrarás ESTRICTAMENTE en Edmund Husserl y Martin Heidegger. NO usarás, mencionarás ni aplicarás NADA de filosofía analítica, empirismo anglosajón, positivismo lógico (ni Russell, ni Wittgenstein, ni Locke). Todo es puramente continental.
+       REGLA ABSOLUTA: Te centrarás ESTRICTAMENTE en Edmund Husserl y Martin Heidegger. NO usarás, mencionarás ni aplicarás NADA de filosofía analítica. Todo es puramente continental.
        Explica la siguiente consulta del estudiante usando palabras humanas, profundas y comprensibles para la psicología clínica.
        Consulta: "${query}"`
     ];
@@ -411,7 +411,7 @@ app.post('/api/phenomenology-query', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 📝 SOLICITUD DE TAREAS Y RESÚMENES (HUMANISTA-EXISTENCIAL) LEYENDO PDFs DIRECTAMENTE
+// 📝 SOLICITUD DE TAREAS Y RESÚMENES HUMANISTA
 app.post('/api/university-homework', async (req, res) => {
   try {
     const { username, subjectId, promptTask } = req.body;
@@ -424,8 +424,8 @@ app.post('/api/university-homework', async (req, res) => {
     const contents = [
       `Actúa como mentor y profesor universitario experto en la carrera de "${user.career}", impartiendo la materia "${subject.name}".
       INSTRUCCIÓN ESTRICTA Y METODOLÓGICA:
-      - Realiza el resumen o resolución solicitado basándote en los documentos del repositorio (adjuntos a continuación).
-      - ENFOQUE OBLIGATORIO: Utiliza un método humanista-existencial (enfocado en la vivencia subjetiva, el sentido, la libertad y la experiencia humana real) y un tono profesional pero 100% en palabras humanas, cálidas y de puro entendimiento, PROHIBIDO el uso de jerga fría sin explicación.
+      - Realiza el resumen o resolución solicitado basándote en los documentos del repositorio.
+      - ENFOQUE OBLIGATORIO: Utiliza un método humanista-existencial (enfocado en la vivencia subjetiva, el sentido, la libertad y la experiencia humana real) y un tono profesional pero 100% en palabras humanas.
       - Solicitud del estudiante: "${promptTask}"`
     ];
     
@@ -455,7 +455,7 @@ app.post('/api/socratic-debate', async (req, res) => {
     if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
 
     const allDocs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
-    const contents = [`Actúa como el experto: "${philosopher}". Carrera del estudiante: ${user.career}. Historial: ${history}. Intervención: "${message}". Responde con enfoque humanista-existencial, leyendo los documentos adjuntos si es necesario.`];
+    const contents = [`Actúa como el experto: "${philosopher}". Carrera del estudiante: ${user.career}. Historial: ${history}. Intervención: "${message}". Responde con enfoque humanista-existencial, leyendo los documentos adjuntos.`];
     
     for (const doc of allDocs) {
       if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
@@ -473,7 +473,6 @@ app.post('/api/generate-timeline-map', async (req, res) => {
   try {
     const { username, subjectId, documentId } = req.body;
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
     const subject = user.subjects.find(s => s.id === subjectId);
     
     const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
