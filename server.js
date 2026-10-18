@@ -75,7 +75,8 @@ async function ensureDefaultUsers() {
     await UserModel.findOneAndUpdate(
       { username: 'master' },
       { 
-        $set: { role: 'admin', aiAllowanceUSD: 9999 },$setOnInsert: {
+        $set: { role: 'admin', aiAllowanceUSD: 9999 },
+        $setOnInsert: {
           fullName: 'Administrador Maestro',
           email: 'master@universidad.edu',
           password: 'master123',
@@ -131,7 +132,7 @@ async function serializeUser(user) {
   return obj;
 }
 
-// ================= AUTENTICACIÓN =================
+// ================= AUTENTICACIÓN Y CONTRASEÑAS =================
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { identifier, password } = req.body;
@@ -179,6 +180,20 @@ app.post('/api/auth/reset-password', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// NUEVO: CAMBIAR CONTRASEÑA DESDE DENTRO DE LA PLATAFORMA
+app.post('/api/user/change-password', async (req, res) => {
+  try {
+    const { username, oldPassword, newPassword } = req.body;
+    const user = await UserModel.findOne({ username: username.toLowerCase() });
+    if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
+    if (user.password !== oldPassword) return res.status(401).json({ error: "La contraseña actual es incorrecta." });
+    
+    user.password = newPassword;
+    await user.save();
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ================= PANEL DE ADMINISTRADOR =================
 app.get('/api/admin/users', async (req, res) => {
   try {
@@ -189,12 +204,13 @@ app.get('/api/admin/users', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ACTUALIZADO: CREAR USUARIO CON TOKENS INICIALES
 app.post('/api/admin/create-user', async (req, res) => {
   try {
     const requester = await UserModel.findOne({ username: req.headers['x-user'] });
     if (!requester || requester.role !== 'admin') return res.status(403).json({ error: "Acceso denegado." });
     
-    const { fullName, username, password, career } = req.body;
+    const { fullName, username, password, career, initialTokens } = req.body;
     const cleanUsername = username.trim().toLowerCase();
     
     if (await UserModel.findOne({ username: cleanUsername })) return res.status(400).json({ error: "El usuario ya existe." });
@@ -202,6 +218,7 @@ app.post('/api/admin/create-user', async (req, res) => {
     await new UserModel({
       username: cleanUsername, fullName, email: `${cleanUsername}@universidad.edu`,
       password, recoveryWord: 'admin123', career: career || 'Estudios Generales',
+      aiAllowanceUSD: parseFloat(initialTokens) || 2.00, // <--- Carga inicial de tokens
       subjects: [{ id: 'subj-init', name: 'Mi Primera Materia', schedule: 'Semestre 1', documents: [], storybooks: [], audiobooks: [] }]
     }).save();
     
@@ -275,7 +292,6 @@ app.post('/api/documents', upload.any(), async (req, res) => {
     const user = await UserModel.findOne({ username: username.toLowerCase() });
     const dateStr = new Date().toLocaleDateString('es-GT');
     
-    // Si envían YouTube
     if (youtubeUrl && youtubeUrl.includes('youtu')) {
       const ytRes = await generateWithFallback([`Extrae un resumen detallado y puntos clave del siguiente video de YouTube: ${youtubeUrl}`], null);
       await new DocumentModel({
@@ -285,7 +301,6 @@ app.post('/api/documents', upload.any(), async (req, res) => {
       }).save();
     }
 
-    // Si envían Archivos
     if (req.files && req.files.length > 0) {
       for (let file of req.files) {
         await new DocumentModel({
@@ -358,9 +373,9 @@ app.post('/api/audiobook-chapters', async (req, res) => {
     const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
     await consumeTokens(user, 0.25);
     const docs = await getFullDocumentsForSubject(user.username, req.body.subjectId, req.body.documentId);
-    if (docs.length === 0) throw new Error("El documento está vacío o es ilegible.");
+    if (docs.length === 0) throw new Error("El libro está vacío o es ilegible.");
 
-    const contents = ["Analiza el siguiente documento y extrae la obra completa dividida en capítulos largos (chapterContent). NO HAGAS RESÚMENES, quiero el texto íntegro. Genera también un resumen analítico ejecutivo (bookSummary)."];
+    const contents = ["Analiza el siguiente documento y extrae la obra completa dividida en capítulos (chapterContent). NO HAGAS RESÚMENES, quiero la lectura íntegra. Genera también un resumen analítico descargable (bookSummary)."];
     docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
 
     const schema = { type: Type.OBJECT, properties: { audiobookTitle: { type: Type.STRING }, bookSummary: { type: Type.STRING }, chapters: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { chapterTitle: { type: Type.STRING }, chapterContent: { type: Type.STRING } }, required: ["chapterTitle", "chapterContent"] } } }, required: ["audiobookTitle", "bookSummary", "chapters"] };
