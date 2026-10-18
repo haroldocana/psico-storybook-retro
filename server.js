@@ -53,112 +53,79 @@ const DocumentSchema = new mongoose.Schema({
 
 const DocumentModel = mongoose.model('Document', DocumentSchema);
 
+// SCHEMA ACTUALIZADO CON ROLES, TOKENS Y RECUPERACIÓN
 const UserSchema = new mongoose.Schema({
   username: { type: String, unique: true, lowercase: true },
   fullName: String,
   email: { type: String, lowercase: true },
   password: String,
+  recoveryWord: String, // Palabra clave para resetear contraseña
   career: String,
-  subscriptionActive: { type: Boolean, default: true },
-  aiConsumptionUSD: { type: Number, default: 0 },
+  role: { type: String, default: 'student' }, // 'admin' o 'student'
+  aiAllowanceUSD: { type: Number, default: 2.00 }, // Saldo total asignado al inicio
+  aiConsumptionUSD: { type: Number, default: 0 }, // Saldo gastado
+  pendingTokenRequest: { type: Boolean, default: false }, // ¿Pidió más saldo?
   storybooksCreated: { type: Number, default: 0 },
   subjects: Array
 });
 
 const UserModel = mongoose.model('User', UserSchema);
 
-const getSubjectsForCareer = (career) => {
-  switch (career) {
-    case 'Derecho y Abogacía':
-      return [
-        { id: 'der-penal', name: 'Derecho Penal y Teórico', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] },
-        { id: 'der-civil', name: 'Derecho Civil y Contratos', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] },
-        { id: 'der-crim', name: 'Criminología y Victimología', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] }
-      ];
-    case 'Medicina':
-      return [
-        { id: 'med-fisio', name: 'Fisiología Humana', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] },
-        { id: 'med-anato', name: 'Anatomía y Neuroanatomía', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] },
-        { id: 'med-pato', name: 'Patología General', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] }
-      ];
-    case 'Filosofía':
-      return [
-        { id: 'filo-cont', name: 'Filosofía Contemporánea y Existencialismo', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] },
-        { id: 'filo-meta', name: 'Metafísica y Ontología del Ser', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] }
-      ];
-    case 'Psicología Clínica':
-    default:
-      return [
-        { id: 'lpc-ep2', name: 'Escuelas Psicológicas II', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] },
-        { id: 'lpc-pe2', name: 'Psicología Evolutiva II', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] },
-        { id: 'lpc-neuro', name: 'Neurociencia Cognitiva y Comportamiento', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] }
-      ];
-  }
-};
-
-async function ensureDefaultUser() {
+async function ensureDefaultUsers() {
   try {
-    let user = await UserModel.findOne({ username: 'haroldocana' });
-    if (!user) {
-      user = new UserModel({
-        username: 'haroldocana',
-        fullName: 'Harold Benjamín Ocaña Guillén',
-        email: 'haroldocana@universidad.edu',
-        password: 'admin123',
-        career: 'Psicología Clínica',
-        subjects: getSubjectsForCareer('Psicología Clínica')
-      });
-      await user.save();
+    // 1. Crear el usuario administrador MASTER
+    let admin = await UserModel.findOne({ username: 'master' });
+    if (!admin) {
+      await new UserModel({
+        username: 'master',
+        fullName: 'Administrador Maestro',
+        email: 'master@universidad.edu',
+        password: 'master123',
+        recoveryWord: 'admin',
+        career: 'Administración de Sistemas',
+        role: 'admin',
+        aiAllowanceUSD: 1000.00, // Saldo casi infinito para el admin
+        subjects: []
+      }).save();
     }
   } catch (e) {
-    console.error("Error al asegurar usuario por defecto:", e.message);
+    console.error("Error al asegurar usuarios por defecto:", e.message);
   }
 }
 
 const MONGO_URI = (process.env.MONGO_URI || '').trim();
 
-// Conexión estricta a base de datos con límite de tiempo
 async function connectDB() {
-  if (!MONGO_URI) {
-    throw new Error("Base de datos no configurada. Agrega la variable MONGO_URI.");
-  }
+  if (!MONGO_URI) throw new Error("MONGO_URI no configurada.");
   if (mongoose.connection.readyState === 1) return;
-  
   try {
-    console.log("⏳ Conectando a MongoDB...");
-    await mongoose.connect(MONGO_URI, { 
-      serverSelectionTimeoutMS: 5000, 
-      connectTimeoutMS: 10000
-    });
+    await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 5000 });
     console.log("✅ MongoDB conectado correctamente.");
-    await ensureDefaultUser();
+    await ensureDefaultUsers();
   } catch (err) {
-    console.error("❌ Error de MongoDB:", err.message);
+    console.error("❌ Error Crítico de MongoDB:", err.message);
     throw err;
   }
 }
 
-connectDB().catch(() => console.log("La app intentará conectar cuando inicies sesión..."));
+connectDB().catch(() => console.log("Se reintentará conectar con la primera petición..."));
 
 app.use('/api', async (req, res, next) => {
   try {
-    if (!MONGO_URI) return res.status(500).json({ error: "Falta la variable MONGO_URI en tu servidor (Render)." });
-    if (mongoose.connection.readyState !== 1) {
-      await connectDB();
-    }
+    if (mongoose.connection.readyState !== 1) await connectDB();
     next();
   } catch (error) {
-    return res.status(500).json({ error: "No hay conexión con MongoDB. Revisa que tu IP esté permitida (0.0.0.0/0) en Atlas." });
+    return res.status(500).json({ error: "Sin conexión a la base de datos." });
   }
 });
 
 async function serializeUser(user) {
   const obj = user.toObject();
-  delete obj.password;
+  delete obj.password; // Ocultar password por seguridad
   const savedDocs = await DocumentModel.find({ username: obj.username }, { base64Data: 0, textContent: 0 }).lean();
   obj.subjects = (obj.subjects || []).map(s => {
-    const embeddedDocs = (s.documents || []).map(d => ({ id: d.id, title: d.title, fileName: d.fileName, mimeType: d.mimeType, uploadedAt: d.uploadedAt }));
-    const collectionDocs = savedDocs.filter(cd => cd.subjectId === s.id).map(cd => ({ id: cd.docId, title: cd.title, fileName: cd.fileName, mimeType: cd.mimeType, uploadedAt: cd.uploadedAt }));
+    const embeddedDocs = (s.documents || []).map(d => ({ id: d.id, title: d.title, fileName: d.fileName }));
+    const collectionDocs = savedDocs.filter(cd => cd.subjectId === s.id).map(cd => ({ id: cd.docId, title: cd.title, fileName: cd.fileName }));
     const map = new Map();
     [...embeddedDocs, ...collectionDocs].forEach(item => map.set(item.id, item));
     return { ...s, documents: Array.from(map.values()), storybooks: s.storybooks || [], audiobooks: s.audiobooks || [] };
@@ -166,30 +133,29 @@ async function serializeUser(user) {
   return obj;
 }
 
+// ================= RUTA DE AUTENTICACIÓN =================
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { identifier, password } = req.body;
     const cleanId = (identifier || '').trim().toLowerCase();
-    await ensureDefaultUser();
+    await ensureDefaultUsers();
     const user = await UserModel.findOne({ $or: [{ username: cleanId }, { email: cleanId }] });
-    if (!user || user.password !== password) {
-      return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
-    }
+    if (!user || user.password !== password) return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
     res.json({ user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: "Fallo interno: " + err.message }); }
 });
 
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { fullName, username, email, password, career } = req.body;
+    const { fullName, username, email, password, recoveryWord, career } = req.body;
     const cleanUsername = (username || '').trim().toLowerCase();
     const existing = await UserModel.findOne({ username: cleanUsername });
     if (existing) return res.status(400).json({ error: "El usuario ya existe." });
     
-    const selectedCareer = career || 'Psicología Clínica';
     const newUser = new UserModel({
       username: cleanUsername, fullName, email: (email || `${cleanUsername}@universidad.edu`).toLowerCase(),
-      password, career: selectedCareer, subjects: getSubjectsForCareer(selectedCareer)
+      password, recoveryWord, career: career || 'Estudios Generales',
+      subjects: [{ id: 'subj-init', name: 'Mi Primera Materia', section: 'A', schedule: 'Semestre 1', documents: [], storybooks: [], audiobooks: [] }]
     });
     await newUser.save();
     res.json({ user: await serializeUser(newUser) });
@@ -198,20 +164,79 @@ app.post('/api/auth/register', async (req, res) => {
 
 app.get('/api/auth/session/:username', async (req, res) => {
   try {
-    const cleanU = (req.params.username || '').trim().toLowerCase();
-    await ensureDefaultUser();
-    let user = await UserModel.findOne({ username: cleanU });
+    const user = await UserModel.findOne({ username: req.params.username.trim().toLowerCase() });
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
     res.json({ user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ================= RECUPERACIÓN DE CONTRASEÑA =================
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    const { username, recoveryWord, newPassword } = req.body;
+    const user = await UserModel.findOne({ username: username.toLowerCase() });
+    if (!user) return res.status(404).json({ error: "Usuario no existe." });
+    if (user.recoveryWord !== recoveryWord) return res.status(401).json({ error: "Palabra clave de recuperación incorrecta." });
+    
+    user.password = newPassword;
+    await user.save();
+    res.json({ success: true, message: "Contraseña actualizada exitosamente." });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ================= PANEL DE ADMINISTRADOR MASTER =================
+app.get('/api/admin/users', async (req, res) => {
+  try {
+    const requester = await UserModel.findOne({ username: req.headers['x-user'] });
+    if (!requester || requester.role !== 'admin') return res.status(403).json({ error: "Acceso denegado." });
+    const users = await UserModel.find({}, { password: 0, recoveryWord: 0 }); // Todo menos info sensible
+    res.json(users);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/admin/add-tokens', async (req, res) => {
+  try {
+    const requester = await UserModel.findOne({ username: req.headers['x-user'] });
+    if (!requester || requester.role !== 'admin') return res.status(403).json({ error: "Acceso denegado." });
+    
+    const targetUser = await UserModel.findOne({ username: req.body.targetUsername });
+    if (!targetUser) return res.status(404).json({ error: "Usuario no encontrado." });
+
+    targetUser.aiAllowanceUSD += parseFloat(req.body.amount);
+    targetUser.pendingTokenRequest = false;
+    await targetUser.save();
+    res.json({ success: true, user: await serializeUser(targetUser) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/admin/force-reset', async (req, res) => {
+  try {
+    const requester = await UserModel.findOne({ username: req.headers['x-user'] });
+    if (!requester || requester.role !== 'admin') return res.status(403).json({ error: "Acceso denegado." });
+    
+    const targetUser = await UserModel.findOne({ username: req.body.targetUsername });
+    targetUser.password = req.body.newPassword;
+    await targetUser.save();
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ================= SOLICITUD DE TOKENS DEL ESTUDIANTE =================
+app.post('/api/user/request-tokens', async (req, res) => {
+  try {
+    const user = await UserModel.findOne({ username: req.body.username });
+    user.pendingTokenRequest = true;
+    await user.save();
+    res.json({ success: true, user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ================= GESTIÓN DE MATERIAS Y ARCHIVOS =================
 app.post('/api/subjects', async (req, res) => {
   try {
-    const { username, name, section, schedule } = req.body;
+    const { username, name, schedule } = req.body;
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (!user) return res.status(401).json({ error: "Sesión no válida" });
-    const newSubj = { id: 'subj-' + Date.now(), name, section: section || 'Sección A', schedule: schedule || 'Semestre Actual', documents: [], storybooks: [], audiobooks: [], exams: [] };
+    const newSubj = { id: 'subj-' + Date.now(), name, schedule: schedule || 'Semestre Actual', documents: [], storybooks: [], audiobooks: [] };
     user.subjects.push(newSubj);
     user.markModified('subjects');
     await user.save();
@@ -221,172 +246,104 @@ app.post('/api/subjects', async (req, res) => {
 
 app.delete('/api/subjects/:subjectId', async (req, res) => {
   try {
-    const { username } = req.body;
-    const cleanUsername = (username || '').toLowerCase();
-    await DocumentModel.deleteMany({ username: cleanUsername, subjectId: req.params.subjectId });
-    const user = await UserModel.findOne({ username: cleanUsername });
-    if (user) {
-      user.subjects = user.subjects.filter(s => s.id !== req.params.subjectId);
-      user.markModified('subjects');
-      await user.save();
-    }
+    const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await DocumentModel.deleteMany({ username: user.username, subjectId: req.params.subjectId });
+    user.subjects = user.subjects.filter(s => s.id !== req.params.subjectId);
+    user.markModified('subjects');
+    await user.save();
     res.json({ user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/documents', upload.any(), async (req, res) => {
   try {
-    const { username, subjectId, docTitle, customText, youtubeUrl } = req.body;
-    const cleanUsername = (username || '').toLowerCase();
-    const user = await UserModel.findOne({ username: cleanUsername });
-    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
-    const subject = user.subjects.find(s => s.id === subjectId);
-    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
-
-    const files = req.files || [];
+    const { username, subjectId, docTitle } = req.body;
+    const user = await UserModel.findOne({ username: username.toLowerCase() });
     const dateStr = new Date().toLocaleDateString('es-GT');
-
-    if (youtubeUrl && youtubeUrl.includes('youtu')) {
-      const ytContents = [`Extrae y explica con claridad el contenido de la clase en video de YouTube para la carrera ${user.career}: ${youtubeUrl}`];
-      const ytRes = await generateWithFallback(ytContents, null);
-
-      const newDoc = new DocumentModel({
-        docId: `doc-yt-${Date.now()}`, username: cleanUsername, subjectId,
-        title: docTitle || `Video Clase YouTube`, fileName: 'YouTube_Clase.txt', mimeType: 'text/plain',
-        base64Data: null, textContent: `Resumen de Clase YouTube:\n${ytRes.text}`, uploadedAt: dateStr
-      });
-      await newDoc.save();
+    for (let file of req.files || []) {
+      await new DocumentModel({
+        docId: `doc-${Date.now()}-${Math.random()}`, username: user.username, subjectId,
+        title: docTitle ? `${docTitle} (${file.originalname})` : file.originalname,
+        fileName: file.originalname, mimeType: file.mimetype,
+        base64Data: file.buffer.toString("base64"), textContent: '', uploadedAt: dateStr
+      }).save();
     }
-
-    if (files.length > 0) {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const newDoc = new DocumentModel({
-          docId: `doc-${Date.now()}-${i}`, username: cleanUsername, subjectId,
-          title: docTitle ? `${docTitle} (${file.originalname})` : file.originalname,
-          fileName: file.originalname, mimeType: file.mimetype,
-          base64Data: file.buffer.toString("base64"), textContent: (i === 0 && customText) ? customText : '', uploadedAt: dateStr
-        });
-        await newDoc.save();
-      }
-    } else if (customText?.trim() && !youtubeUrl) {
-      const newDoc = new DocumentModel({
-        docId: `doc-${Date.now()}-txt`, username: cleanUsername, subjectId,
-        title: docTitle || 'Apuntes', fileName: 'Apuntes.txt', mimeType: 'text/plain',
-        base64Data: null, textContent: customText, uploadedAt: dateStr
-      });
-      await newDoc.save();
-    }
-    
-    user.aiConsumptionUSD += 0.15;
-    await user.save();
     res.json({ user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.delete('/api/documents/:docId', async (req, res) => {
   try {
-    const { username, subjectId } = req.body;
-    await DocumentModel.deleteOne({ docId: req.params.docId, username: (username || '').toLowerCase() });
-    const user = await UserModel.findOne({ username: username.toLowerCase() });
-    if (user) {
-      const subj = user.subjects.find(s => s.id === subjectId);
-      if (subj) { subj.documents = subj.documents.filter(d => d.id !== req.params.docId); user.markModified('subjects'); await user.save(); }
-    }
+    await DocumentModel.deleteOne({ docId: req.params.docId, username: req.body.username.toLowerCase() });
+    const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
+    res.json({ user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// NUEVO: Eliminar Audiolibros de la Bitácora
+app.delete('/api/audiobooks/:abId', async (req, res) => {
+  try {
+    const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
+    const subj = user.subjects.find(s => s.id === req.body.subjectId);
+    subj.audiobooks = subj.audiobooks.filter(ab => ab.id !== req.params.abId);
+    user.markModified('subjects');
+    await user.save();
     res.json({ user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.delete('/api/storybooks/:sbId', async (req, res) => {
   try {
-    const { username, subjectId } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (user) {
-      const subj = user.subjects.find(s => s.id === subjectId);
-      if (subj) {
-        subj.storybooks = (subj.storybooks || []).filter(sb => sb.id !== req.params.sbId);
-        user.markModified('subjects');
-        await user.save();
-      }
-    }
-    res.json({ user: await serializeUser(user) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.delete('/api/audiobooks/:abId', async (req, res) => {
-  try {
-    const { username, subjectId } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (user) {
-      const subj = user.subjects.find(s => s.id === subjectId);
-      if (subj) {
-        subj.audiobooks = (subj.audiobooks || []).filter(ab => ab.id !== req.params.abId);
-        user.markModified('subjects');
-        await user.save();
-      }
-    }
+    const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
+    const subj = user.subjects.find(s => s.id === req.body.subjectId);
+    subj.storybooks = subj.storybooks.filter(sb => sb.id !== req.params.sbId);
+    user.markModified('subjects');
+    await user.save();
     res.json({ user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.delete('/api/subjects/:subjectId/documents', async (req, res) => {
   try {
-    const { username } = req.body;
-    const cleanUsername = (username || '').toLowerCase();
-    await DocumentModel.deleteMany({ username: cleanUsername, subjectId: req.params.subjectId });
-    const user = await UserModel.findOne({ username: cleanUsername });
-    if (user) {
-      const subj = user.subjects.find(s => s.id === req.params.subjectId);
-      if (subj) { subj.documents = []; user.markModified('subjects'); await user.save(); }
-    }
+    const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await DocumentModel.deleteMany({ username: user.username, subjectId: req.params.subjectId });
+    const subj = user.subjects.find(s => s.id === req.params.subjectId);
+    if (subj) { subj.documents = []; user.markModified('subjects'); await user.save(); }
     res.json({ user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-async function getFullDocumentsForSubject(username, subject, documentId) {
-  const savedDocs = await DocumentModel.find({ username: username.toLowerCase(), subjectId: subject.id }).lean();
-  const embeddedDocs = (subject.documents || []).filter(d => d.base64Data || d.textContent);
-  const allDocs = [...embeddedDocs, ...savedDocs.map(cd => ({ id: cd.docId, title: cd.title, fileName: cd.fileName, mimeType: cd.mimeType, base64Data: cd.base64Data, textContent: cd.textContent }))];
-  if (!documentId || documentId === 'ALL') return allDocs;
-  return allDocs.filter(d => d.id === documentId);
+// ================= COMPROBACIÓN DE SALDO IA =================
+async function consumeTokens(user, costUSD) {
+  if (user.role === 'admin') return true; // El admin tiene recursos ilimitados
+  const remaining = user.aiAllowanceUSD - user.aiConsumptionUSD;
+  if (remaining < costUSD) throw new Error("Saldo de IA insuficiente. Solicita más Tokens a tu administrador.");
+  user.aiConsumptionUSD += costUSD;
+  return true;
 }
 
-// 🎧 AUDIOLIBRO: LECTURA COMPLETA
+async function getFullDocumentsForSubject(username, subjectId, documentId) {
+  const docs = await DocumentModel.find({ username, subjectId }).lean();
+  if (documentId === 'ALL') return docs;
+  return docs.filter(d => d.docId === documentId);
+}
+
+// 🎧 ENDPOINT AUDIOLIBRO COMPLETO (CON BITÁCORA)
 app.post('/api/audiobook-chapters', async (req, res) => {
   try {
-    const { username, subjectId, documentId } = req.body;
-    if (!documentId || documentId === 'ALL') return res.status(400).json({ error: "Selecciona un libro o documento específico." });
+    const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.25); // Cuesta 25 centavos
     
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
-    const subject = user.subjects.find(s => s.id === subjectId);
-    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
-
-    const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
-    
+    const docs = await getFullDocumentsForSubject(user.username, req.body.subjectId, req.body.documentId);
     const contents = [
       `Analiza el siguiente documento y prepáralo para un audiolibro.
-       INSTRUCCIÓN ABSOLUTA: Tu objetivo es extraer el texto ORIGINAL y COMPLETO de la obra.
-       NO HAGAS RESÚMENES. NO OMITAS PÁRRAFOS.
-       Divide el texto íntegro en capítulos largos (chapterContent). Todo el contenido original debe estar reflejado en los capítulos.
-       Adicionalmente, genera un resumen ejecutivo del libro (bookSummary) para que el estudiante pueda descargarlo aparte.`
+       INSTRUCCIÓN ABSOLUTA: Extrae el texto ORIGINAL y COMPLETO de la obra. NO HAGAS RESÚMENES.
+       Divide el texto íntegro en capítulos largos (chapterContent).
+       Adicionalmente, genera un resumen ejecutivo del libro (bookSummary) para descarga.`
     ];
-
-    let hasContent = false;
-    for (const doc of docs) {
-      if (doc.base64Data) {
-        contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
-        hasContent = true;
-      }
-      if (doc.textContent) {
-        contents.push(`\n--- Texto del documento ---\n${doc.textContent}`);
-        hasContent = true;
-      }
-    }
-
-    if (!hasContent) {
-      return res.status(400).json({ error: "El libro está vacío o es ilegible." });
-    }
+    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
+    
+    if (docs.length === 0) throw new Error("El libro está vacío o es ilegible.");
 
     const schema = {
       type: Type.OBJECT,
@@ -408,6 +365,7 @@ app.post('/api/audiobook-chapters', async (req, res) => {
     const response = await generateWithFallback(contents, schema);
     const abData = JSON.parse(response.text);
 
+    // Guardar en bitácora permanentemente
     const newAudiobook = {
       id: 'ab-' + Date.now(),
       createdAt: new Date().toLocaleString('es-GT'),
@@ -416,10 +374,10 @@ app.post('/api/audiobook-chapters', async (req, res) => {
       chapters: abData.chapters || []
     };
 
-    subject.audiobooks = subject.audiobooks || [];
-    subject.audiobooks.push(newAudiobook);
+    const subj = user.subjects.find(s => s.id === req.body.subjectId);
+    subj.audiobooks = subj.audiobooks || [];
+    subj.audiobooks.push(newAudiobook);
 
-    user.aiConsumptionUSD += 0.25;
     user.markModified('subjects');
     await user.save();
 
@@ -427,79 +385,38 @@ app.post('/api/audiobook-chapters', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 🏛️ ORÁCULO FENOMENOLÓGICO
+// 🏛️ ENDPOINT: ORÁCULO FENOMENOLÓGICO
 app.post('/api/phenomenology-query', async (req, res) => {
   try {
-    const { username, query } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
-
-    const contents = [
-      `Actúa como un purista académico de la Fenomenología y el Existencialismo continental. 
-       REGLA: Céntrate en Husserl y Heidegger. NO uses filosofía analítica anglosajona.
-       Explica la siguiente consulta usando palabras humanas y profundas.
-       Consulta: "${query}"`
-    ];
-
-    const response = await generateWithFallback(contents, null);
-    user.aiConsumptionUSD += 0.10;
+    const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.05);
+    const response = await generateWithFallback([`Actúa como purista de Husserl y Heidegger. Explica profundo: ${req.body.query}`], null);
     await user.save();
     res.json({ answer: response.text, user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 📝 TAREAS Y RESÚMENES HUMANISTA
+// 📝 MÓDULO DE TAREAS Y RESÚMENES HUMANISTAS
 app.post('/api/university-homework', async (req, res) => {
   try {
-    const { username, subjectId, promptTask } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
-    const subject = user.subjects.find(s => s.id === subjectId);
-    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
-
-    const allDocs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
-    const contents = [
-      `Actúa como profesor universitario experto en "${user.career}", impartiendo "${subject.name}".
-      INSTRUCCIÓN: Realiza la tarea basándote en los documentos del repositorio.
-      ENFOQUE: Método humanista-existencial (sentido, libertad, experiencia humana real). Lenguaje cálido, 100% humano, sin tecnicismos fríos.
-      Solicitud: "${promptTask}"`
-    ];
+    const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.15);
+    const docs = await getFullDocumentsForSubject(user.username, req.body.subjectId, 'ALL');
+    const contents = [`Actúa como profesor experto. Aplica método humanista-existencial. Resuelve la solicitud leyendo los documentos adjuntos: "${req.body.promptTask}"`];
+    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
     
-    let hasContent = false;
-    for (const doc of allDocs) {
-      if (doc.base64Data) { contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }); hasContent = true; }
-      if (doc.textContent) { contents.push(`[${doc.title}]:\n${doc.textContent}`); hasContent = true; }
-    }
-    
-    if (!hasContent) {
-      return res.status(400).json({ error: "Debes subir al menos un PDF o texto en el repositorio."});
-    }
-
     const response = await generateWithFallback(contents, null);
-    user.aiConsumptionUSD += 0.12;
     await user.save();
     res.json({ result: response.text, user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// OTRAS HERRAMIENTAS DE IA
 app.post('/api/socratic-debate', async (req, res) => {
   try {
-    const { username, subjectId, philosopher, message, history } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    if (!user) return res.status(401).json({ error: "Usuario no autenticado" });
-    const subject = user.subjects.find(s => s.id === subjectId);
-    if (!subject) return res.status(404).json({ error: "Materia no encontrada" });
-
-    const allDocs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
-    const contents = [`Actúa como el experto: "${philosopher}". Carrera del estudiante: ${user.career}. Historial: ${history}. Intervención: "${message}". Responde con enfoque humanista-existencial, leyendo los documentos adjuntos.`];
-    
-    for (const doc of allDocs) {
-      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
-      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
-    }
-
-    const response = await generateWithFallback(contents, null);
-    user.aiConsumptionUSD += 0.08;
+    const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.08);
+    const response = await generateWithFallback([`Actúa como el experto: "${req.body.philosopher}". Historial: ${req.body.history}. Responde al estudiante: "${req.body.message}"`], null);
     await user.save();
     res.json({ reply: response.text, user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -507,121 +424,66 @@ app.post('/api/socratic-debate', async (req, res) => {
 
 app.post('/api/generate-timeline-map', async (req, res) => {
   try {
-    const { username, subjectId, documentId } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    const subject = user.subjects.find(s => s.id === subjectId);
+    const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.20);
+    const docs = await getFullDocumentsForSubject(user.username, req.body.subjectId, req.body.documentId);
+    const contents = [`Genera una línea de tiempo para la materia usando los documentos adjuntos.`];
+    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
     
-    const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
-    const contents = [`Genera una línea de tiempo para ${subject.name} con perspectiva humana usando los documentos adjuntos.`];
-    
-    let hasContent = false;
-    for (const doc of docs) { 
-      if (doc.base64Data) { contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }); hasContent = true; }
-      if (doc.textContent) { contents.push(`[${doc.title}]:\n${doc.textContent}`); hasContent = true; }
-    }
-    if (!hasContent) return res.status(400).json({ error: "Documento vacío." });
-
     const schema = { type: Type.OBJECT, properties: { timelineTitle: { type: Type.STRING }, eras: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { eraName: { type: Type.STRING }, mainAuthor: { type: Type.STRING }, coreIdea: { type: Type.STRING }, refutationOrLink: { type: Type.STRING } }, required: ["eraName", "mainAuthor", "coreIdea", "refutationOrLink"] } } }, required: ["timelineTitle", "eras"] };
     const response = await generateWithFallback(contents, schema);
-    
-    user.aiConsumptionUSD += 0.20; await user.save();
+    await user.save();
     res.json({ timelineMap: JSON.parse(response.text), user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/generate-mindmap', async (req, res) => {
   try {
-    const { username, subjectId, documentId } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    const subject = user.subjects.find(s => s.id === subjectId);
-    
-    const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
-    const contents = [`Genera un mapa conceptual para ${subject.name} usando los documentos adjuntos.`];
-    
-    let hasContent = false;
-    for (const doc of docs) { 
-      if (doc.base64Data) { contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }); hasContent = true; }
-      if (doc.textContent) { contents.push(`[${doc.title}]:\n${doc.textContent}`); hasContent = true; }
-    }
-    if (!hasContent) return res.status(400).json({ error: "Documento vacío." });
+    const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.15);
+    const docs = await getFullDocumentsForSubject(user.username, req.body.subjectId, req.body.documentId);
+    const contents = [`Genera un mapa conceptual usando los documentos adjuntos.`];
+    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
 
     const schema = { type: Type.OBJECT, properties: { centralTopic: { type: Type.STRING }, branches: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { branchName: { type: Type.STRING }, subitems: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["branchName", "subitems"] } } }, required: ["centralTopic", "branches"] };
     const response = await generateWithFallback(contents, schema);
-    
-    user.aiConsumptionUSD += 0.15; await user.save();
+    await user.save();
     res.json({ mindmap: JSON.parse(response.text), user: await serializeUser(user) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.post('/api/rag-search', async (req, res) => {
-  try {
-    const { username, subjectId, query } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    const subject = user.subjects.find(s => s.id === subjectId);
-    
-    const allDocs = await getFullDocumentsForSubject(user.username, subject, 'ALL');
-    const contents = [`Explica con enfoque existencial basándote en los adjuntos: "${query}"`];
-    
-    for (const doc of allDocs) { 
-      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
-      if (doc.textContent) contents.push(`[${doc.title}]:\n${doc.textContent}`);
-    }
-
-    const response = await generateWithFallback(contents, null);
-    user.aiConsumptionUSD += 0.10; await user.save();
-    res.json({ answer: response.text, user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/generate-flashcards', async (req, res) => {
   try {
-    const { username, subjectId, documentId } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    const subject = user.subjects.find(s => s.id === subjectId);
-    
-    const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
-    const contents = [`Genera 6 fichas de estudio con lenguaje humano basadas en el documento adjunto.`];
-    
-    let hasContent = false;
-    for (const doc of docs) { 
-      if (doc.base64Data) { contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }); hasContent = true; }
-      if (doc.textContent) { contents.push(`[${doc.title}]:\n${doc.textContent}`); hasContent = true; }
-    }
-    if (!hasContent) return res.status(400).json({ error: "Documento vacío." });
+    const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.15);
+    const docs = await getFullDocumentsForSubject(user.username, req.body.subjectId, req.body.documentId);
+    const contents = [`Genera 6 fichas de estudio basadas en el documento adjunto.`];
+    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
 
     const schema = { type: Type.OBJECT, properties: { flashcards: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, answer: { type: Type.STRING }, hint: { type: Type.STRING } }, required: ["question", "answer", "hint"] } } }, required: ["flashcards"] };
     const response = await generateWithFallback(contents, schema);
-    
-    user.aiConsumptionUSD += 0.15; await user.save();
+    await user.save();
     res.json({ flashcards: JSON.parse(response.text).flashcards, user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/generate-storybook', async (req, res) => {
   try {
-    const { username, subjectId, documentId, focusTopic } = req.body;
-    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
-    const subject = user.subjects.find(s => s.id === subjectId);
+    const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.20);
+    const docs = await getFullDocumentsForSubject(user.username, req.body.subjectId, req.body.documentId);
+    const contents = [`Crea una monografía académica gamificada basada en el documento.`];
+    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
 
-    const selectedDocs = await getFullDocumentsForSubject(user.username, subject, documentId);
-    const contents = [`Crea una monografía académica con enfoque humanista sobre ${subject.name} basada en el documento adjunto. Incluye resumen, línea de tiempo, escenas por autores, y trivia gamificada.`];
-    
-    let hasContent = false;
-    for (const doc of selectedDocs) { 
-      if (doc.base64Data) { contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }); hasContent = true; }
-      if (doc.textContent) { contents.push(`Texto (${doc.title}):\n${doc.textContent}`); hasContent = true; }
-    }
-    if (!hasContent) return res.status(400).json({ error: "Documento vacío." });
-
-    const schema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, universe: { type: Type.STRING }, summary: { type: Type.STRING }, scenes: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { sceneNumber: { type: Type.INTEGER }, characterName: { type: Type.STRING }, academicConcept: { type: Type.STRING }, storyDialogue: { type: Type.STRING }, memoryTrick: { type: Type.STRING }, animationEffect: { type: Type.STRING } }, required: ["sceneNumber", "characterName", "academicConcept", "storyDialogue", "memoryTrick", "animationEffect"] } }, timeline: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { step: { type: Type.INTEGER }, title: { type: Type.STRING }, description: { type: Type.STRING } }, required: ["step", "title", "description"] } }, quiz: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctIndex: { type: Type.INTEGER }, heroExplanation: { type: Type.STRING } }, required: ["question", "options", "correctIndex", "heroExplanation"] } } }, required: ["title", "universe", "summary", "scenes", "timeline", "quiz"] };
-    
+    const schema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, summary: { type: Type.STRING }, scenes: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { sceneNumber: { type: Type.INTEGER }, characterName: { type: Type.STRING }, academicConcept: { type: Type.STRING }, storyDialogue: { type: Type.STRING } }, required: ["sceneNumber", "characterName", "academicConcept", "storyDialogue"] } }, timeline: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { step: { type: Type.INTEGER }, title: { type: Type.STRING }, description: { type: Type.STRING } }, required: ["step", "title", "description"] } }, quiz: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctIndex: { type: Type.INTEGER }, heroExplanation: { type: Type.STRING } }, required: ["question", "options", "correctIndex", "heroExplanation"] } } }, required: ["title", "summary", "scenes", "timeline", "quiz"] };
     const response = await generateWithFallback(contents, schema);
-    const sbData = JSON.parse(response.text);
-
-    user.aiConsumptionUSD += 0.25; user.storybooksCreated += 1;
-    const newStorybook = { id: 'sb-' + Date.now(), createdAt: new Date().toLocaleString('es-GT'), sourceDocTitle: selectedDocs.map(d => d.title).join(' + ') || focusTopic, ...sbData };
-    subject.storybooks.push(newStorybook); user.markModified('subjects'); await user.save();
-
+    
+    const newStorybook = { id: 'sb-' + Date.now(), ...JSON.parse(response.text) };
+    const subj = user.subjects.find(s => s.id === req.body.subjectId);
+    subj.storybooks = subj.storybooks || [];
+    subj.storybooks.push(newStorybook);
+    user.markModified('subjects'); await user.save();
+    
     res.json({ storybook: newStorybook, user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
