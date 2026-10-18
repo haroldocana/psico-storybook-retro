@@ -104,7 +104,7 @@ window.handleLogin = async function(e) {
   }
 };
 
-// REGISTRO DE ALUMNOS (PANTALLA INICIAL)
+// REGISTRO CON VALIDACIÓN ROBUSTA
 window.handleRegister = async function(e) {
   e.preventDefault();
   
@@ -115,6 +115,7 @@ window.handleRegister = async function(e) {
   const regPass = document.getElementById('regPass').value;
   const regRecovery = document.getElementById('regRecovery') ? document.getElementById('regRecovery').value.trim() : 'clave123';
 
+  // Validaciones
   if (!regName || !regUser || !regCareer || !regEmail || !regPass) {
     return showAuthError("Todos los campos son obligatorios.");
   }
@@ -166,7 +167,7 @@ window.handleRegister = async function(e) {
   }
 };
 
-// RECUPERACIÓN DE CONTRASEÑA (DESDE EL LOGIN)
+// RECUPERACIÓN DE CONTRASEÑA
 window.recoverPassword = async function() {
   const u = document.getElementById('resetUsername').value.trim();
   const w = document.getElementById('resetWord').value.trim();
@@ -192,7 +193,7 @@ window.recoverPassword = async function() {
   }
 };
 
-// NUEVO: CAMBIAR CONTRASEÑA ESTANDO LOGUEADO
+// CAMBIAR CONTRASEÑA ESTANDO LOGUEADO
 window.changeUserPassword = async function() {
   const oldP = document.getElementById('changePassOld').value;
   const newP = document.getElementById('changePassNew').value;
@@ -247,6 +248,7 @@ window.logout = function() {
 // ==========================================
 // 4. SISTEMA DE TOKENS IA Y PANEL ADMINISTRADOR
 // ==========================================
+
 window.requestMoreTokens = async function() {
   if(!confirm("¿Deseas enviar una solicitud al Administrador Master para cargar más Saldo de Inteligencia Artificial?")) return;
   try {
@@ -293,7 +295,9 @@ window.loadAdminUsers = async function() {
   }
 };
 
-// NUEVO: CREAR ALUMNO DESDE EL MASTER CON CARGA DE TOKENS
+// ==========================================
+// EL MÓDULO MASTER DE CREACIÓN DE USUARIO CON TOKENS
+// ==========================================
 window.adminCreateUser = async function(e) {
   e.preventDefault();
   const n = document.getElementById('adminNewName').value.trim();
@@ -312,7 +316,7 @@ window.adminCreateUser = async function(e) {
     });
     const data = await res.json();
     if(res.ok) {
-      alert('Alumno creado exitosamente con sus tokens asignados.');
+      alert('Alumno creado exitosamente con sus tokens asignados y guardado en la base de datos de MongoDB.');
       document.getElementById('adminCreateUserForm').reset();
       loadAdminUsers();
     } else {
@@ -326,13 +330,15 @@ window.adminCreateUser = async function(e) {
 window.adminAddTokens = async function(username) {
   if(!confirm(`¿Añadir $5.00 USD de saldo a ${username}?`)) return;
   try {
-    await fetch('/api/admin/add-tokens', { 
+    const res = await fetch('/api/admin/add-tokens', { 
       method:'POST', 
       headers:{'Content-Type':'application/json', 'x-user': currentUser.username}, 
       body: JSON.stringify({targetUsername: username, amount: 5.00}) 
     });
-    alert(`Saldo añadido exitosamente a ${username}`);
-    loadAdminUsers();
+    if (res.ok) {
+      alert(`Saldo añadido exitosamente a ${username} en MongoDB.`);
+      loadAdminUsers();
+    }
   } catch(e) {
     alert("Error al añadir saldo.");
   }
@@ -882,7 +888,6 @@ window.generateAudiobook = async function() {
     currentUser = data.user;
     renderDashboard();
     
-    // Carga la interfaz usando la misma función de bitácora
     window.openSavedAudiobook(data.audiobook);
 
   } catch (err) { 
