@@ -104,7 +104,7 @@ window.handleLogin = async function(e) {
   }
 };
 
-// REGISTRO CON VALIDACIÓN ROBUSTA
+// REGISTRO DE ALUMNOS (PANTALLA INICIAL)
 window.handleRegister = async function(e) {
   e.preventDefault();
   
@@ -115,7 +115,6 @@ window.handleRegister = async function(e) {
   const regPass = document.getElementById('regPass').value;
   const regRecovery = document.getElementById('regRecovery') ? document.getElementById('regRecovery').value.trim() : 'clave123';
 
-  // Validaciones
   if (!regName || !regUser || !regCareer || !regEmail || !regPass) {
     return showAuthError("Todos los campos son obligatorios.");
   }
@@ -167,7 +166,7 @@ window.handleRegister = async function(e) {
   }
 };
 
-// RECUPERACIÓN DE CONTRASEÑA
+// RECUPERACIÓN DE CONTRASEÑA (DESDE EL LOGIN)
 window.recoverPassword = async function() {
   const u = document.getElementById('resetUsername').value.trim();
   const w = document.getElementById('resetWord').value.trim();
@@ -190,6 +189,33 @@ window.recoverPassword = async function() {
     }
   } catch(e) { 
     alert("Error de conexión al intentar recuperar la contraseña."); 
+  }
+};
+
+// NUEVO: CAMBIAR CONTRASEÑA ESTANDO LOGUEADO
+window.changeUserPassword = async function() {
+  const oldP = document.getElementById('changePassOld').value;
+  const newP = document.getElementById('changePassNew').value;
+  
+  if(!oldP || !newP) return alert("Llena ambos campos para cambiar la contraseña.");
+  
+  try {
+    const res = await fetch('/api/user/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: currentUser.username, oldPassword: oldP, newPassword: newP })
+    });
+    const data = await res.json();
+    if(res.ok) {
+      alert("Contraseña actualizada con éxito.");
+      document.getElementById('modalChangePass').classList.add('hidden');
+      document.getElementById('changePassOld').value = '';
+      document.getElementById('changePassNew').value = '';
+    } else {
+      alert(data.error);
+    }
+  } catch(e) {
+    alert("Error de conexión al cambiar contraseña.");
   }
 };
 
@@ -221,7 +247,6 @@ window.logout = function() {
 // ==========================================
 // 4. SISTEMA DE TOKENS IA Y PANEL ADMINISTRADOR
 // ==========================================
-
 window.requestMoreTokens = async function() {
   if(!confirm("¿Deseas enviar una solicitud al Administrador Master para cargar más Saldo de Inteligencia Artificial?")) return;
   try {
@@ -268,32 +293,33 @@ window.loadAdminUsers = async function() {
   }
 };
 
-// ESTA ES LA FUNCIÓN QUE FALTABA PARA CREAR USUARIOS DESDE EL MASTER
+// NUEVO: CREAR ALUMNO DESDE EL MASTER CON CARGA DE TOKENS
 window.adminCreateUser = async function(e) {
   e.preventDefault();
   const n = document.getElementById('adminNewName').value.trim();
   const u = document.getElementById('adminNewUser').value.trim();
   const p = document.getElementById('adminNewPass').value;
   const c = document.getElementById('adminNewCareer').value.trim();
+  const t = document.getElementById('adminNewTokens') ? document.getElementById('adminNewTokens').value : '2.00';
 
-  if (!n || !u || !p || !c) return alert("Todos los campos son obligatorios.");
+  if (!n || !u || !p || !c || !t) return alert("Todos los campos son obligatorios.");
 
   try {
     const res = await fetch('/api/admin/create-user', {
       method: 'POST', 
       headers: {'Content-Type':'application/json', 'x-user': currentUser.username},
-      body: JSON.stringify({ fullName: n, username: u, password: p, career: c })
+      body: JSON.stringify({ fullName: n, username: u, password: p, career: c, initialTokens: t })
     });
     const data = await res.json();
     if(res.ok) {
-      alert('Alumno creado exitosamente.');
+      alert('Alumno creado exitosamente con sus tokens asignados.');
       document.getElementById('adminCreateUserForm').reset();
       loadAdminUsers();
     } else {
       alert(data.error);
     }
   } catch(err) { 
-    alert('Error al crear usuario'); 
+    alert('Error al crear usuario desde el panel Master.'); 
   }
 };
 
@@ -856,6 +882,7 @@ window.generateAudiobook = async function() {
     currentUser = data.user;
     renderDashboard();
     
+    // Carga la interfaz usando la misma función de bitácora
     window.openSavedAudiobook(data.audiobook);
 
   } catch (err) { 
