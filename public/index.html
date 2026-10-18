@@ -4,7 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Plataforma Académica Universitaria</title>
+  
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  
   <style>
     /* =========================================
        DISEÑO Y ESTILOS (PLATAFORMA EDUCATIVA)
@@ -103,6 +106,7 @@
     }
   </style>
 </head>
+
 <body class="text-slate-100 flex flex-col min-h-screen">
 
   <!-- =========================================
@@ -275,7 +279,7 @@
             <div class="bg-slate-900 p-6 rounded-2xl border border-amber-500/40 shadow-inner">
               <h4 class="font-black text-base text-cyan-300 mb-3 flex items-center gap-2"><span>📜</span> De la Consciencia al Ser</h4>
               <p class="text-sm text-slate-300 leading-relaxed">
-                <b>Edmund Husserl</b> funda la fenomenología para ir "a las cosas mismas", estableciendo que la <i>Consciencia</i> siempre es intencional. Su alumno, <b>Martin Heidegger</b>, toma este método pero lo enfoca en la existencia humana concreta en el tiempo, creando la ontología fundamental y descubriendo al <i>Dasein</i> (el Ser-ahí).
+                <b>Edmund Husserl</b> funda la fenomenología para ir "a las cosas mismas", estableciendo que la <i>Consciencia</i> siempre es intencional. Su alumno, <b>Martin Heidegger</b>, toma este método pero lo enfoca en la existencia humana concreta, creando la ontología fundamental y descubriendo al <i>Dasein</i> (el Ser-ahí).
               </p>
             </div>
             <div class="bg-slate-900 p-6 rounded-2xl border border-amber-500/40 shadow-inner">
@@ -551,177 +555,8 @@
     </div>
   </div>
 
+  <!-- ESTE ES EL ENLACE MÁGICO AL ARCHIVO JAVASCRIPT -->
+  <script src="app.js"></script>
 
-  <!-- =========================================
-       SCRIPTS Y LÓGICA JAVASCRIPT
-       ========================================= -->
-  <script>
-    let currentUser = null;
-    let activeSubjectId = null;
-    let socraticHistory = '';
-    
-    // Variables globales para el resumen del audiolibro
-    window.currentAudiobookSummary = "";
-    window.currentAudiobookTitle = "";
-
-    // 1. INICIALIZACIÓN Y SESIÓN
-    window.addEventListener('DOMContentLoaded', async () => {
-      const savedUsername = localStorage.getItem('psico_active_user');
-      if (savedUsername) {
-        try {
-          const res = await fetch(`/api/auth/session/${encodeURIComponent(savedUsername)}`);
-          const data = await res.json();
-          if (res.ok && data.user) {
-            enterApp(data.user);
-          }
-        } catch (e) {
-          console.error("Error cargando sesión:", e);
-        }
-      }
-    });
-
-    // 2. FUNCIÓN DE VOZ SINTÉTICA (TTS)
-    function speakText(text) {
-      if (!('speechSynthesis' in window)) {
-        return alert('Tu navegador no soporta síntesis de voz. Por favor usa Chrome, Edge o Safari.');
-      }
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'es-ES';
-      window.speechSynthesis.speak(utterance);
-    }
-
-    // 3. FUNCIONES DE AUTENTICACIÓN
-    function switchAuthTab(tab) {
-      document.getElementById('authError').classList.add('hidden');
-      document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
-      document.getElementById('registerForm').classList.toggle('hidden', tab !== 'register');
-      
-      document.getElementById('tabLogin').className = tab === 'login' 
-        ? 'flex-1 py-3 rounded-xl text-xs font-black bg-indigo-600 text-white shadow transition-all' 
-        : 'flex-1 py-3 rounded-xl text-xs font-black text-slate-400 hover:text-white transition-all';
-        
-      document.getElementById('tabRegister').className = tab === 'register' 
-        ? 'flex-1 py-3 rounded-xl text-xs font-black bg-emerald-600 text-white shadow transition-all' 
-        : 'flex-1 py-3 rounded-xl text-xs font-black text-slate-400 hover:text-white transition-all';
-    }
-
-    function showAuthError(msg) { 
-      const el = document.getElementById('authError'); 
-      el.textContent = msg; 
-      el.classList.remove('hidden'); 
-    }
-
-    // =========== FIX: LOGIN ROBUSTO ===========
-    async function handleLogin(e) {
-      e.preventDefault();
-      const btn = document.getElementById('btnLoginBtn');
-      const originalText = btn.innerHTML;
-      btn.innerHTML = '⏳ Conectando...';
-      btn.disabled = true;
-      document.getElementById('authError').classList.add('hidden');
-
-      try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST', 
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            identifier: document.getElementById('loginId').value, 
-            password: document.getElementById('loginPass').value 
-          })
-        });
-        
-        let data;
-        try {
-          data = await res.json();
-        } catch(err) {
-          throw new Error("El servidor devolvió un error interno o está caído.");
-        }
-        
-        if (!res.ok) {
-          showAuthError(data.error || "Error al iniciar sesión.");
-          btn.innerHTML = originalText;
-          btn.disabled = false;
-          return;
-        }
-        
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-        enterApp(data.user);
-        
-      } catch (e) { 
-        showAuthError(e.message || 'Error de red: El servidor no responde o la base de datos falló.'); 
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-      }
-    }
-
-    async function handleRegister(e) {
-      e.preventDefault();
-      const btn = document.getElementById('btnRegBtn');
-      const originalText = btn.innerHTML;
-      btn.innerHTML = '⏳ Registrando...';
-      btn.disabled = true;
-      document.getElementById('authError').classList.add('hidden');
-
-      try {
-        const res = await fetch('/api/auth/register', {
-          method: 'POST', 
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            fullName: document.getElementById('regName').value, 
-            username: document.getElementById('regUser').value, 
-            career: document.getElementById('regCareer').value, 
-            email: document.getElementById('regEmail').value, 
-            password: document.getElementById('regPass').value 
-          })
-        });
-        
-        let data;
-        try {
-          data = await res.json();
-        } catch(err) {
-          throw new Error("El servidor devolvió un error interno o está caído.");
-        }
-
-        if (!res.ok) {
-          showAuthError(data.error || "Error al registrar la cuenta.");
-          btn.innerHTML = originalText;
-          btn.disabled = false;
-          return;
-        }
-        
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-        enterApp(data.user);
-        
-      } catch (e) { 
-        showAuthError(e.message || 'Error al registrar: Servidor fuera de línea.'); 
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-      }
-    }
-
-    function enterApp(user) {
-      currentUser = user;
-      localStorage.setItem('psico_active_user', user.username);
-      const lastSubj = localStorage.getItem(`psico_subj_${user.username}`);
-      activeSubjectId = (user.subjects.find(s => s.id === lastSubj) ? lastSubj : user.subjects[0]?.id) || null;
-      document.getElementById('authScreen').classList.add('hidden');
-      document.getElementById('appScreen').classList.remove('hidden');
-      renderDashboard();
-    }
-
-    function logout() { 
-      currentUser = null; 
-      localStorage.removeItem('psico_active_user'); 
-      location.reload(); 
-    }
-
-    // 4. RENDERIZADO DEL DASHBOARD Y MATERIAS
-    function updateSelectedFilesList() {
-      const input = document.getElementById('docFiles');
-      document.getElementById('selectedFilesPreview').textContent = input.files.length > 0 
-        ? `✅ ${input.files.length} archivo(s) listos para subir.` 
-        : '';
-    }
+</body>
+</html>
