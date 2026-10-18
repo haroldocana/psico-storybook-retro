@@ -53,18 +53,17 @@ const DocumentSchema = new mongoose.Schema({
 
 const DocumentModel = mongoose.model('Document', DocumentSchema);
 
-// SCHEMA ACTUALIZADO CON ROLES, TOKENS Y RECUPERACIÓN
 const UserSchema = new mongoose.Schema({
   username: { type: String, unique: true, lowercase: true },
   fullName: String,
   email: { type: String, lowercase: true },
   password: String,
-  recoveryWord: String, // Palabra clave para resetear contraseña
+  recoveryWord: String,
   career: String,
-  role: { type: String, default: 'student' }, // 'admin' o 'student'
-  aiAllowanceUSD: { type: Number, default: 2.00 }, // Saldo total asignado al inicio
-  aiConsumptionUSD: { type: Number, default: 0 }, // Saldo gastado
-  pendingTokenRequest: { type: Boolean, default: false }, // ¿Pidió más saldo?
+  role: { type: String, default: 'student' }, 
+  aiAllowanceUSD: { type: Number, default: 2.00 },
+  aiConsumptionUSD: { type: Number, default: 0 },
+  pendingTokenRequest: { type: Boolean, default: false },
   storybooksCreated: { type: Number, default: 0 },
   subjects: Array
 });
@@ -73,21 +72,21 @@ const UserModel = mongoose.model('User', UserSchema);
 
 async function ensureDefaultUsers() {
   try {
-    // 1. Crear el usuario administrador MASTER
-    let admin = await UserModel.findOne({ username: 'master' });
-    if (!admin) {
-      await new UserModel({
-        username: 'master',
-        fullName: 'Administrador Maestro',
-        email: 'master@universidad.edu',
-        password: 'master123',
-        recoveryWord: 'admin',
-        career: 'Administración de Sistemas',
-        role: 'admin',
-        aiAllowanceUSD: 1000.00, // Saldo casi infinito para el admin
-        subjects: []
-      }).save();
-    }
+    // FIX: Actualiza automáticamente el usuario master para que SIEMPRE tenga permisos de Admin.
+    await UserModel.findOneAndUpdate(
+      { username: 'master' },
+      { 
+        $set: { role: 'admin', aiAllowanceUSD: 9999 },$setOnInsert: {
+          fullName: 'Administrador Maestro',
+          email: 'master@universidad.edu',
+          password: 'master123',
+          recoveryWord: 'admin',
+          career: 'Administración de Sistemas',
+          subjects: []
+        }
+      },
+      { upsert: true, new: true }
+    );
   } catch (e) {
     console.error("Error al asegurar usuarios por defecto:", e.message);
   }
@@ -121,7 +120,7 @@ app.use('/api', async (req, res, next) => {
 
 async function serializeUser(user) {
   const obj = user.toObject();
-  delete obj.password; // Ocultar password por seguridad
+  delete obj.password;
   const savedDocs = await DocumentModel.find({ username: obj.username }, { base64Data: 0, textContent: 0 }).lean();
   obj.subjects = (obj.subjects || []).map(s => {
     const embeddedDocs = (s.documents || []).map(d => ({ id: d.id, title: d.title, fileName: d.fileName }));
@@ -133,7 +132,7 @@ async function serializeUser(user) {
   return obj;
 }
 
-// ================= RUTA DE AUTENTICACIÓN =================
+// ================= AUTENTICACIÓN =================
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { identifier, password } = req.body;
@@ -142,15 +141,14 @@ app.post('/api/auth/login', async (req, res) => {
     const user = await UserModel.findOne({ $or: [{ username: cleanId }, { email: cleanId }] });
     if (!user || user.password !== password) return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
     res.json({ user: await serializeUser(user) });
-  } catch (err) { res.status(500).json({ error: "Fallo interno: " + err.message }); }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { fullName, username, email, password, recoveryWord, career } = req.body;
     const cleanUsername = (username || '').trim().toLowerCase();
-    const existing = await UserModel.findOne({ username: cleanUsername });
-    if (existing) return res.status(400).json({ error: "El usuario ya existe." });
+    if (await UserModel.findOne({ username: cleanUsername })) return res.status(400).json({ error: "El usuario ya existe." });
     
     const newUser = new UserModel({
       username: cleanUsername, fullName, email: (email || `${cleanUsername}@universidad.edu`).toLowerCase(),
@@ -170,27 +168,46 @@ app.get('/api/auth/session/:username', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ================= RECUPERACIÓN DE CONTRASEÑA =================
 app.post('/api/auth/reset-password', async (req, res) => {
   try {
     const { username, recoveryWord, newPassword } = req.body;
     const user = await UserModel.findOne({ username: username.toLowerCase() });
     if (!user) return res.status(404).json({ error: "Usuario no existe." });
     if (user.recoveryWord !== recoveryWord) return res.status(401).json({ error: "Palabra clave de recuperación incorrecta." });
-    
     user.password = newPassword;
     await user.save();
     res.json({ success: true, message: "Contraseña actualizada exitosamente." });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ================= PANEL DE ADMINISTRADOR MASTER =================
+// ================= PANEL DE ADMINISTRADOR =================
 app.get('/api/admin/users', async (req, res) => {
   try {
     const requester = await UserModel.findOne({ username: req.headers['x-user'] });
     if (!requester || requester.role !== 'admin') return res.status(403).json({ error: "Acceso denegado." });
-    const users = await UserModel.find({}, { password: 0, recoveryWord: 0 }); // Todo menos info sensible
+    const users = await UserModel.find({ role: { $ne: 'admin' } }, { password: 0, recoveryWord: 0 }); 
     res.json(users);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// FIX: Creación de usuarios por parte del Master
+app.post('/api/admin/create-user', async (req, res) => {
+  try {
+    const requester = await UserModel.findOne({ username: req.headers['x-user'] });
+    if (!requester || requester.role !== 'admin') return res.status(403).json({ error: "Acceso denegado." });
+    
+    const { fullName, username, password, career } = req.body;
+    const cleanUsername = username.trim().toLowerCase();
+    
+    if (await UserModel.findOne({ username: cleanUsername })) return res.status(400).json({ error: "El usuario ya existe." });
+    
+    await new UserModel({
+      username: cleanUsername, fullName, email: `${cleanUsername}@universidad.edu`,
+      password, recoveryWord: 'admin123', career: career || 'Estudios Generales',
+      subjects: [{ id: 'subj-init', name: 'Mi Primera Materia', schedule: 'Semestre 1', documents: [], storybooks: [], audiobooks: [] }]
+    }).save();
+    
+    res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -205,7 +222,7 @@ app.post('/api/admin/add-tokens', async (req, res) => {
     targetUser.aiAllowanceUSD += parseFloat(req.body.amount);
     targetUser.pendingTokenRequest = false;
     await targetUser.save();
-    res.json({ success: true, user: await serializeUser(targetUser) });
+    res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -221,7 +238,6 @@ app.post('/api/admin/force-reset', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ================= SOLICITUD DE TOKENS DEL ESTUDIANTE =================
 app.post('/api/user/request-tokens', async (req, res) => {
   try {
     const user = await UserModel.findOne({ username: req.body.username });
@@ -255,19 +271,35 @@ app.delete('/api/subjects/:subjectId', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// FIX: Restaurada la subida de YouTube y Múltiples formatos
 app.post('/api/documents', upload.any(), async (req, res) => {
   try {
-    const { username, subjectId, docTitle } = req.body;
+    const { username, subjectId, docTitle, youtubeUrl } = req.body;
     const user = await UserModel.findOne({ username: username.toLowerCase() });
     const dateStr = new Date().toLocaleDateString('es-GT');
-    for (let file of req.files || []) {
+    
+    // Si envían YouTube
+    if (youtubeUrl && youtubeUrl.includes('youtu')) {
+      const ytRes = await generateWithFallback([`Extrae un resumen detallado y puntos clave del siguiente video de YouTube: ${youtubeUrl}`], null);
       await new DocumentModel({
-        docId: `doc-${Date.now()}-${Math.random()}`, username: user.username, subjectId,
-        title: docTitle ? `${docTitle} (${file.originalname})` : file.originalname,
-        fileName: file.originalname, mimeType: file.mimetype,
-        base64Data: file.buffer.toString("base64"), textContent: '', uploadedAt: dateStr
+        docId: `doc-yt-${Date.now()}`, username: user.username, subjectId,
+        title: docTitle || `Video Clase YouTube`, fileName: 'YouTube_Clase.txt', mimeType: 'text/plain',
+        base64Data: null, textContent: `Resumen de Video:\n${ytRes.text}`, uploadedAt: dateStr
       }).save();
     }
+
+    // Si envían Archivos
+    if (req.files && req.files.length > 0) {
+      for (let file of req.files) {
+        await new DocumentModel({
+          docId: `doc-${Date.now()}-${Math.random()}`, username: user.username, subjectId,
+          title: docTitle ? `${docTitle} (${file.originalname})` : file.originalname,
+          fileName: file.originalname, mimeType: file.mimetype,
+          base64Data: file.buffer.toString("base64"), textContent: '', uploadedAt: dateStr
+        }).save();
+      }
+    }
+
     res.json({ user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -280,14 +312,12 @@ app.delete('/api/documents/:docId', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// NUEVO: Eliminar Audiolibros de la Bitácora
 app.delete('/api/audiobooks/:abId', async (req, res) => {
   try {
     const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
     const subj = user.subjects.find(s => s.id === req.body.subjectId);
     subj.audiobooks = subj.audiobooks.filter(ab => ab.id !== req.params.abId);
-    user.markModified('subjects');
-    await user.save();
+    user.markModified('subjects'); await user.save();
     res.json({ user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -297,8 +327,7 @@ app.delete('/api/storybooks/:sbId', async (req, res) => {
     const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
     const subj = user.subjects.find(s => s.id === req.body.subjectId);
     subj.storybooks = subj.storybooks.filter(sb => sb.id !== req.params.sbId);
-    user.markModified('subjects');
-    await user.save();
+    user.markModified('subjects'); await user.save();
     res.json({ user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -307,17 +336,15 @@ app.delete('/api/subjects/:subjectId/documents', async (req, res) => {
   try {
     const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
     await DocumentModel.deleteMany({ username: user.username, subjectId: req.params.subjectId });
-    const subj = user.subjects.find(s => s.id === req.params.subjectId);
-    if (subj) { subj.documents = []; user.markModified('subjects'); await user.save(); }
     res.json({ user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ================= COMPROBACIÓN DE SALDO IA =================
+// ================= LÓGICA DE IA Y TOKENS =================
 async function consumeTokens(user, costUSD) {
-  if (user.role === 'admin') return true; // El admin tiene recursos ilimitados
+  if (user.role === 'admin') return true; 
   const remaining = user.aiAllowanceUSD - user.aiConsumptionUSD;
-  if (remaining < costUSD) throw new Error("Saldo de IA insuficiente. Solicita más Tokens a tu administrador.");
+  if (remaining <= 0) throw new Error("Saldo de Tokens agotado. Solicita más saldo a tu profesor/administrador.");
   user.aiConsumptionUSD += costUSD;
   return true;
 }
@@ -328,64 +355,29 @@ async function getFullDocumentsForSubject(username, subjectId, documentId) {
   return docs.filter(d => d.docId === documentId);
 }
 
-// 🎧 ENDPOINT AUDIOLIBRO COMPLETO (CON BITÁCORA)
+// ENDPOINTS IA
 app.post('/api/audiobook-chapters', async (req, res) => {
   try {
     const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
-    await consumeTokens(user, 0.25); // Cuesta 25 centavos
-    
+    await consumeTokens(user, 0.25);
     const docs = await getFullDocumentsForSubject(user.username, req.body.subjectId, req.body.documentId);
-    const contents = [
-      `Analiza el siguiente documento y prepáralo para un audiolibro.
-       INSTRUCCIÓN ABSOLUTA: Extrae el texto ORIGINAL y COMPLETO de la obra. NO HAGAS RESÚMENES.
-       Divide el texto íntegro en capítulos largos (chapterContent).
-       Adicionalmente, genera un resumen ejecutivo del libro (bookSummary) para descarga.`
-    ];
-    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
-    
     if (docs.length === 0) throw new Error("El libro está vacío o es ilegible.");
 
-    const schema = {
-      type: Type.OBJECT,
-      properties: {
-        audiobookTitle: { type: Type.STRING },
-        bookSummary: { type: Type.STRING },
-        chapters: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: { chapterTitle: { type: Type.STRING }, chapterContent: { type: Type.STRING } },
-            required: ["chapterTitle", "chapterContent"]
-          }
-        }
-      },
-      required: ["audiobookTitle", "bookSummary", "chapters"]
-    };
+    const contents = ["Analiza el siguiente documento y extrae la obra completa dividida en capítulos (chapterContent). NO HAGAS RESÚMENES, quiero la lectura íntegra. Genera también un resumen analítico descargable (bookSummary)."];
+    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
 
+    const schema = { type: Type.OBJECT, properties: { audiobookTitle: { type: Type.STRING }, bookSummary: { type: Type.STRING }, chapters: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { chapterTitle: { type: Type.STRING }, chapterContent: { type: Type.STRING } }, required: ["chapterTitle", "chapterContent"] } } }, required: ["audiobookTitle", "bookSummary", "chapters"] };
     const response = await generateWithFallback(contents, schema);
-    const abData = JSON.parse(response.text);
-
-    // Guardar en bitácora permanentemente
-    const newAudiobook = {
-      id: 'ab-' + Date.now(),
-      createdAt: new Date().toLocaleString('es-GT'),
-      audiobookTitle: abData.audiobookTitle || "Audiolibro Completo",
-      bookSummary: abData.bookSummary || "Resumen no disponible.",
-      chapters: abData.chapters || []
-    };
-
+    
+    const newAudiobook = { id: 'ab-' + Date.now(), createdAt: new Date().toLocaleString('es-GT'), ...JSON.parse(response.text) };
     const subj = user.subjects.find(s => s.id === req.body.subjectId);
-    subj.audiobooks = subj.audiobooks || [];
-    subj.audiobooks.push(newAudiobook);
-
-    user.markModified('subjects');
-    await user.save();
-
+    subj.audiobooks = subj.audiobooks || []; subj.audiobooks.push(newAudiobook);
+    user.markModified('subjects'); await user.save();
+    
     res.json({ audiobook: newAudiobook, user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 🏛️ ENDPOINT: ORÁCULO FENOMENOLÓGICO
 app.post('/api/phenomenology-query', async (req, res) => {
   try {
     const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
@@ -396,7 +388,6 @@ app.post('/api/phenomenology-query', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 📝 MÓDULO DE TAREAS Y RESÚMENES HUMANISTAS
 app.post('/api/university-homework', async (req, res) => {
   try {
     const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
@@ -404,18 +395,16 @@ app.post('/api/university-homework', async (req, res) => {
     const docs = await getFullDocumentsForSubject(user.username, req.body.subjectId, 'ALL');
     const contents = [`Actúa como profesor experto. Aplica método humanista-existencial. Resuelve la solicitud leyendo los documentos adjuntos: "${req.body.promptTask}"`];
     docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
-    
     const response = await generateWithFallback(contents, null);
     await user.save();
     res.json({ result: response.text, user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// OTRAS HERRAMIENTAS DE IA
 app.post('/api/socratic-debate', async (req, res) => {
   try {
     const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
-    await consumeTokens(user, 0.08);
+    await consumeTokens(user, 0.05);
     const response = await generateWithFallback([`Actúa como el experto: "${req.body.philosopher}". Historial: ${req.body.history}. Responde al estudiante: "${req.body.message}"`], null);
     await user.save();
     res.json({ reply: response.text, user: await serializeUser(user) });
@@ -425,15 +414,13 @@ app.post('/api/socratic-debate', async (req, res) => {
 app.post('/api/generate-timeline-map', async (req, res) => {
   try {
     const user = await UserModel.findOne({ username: req.body.username.toLowerCase() });
-    await consumeTokens(user, 0.20);
+    await consumeTokens(user, 0.15);
     const docs = await getFullDocumentsForSubject(user.username, req.body.subjectId, req.body.documentId);
-    const contents = [`Genera una línea de tiempo para la materia usando los documentos adjuntos.`];
+    const contents = [`Genera una línea de tiempo usando los documentos adjuntos.`];
     docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
-    
     const schema = { type: Type.OBJECT, properties: { timelineTitle: { type: Type.STRING }, eras: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { eraName: { type: Type.STRING }, mainAuthor: { type: Type.STRING }, coreIdea: { type: Type.STRING }, refutationOrLink: { type: Type.STRING } }, required: ["eraName", "mainAuthor", "coreIdea", "refutationOrLink"] } } }, required: ["timelineTitle", "eras"] };
     const response = await generateWithFallback(contents, schema);
-    await user.save();
-    res.json({ timelineMap: JSON.parse(response.text), user: await serializeUser(user) });
+    await user.save(); res.json({ timelineMap: JSON.parse(response.text), user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -444,11 +431,9 @@ app.post('/api/generate-mindmap', async (req, res) => {
     const docs = await getFullDocumentsForSubject(user.username, req.body.subjectId, req.body.documentId);
     const contents = [`Genera un mapa conceptual usando los documentos adjuntos.`];
     docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
-
     const schema = { type: Type.OBJECT, properties: { centralTopic: { type: Type.STRING }, branches: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { branchName: { type: Type.STRING }, subitems: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["branchName", "subitems"] } } }, required: ["centralTopic", "branches"] };
     const response = await generateWithFallback(contents, schema);
-    await user.save();
-    res.json({ mindmap: JSON.parse(response.text), user: await serializeUser(user) });
+    await user.save(); res.json({ mindmap: JSON.parse(response.text), user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -459,11 +444,9 @@ app.post('/api/generate-flashcards', async (req, res) => {
     const docs = await getFullDocumentsForSubject(user.username, req.body.subjectId, req.body.documentId);
     const contents = [`Genera 6 fichas de estudio basadas en el documento adjunto.`];
     docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
-
     const schema = { type: Type.OBJECT, properties: { flashcards: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, answer: { type: Type.STRING }, hint: { type: Type.STRING } }, required: ["question", "answer", "hint"] } } }, required: ["flashcards"] };
     const response = await generateWithFallback(contents, schema);
-    await user.save();
-    res.json({ flashcards: JSON.parse(response.text).flashcards, user: await serializeUser(user) });
+    await user.save(); res.json({ flashcards: JSON.parse(response.text).flashcards, user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -474,14 +457,12 @@ app.post('/api/generate-storybook', async (req, res) => {
     const docs = await getFullDocumentsForSubject(user.username, req.body.subjectId, req.body.documentId);
     const contents = [`Crea una monografía académica gamificada basada en el documento.`];
     docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
-
     const schema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, summary: { type: Type.STRING }, scenes: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { sceneNumber: { type: Type.INTEGER }, characterName: { type: Type.STRING }, academicConcept: { type: Type.STRING }, storyDialogue: { type: Type.STRING } }, required: ["sceneNumber", "characterName", "academicConcept", "storyDialogue"] } }, timeline: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { step: { type: Type.INTEGER }, title: { type: Type.STRING }, description: { type: Type.STRING } }, required: ["step", "title", "description"] } }, quiz: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctIndex: { type: Type.INTEGER }, heroExplanation: { type: Type.STRING } }, required: ["question", "options", "correctIndex", "heroExplanation"] } } }, required: ["title", "summary", "scenes", "timeline", "quiz"] };
     const response = await generateWithFallback(contents, schema);
     
     const newStorybook = { id: 'sb-' + Date.now(), ...JSON.parse(response.text) };
     const subj = user.subjects.find(s => s.id === req.body.subjectId);
-    subj.storybooks = subj.storybooks || [];
-    subj.storybooks.push(newStorybook);
+    subj.storybooks = subj.storybooks || []; subj.storybooks.push(newStorybook);
     user.markModified('subjects'); await user.save();
     
     res.json({ storybook: newStorybook, user: await serializeUser(user) });
