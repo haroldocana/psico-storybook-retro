@@ -71,27 +71,27 @@ const getSubjectsForCareer = (career) => {
   switch (career) {
     case 'Derecho y Abogacía':
       return [
-        { id: 'der-penal', name: 'Derecho Penal y Teórico', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] },
-        { id: 'der-civil', name: 'Derecho Civil y Contratos', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] },
-        { id: 'der-crim', name: 'Criminología y Victimología', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] }
+        { id: 'der-penal', name: 'Derecho Penal y Teórico', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] },
+        { id: 'der-civil', name: 'Derecho Civil y Contratos', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] },
+        { id: 'der-crim', name: 'Criminología y Victimología', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] }
       ];
     case 'Medicina':
       return [
-        { id: 'med-fisio', name: 'Fisiología Humana', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] },
-        { id: 'med-anato', name: 'Anatomía y Neuroanatomía', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] },
-        { id: 'med-pato', name: 'Patología General', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] }
+        { id: 'med-fisio', name: 'Fisiología Humana', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] },
+        { id: 'med-anato', name: 'Anatomía y Neuroanatomía', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] },
+        { id: 'med-pato', name: 'Patología General', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] }
       ];
     case 'Filosofía':
       return [
-        { id: 'filo-cont', name: 'Filosofía Contemporánea y Existencialismo', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] },
-        { id: 'filo-meta', name: 'Metafísica y Ontología del Ser', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] }
+        { id: 'filo-cont', name: 'Filosofía Contemporánea y Existencialismo', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] },
+        { id: 'filo-meta', name: 'Metafísica y Ontología del Ser', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] }
       ];
     case 'Psicología Clínica':
     default:
       return [
-        { id: 'lpc-ep2', name: 'Escuelas Psicológicas II', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] },
-        { id: 'lpc-pe2', name: 'Psicología Evolutiva II', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] },
-        { id: 'lpc-neuro', name: 'Neurociencia Cognitiva y Comportamiento', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], exams: [] }
+        { id: 'lpc-ep2', name: 'Escuelas Psicológicas II', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] },
+        { id: 'lpc-pe2', name: 'Psicología Evolutiva II', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] },
+        { id: 'lpc-neuro', name: 'Neurociencia Cognitiva y Comportamiento', section: 'Sección A', schedule: 'Semestre 2', documents: [], storybooks: [], audiobooks: [], exams: [] }
       ];
   }
 };
@@ -117,11 +117,10 @@ async function ensureDefaultUser() {
 
 const MONGO_URI = (process.env.MONGO_URI || '').trim();
 
-// GESTIÓN DE CONEXIÓN CON REINTENTOS PARA EVITAR QUE SE CONGELE
+// Conexión estricta a base de datos con límite de tiempo
 async function connectDB() {
   if (!MONGO_URI) {
-    console.error("❌ ERROR: MONGO_URI no está definido en variables de entorno.");
-    throw new Error("Base de datos no configurada.");
+    throw new Error("Base de datos no configurada. Agrega la variable MONGO_URI.");
   }
   if (mongoose.connection.readyState === 1) return;
   
@@ -134,21 +133,22 @@ async function connectDB() {
     console.log("✅ MongoDB conectado correctamente.");
     await ensureDefaultUser();
   } catch (err) {
-    console.error("❌ Error Crítico de MongoDB:", err.message);
+    console.error("❌ Error de MongoDB:", err.message);
     throw err;
   }
 }
 
-connectDB().catch(() => console.log("Se reintentará conectar con la primera petición..."));
+connectDB().catch(() => console.log("La app intentará conectar cuando inicies sesión..."));
 
 app.use('/api', async (req, res, next) => {
   try {
+    if (!MONGO_URI) return res.status(500).json({ error: "Falta la variable MONGO_URI en tu servidor (Render)." });
     if (mongoose.connection.readyState !== 1) {
       await connectDB();
     }
     next();
   } catch (error) {
-    return res.status(500).json({ error: "Error 500: Sin conexión a la base de datos (MongoDB). Revisa tu IP o variables de entorno." });
+    return res.status(500).json({ error: "No hay conexión con MongoDB. Revisa que tu IP esté permitida (0.0.0.0/0) en Atlas." });
   }
 });
 
@@ -161,7 +161,7 @@ async function serializeUser(user) {
     const collectionDocs = savedDocs.filter(cd => cd.subjectId === s.id).map(cd => ({ id: cd.docId, title: cd.title, fileName: cd.fileName, mimeType: cd.mimeType, uploadedAt: cd.uploadedAt }));
     const map = new Map();
     [...embeddedDocs, ...collectionDocs].forEach(item => map.set(item.id, item));
-    return { ...s, documents: Array.from(map.values()) };
+    return { ...s, documents: Array.from(map.values()), storybooks: s.storybooks || [], audiobooks: s.audiobooks || [] };
   });
   return obj;
 }
@@ -211,7 +211,7 @@ app.post('/api/subjects', async (req, res) => {
     const { username, name, section, schedule } = req.body;
     const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
     if (!user) return res.status(401).json({ error: "Sesión no válida" });
-    const newSubj = { id: 'subj-' + Date.now(), name, section: section || 'Sección A', schedule: schedule || 'Semestre Actual', documents: [], storybooks: [], exams: [] };
+    const newSubj = { id: 'subj-' + Date.now(), name, section: section || 'Sección A', schedule: schedule || 'Semestre Actual', documents: [], storybooks: [], audiobooks: [], exams: [] };
     user.subjects.push(newSubj);
     user.markModified('subjects');
     await user.save();
@@ -313,6 +313,22 @@ app.delete('/api/storybooks/:sbId', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+app.delete('/api/audiobooks/:abId', async (req, res) => {
+  try {
+    const { username, subjectId } = req.body;
+    const user = await UserModel.findOne({ username: (username || '').toLowerCase() });
+    if (user) {
+      const subj = user.subjects.find(s => s.id === subjectId);
+      if (subj) {
+        subj.audiobooks = (subj.audiobooks || []).filter(ab => ab.id !== req.params.abId);
+        user.markModified('subjects');
+        await user.save();
+      }
+    }
+    res.json({ user: await serializeUser(user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.delete('/api/subjects/:subjectId/documents', async (req, res) => {
   try {
     const { username } = req.body;
@@ -335,7 +351,7 @@ async function getFullDocumentsForSubject(username, subject, documentId) {
   return allDocs.filter(d => d.id === documentId);
 }
 
-// 🎧 ENDPOINT AUDIOLIBRO INTERACTIVO
+// 🎧 AUDIOLIBRO: LECTURA COMPLETA
 app.post('/api/audiobook-chapters', async (req, res) => {
   try {
     const { username, subjectId, documentId } = req.body;
@@ -349,9 +365,11 @@ app.post('/api/audiobook-chapters', async (req, res) => {
     const docs = await getFullDocumentsForSubject(user.username, subject, documentId);
     
     const contents = [
-      `Analiza el siguiente documento de principio a fin de manera exhaustiva.
-       INSTRUCCIÓN CRÍTICA 1 (AUDIOLIBRO COMPLETO): Extrae y desarrolla el contenido de la obra. Divide la obra completa en capítulos muy largos (chapterContent). NO hagas resúmenes cortos; transcribe o desarrolla ampliamente los argumentos principales.
-       INSTRUCCIÓN CRÍTICA 2 (RESUMEN DESCARGABLE): Genera un resumen analítico con los puntos clave y lecciones más importantes (bookSummary).`
+      `Analiza el siguiente documento y prepáralo para un audiolibro.
+       INSTRUCCIÓN ABSOLUTA: Tu objetivo es extraer el texto ORIGINAL y COMPLETO de la obra.
+       NO HAGAS RESÚMENES. NO OMITAS PÁRRAFOS.
+       Divide el texto íntegro en capítulos largos (chapterContent). Todo el contenido original debe estar reflejado en los capítulos.
+       Adicionalmente, genera un resumen ejecutivo del libro (bookSummary) para que el estudiante pueda descargarlo aparte.`
     ];
 
     let hasContent = false;
@@ -388,13 +406,28 @@ app.post('/api/audiobook-chapters', async (req, res) => {
     };
 
     const response = await generateWithFallback(contents, schema);
+    const abData = JSON.parse(response.text);
+
+    const newAudiobook = {
+      id: 'ab-' + Date.now(),
+      createdAt: new Date().toLocaleString('es-GT'),
+      audiobookTitle: abData.audiobookTitle || "Audiolibro Completo",
+      bookSummary: abData.bookSummary || "Resumen no disponible.",
+      chapters: abData.chapters || []
+    };
+
+    subject.audiobooks = subject.audiobooks || [];
+    subject.audiobooks.push(newAudiobook);
+
     user.aiConsumptionUSD += 0.25;
+    user.markModified('subjects');
     await user.save();
-    res.json({ audiobook: JSON.parse(response.text), user: await serializeUser(user) });
+
+    res.json({ audiobook: newAudiobook, user: await serializeUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 🏛️ ENDPOINT: ORÁCULO FENOMENOLÓGICO
+// 🏛️ ORÁCULO FENOMENOLÓGICO
 app.post('/api/phenomenology-query', async (req, res) => {
   try {
     const { username, query } = req.body;
@@ -415,7 +448,7 @@ app.post('/api/phenomenology-query', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 📝 MÓDULO DE SOLICITUD DE TAREAS Y RESÚMENES HUMANISTA
+// 📝 TAREAS Y RESÚMENES HUMANISTA
 app.post('/api/university-homework', async (req, res) => {
   try {
     const { username, subjectId, promptTask } = req.body;
