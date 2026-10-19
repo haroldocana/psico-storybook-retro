@@ -2,6 +2,7 @@ let currentUser = null;
 let activeSubjectId = null;
 let socraticHistory = '';
 
+// Variables globales para el resumen del audiolibro
 window.currentAudiobookSummary = "";
 window.currentAudiobookTitle = "";
 
@@ -24,20 +25,19 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ==========================================
-// 2. FUNCIÓN DE VOZ SINTÉTICA (TTS) + FILTRO LIMPIADOR
+// 2. FUNCIÓN DE VOZ SINTÉTICA (TTS) CON FILTRO
 // ==========================================
-
-// NUEVO: Filtro purificador de texto para evitar que lea caracteres raros
+// Función purificadora para evitar que la voz lea asteriscos o emojis
 function cleanTextForAudio(text) {
   if (!text) return "";
   return text
-    // 1. Elimina todos los Emojis
+    // Elimina todos los Emojis
     .replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '')
-    // 2. Elimina símbolos Markdown (*, #, _, ~, `, corchetes)
+    // Elimina símbolos Markdown (*, #, _, ~, `, corchetes)
     .replace(/[*#_\[\]`~]/g, '')
-    // 3. Convierte múltiples saltos de línea en un punto para que la voz haga pausa
+    // Convierte múltiples saltos de línea en un punto para que la voz haga pausa
     .replace(/\n+/g, '. ')
-    // 4. Limpia espacios en blanco excesivos
+    // Limpia espacios en blanco excesivos
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
@@ -48,7 +48,7 @@ window.speakText = function(text) {
   }
   window.speechSynthesis.cancel();
   
-  // Limpiamos el texto antes de enviarlo a la voz
+  // Limpiamos el texto antes de hablar
   const cleanedText = cleanTextForAudio(text);
   
   const utterance = new SpeechSynthesisUtterance(cleanedText);
@@ -123,7 +123,7 @@ window.handleLogin = async function(e) {
   }
 };
 
-// REGISTRO DE ALUMNOS (PANTALLA INICIAL)
+// REGISTRO CON VALIDACIÓN ROBUSTA
 window.handleRegister = async function(e) {
   e.preventDefault();
   
@@ -134,6 +134,7 @@ window.handleRegister = async function(e) {
   const regPass = document.getElementById('regPass').value;
   const regRecovery = document.getElementById('regRecovery') ? document.getElementById('regRecovery').value.trim() : 'clave123';
 
+  // Validaciones
   if (!regName || !regUser || !regCareer || !regEmail || !regPass) {
     return showAuthError("Todos los campos son obligatorios.");
   }
@@ -185,7 +186,7 @@ window.handleRegister = async function(e) {
   }
 };
 
-// RECUPERACIÓN DE CONTRASEÑA (DESDE EL LOGIN)
+// RECUPERACIÓN DE CONTRASEÑA
 window.recoverPassword = async function() {
   const u = document.getElementById('resetUsername').value.trim();
   const w = document.getElementById('resetWord').value.trim();
@@ -313,6 +314,7 @@ window.loadAdminUsers = async function() {
   }
 };
 
+// CREAR ALUMNO DESDE EL MASTER CON CARGA DE TOKENS
 window.adminCreateUser = async function(e) {
   e.preventDefault();
   const n = document.getElementById('adminNewName').value.trim();
@@ -351,7 +353,7 @@ window.adminAddTokens = async function(username) {
       body: JSON.stringify({targetUsername: username, amount: 5.00}) 
     });
     if (res.ok) {
-      alert(`Saldo añadido exitosamente a ${username}.`);
+      alert(`Saldo añadido exitosamente a ${username} en MongoDB.`);
       loadAdminUsers();
     }
   } catch(e) {
@@ -783,15 +785,11 @@ window.openSavedAudiobook = function(ab) {
 
   let currentChapterIdx = 0;
 
-  // NUEVO: Reproductor de Audiolibro CON FILTRO DE VOZ
   function playCurrentChapter() {
     if (!('speechSynthesis' in window)) return alert('Tu navegador no soporta síntesis de voz.');
     window.speechSynthesis.cancel();
     
-    // Obtenemos el texto original
     const rawText = `${ab.chapters[currentChapterIdx].chapterTitle}. ${ab.chapters[currentChapterIdx].chapterContent}`;
-    
-    // Lo limpiamos usando la función purificadora
     const cleanedText = cleanTextForAudio(rawText);
     
     const utterance = new SpeechSynthesisUtterance(cleanedText);
@@ -909,7 +907,6 @@ window.generateAudiobook = async function() {
     currentUser = data.user;
     renderDashboard();
     
-    // Carga la interfaz usando la misma función de bitácora
     window.openSavedAudiobook(data.audiobook);
 
   } catch (err) { 
