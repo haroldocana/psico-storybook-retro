@@ -59,7 +59,7 @@
         <div class="text-center mt-3"><button type="button" onclick="document.getElementById('modalForgotPass').classList.remove('hidden')" class="text-xs text-slate-400 font-bold hover:text-cyan-400 underline">¿Olvidaste tu contraseña?</button></div>
       </form>
 
-      <!-- FORM REGISTRO (Solo funciona si la Institución ya fue creada) -->
+      <!-- FORM REGISTRO -->
       <form id="registerForm" onsubmit="handleRegister(event)" class="hidden space-y-4">
         <div><label class="text-xs font-bold text-cyan-300 ml-1">Código de Institución</label><input type="text" id="regTenant" placeholder="Ej. ugalileo" required class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-emerald-400 transition" /></div>
         <div><label class="text-xs font-bold text-cyan-300 ml-1">Nombre Completo</label><input type="text" id="regName" required placeholder="Ej. Harold Ocaña" class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-emerald-400 transition" /></div>
@@ -217,4 +217,129 @@
   <!-- MODAL: AÑADIR MATERIA -->
   <div id="modalSubject" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-sm modal-fade">
     <div class="glass-edu max-w-md w-full rounded-3xl p-8 space-y-6 border-2 border-indigo-500/50 shadow-2xl relative">
-      <h3 class="font-black text-2xl text-white text
+      <h3 class="font-black text-2xl text-white text-center">Añadir Nueva Materia</h3>
+      <div class="space-y-4">
+        <input type="text" id="newSubjName" placeholder="Nombre Oficial (ej. Psicopatología)" class="w-full px-4 py-3.5 rounded-2xl bg-slate-900 border-2 border-indigo-500/40 text-sm text-white font-bold" />
+        <input type="text" id="newSubjSchedule" placeholder="Semestre o Ciclo (ej. 4to Semestre)" class="w-full px-4 py-3.5 rounded-2xl bg-slate-900 border-2 border-indigo-500/40 text-sm text-white font-bold" />
+      </div>
+      <div class="flex gap-4 pt-2">
+        <button onclick="document.getElementById('modalSubject').classList.add('hidden')" class="flex-1 px-4 py-3.5 rounded-2xl bg-slate-800 text-white font-bold">Cancelar</button>
+        <button onclick="createNewSubject()" class="flex-1 px-4 py-3.5 rounded-2xl bg-cyan-600 text-white font-black shadow-xl">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DEBATE SOCRÁTICO -->
+  <div id="modalSocratic" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-sm modal-fade">
+    <div class="glass-edu max-w-2xl w-full rounded-3xl p-8 space-y-6 border-2 border-indigo-500 shadow-2xl relative">
+      <div class="flex justify-between items-center border-b border-indigo-500/30 pb-4"><h3 class="font-black text-xl text-indigo-300 flex items-center gap-3"><span>🤼‍♂️</span> Seminario y Debate</h3><button onclick="openSocraticModal()" class="text-slate-400 hover:text-white font-black text-2xl transition">✕</button></div>
+      <div class="space-y-2 text-sm"><select id="socraticPhilosopher" class="w-full px-4 py-3.5 rounded-2xl bg-slate-900 border-2 border-indigo-500/40 text-white font-bold focus:outline-none focus:border-indigo-400 transition"><option value="Martin Heidegger">Martin Heidegger</option><option value="Carl Rogers">Carl Rogers</option></select></div>
+      <div id="socraticChatBox" class="h-72 overflow-y-auto bg-slate-900 p-5 rounded-2xl space-y-4 border border-indigo-500/30 text-sm shadow-inner custom-scrollbar"><div class="p-4 rounded-2xl bg-indigo-950/80 border border-indigo-800 text-indigo-200 font-medium">🏛️ ¡Bienvenido al seminario! Propón un dilema para debatir.</div></div>
+      <div class="flex gap-3 pt-2"><input type="text" id="socraticInput" placeholder="Escribe tu argumento..." class="flex-1 px-5 py-4 rounded-2xl bg-slate-900 border-2 border-indigo-500/40 text-sm text-white font-medium focus:border-indigo-400 transition" /><button onclick="sendSocraticMessage()" class="px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-black text-sm text-white shadow-xl transition-all transform hover:scale-105">Argumentar</button></div>
+    </div>
+  </div>
+
+  <!-- MODAL: TUTOR RAG (FASE 6) -->
+  <div id="modalTutor" class="hidden fixed inset-0 bg-black/85 z-50 flex flex-col md:flex-row justify-end modal-fade">
+    <div class="glass-edu w-full md:w-[400px] h-full p-6 space-y-6 border-l-2 border-cyan-500 shadow-2xl relative flex flex-col">
+      <button onclick="document.getElementById('modalTutor').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-white font-black text-xl">✕</button>
+      <h3 class="font-black text-xl text-cyan-300">👨‍🏫 Tutor RAG (Anti-Alucinaciones)</h3>
+      <p class="text-xs text-slate-400">Pregunta sobre el documento. La IA citará exactamente de dónde sacó la información.</p>
+      <textarea id="tutorInput" rows="5" class="w-full p-3 rounded-xl bg-slate-900 border border-cyan-500/40 text-sm text-white focus:border-cyan-400" placeholder="Pega el texto aquí..."></textarea>
+      <button onclick="askTutor()" class="w-full py-3 bg-cyan-600 text-white rounded-xl font-black shadow-lg hover:bg-cyan-500">Explicar Concepto</button>
+      <div id="tutorResponse" class="flex-1 overflow-y-auto bg-slate-950/50 p-4 rounded-xl text-sm text-slate-200 border border-slate-700 whitespace-pre-wrap">Aquí aparecerá la explicación citada...</div>
+    </div>
+  </div>
+
+  <!-- MODAL: GENERADOR TAREAS APA (FASE 6) -->
+  <div id="modalAPA" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-sm modal-fade">
+    <div class="glass-edu max-w-md w-full rounded-3xl p-8 space-y-6 border-2 border-emerald-500 shadow-2xl relative">
+      <h3 class="font-black text-2xl text-white text-center">Generador Formato APA (con Tablas)</h3>
+      <p class="text-xs text-slate-400 text-center">La IA leerá todos tus documentos para redactar el ensayo y generará tablas oficiales APA 7ma.</p>
+      <input type="text" id="apaTopic" placeholder="Tema del Ensayo (Ej. Trastornos de Ansiedad)" class="w-full px-4 py-3.5 rounded-2xl bg-slate-900 border-2 border-emerald-500/40 text-sm text-white font-bold" />
+      <div class="flex gap-4 pt-2">
+        <button onclick="document.getElementById('modalAPA').classList.add('hidden')" class="flex-1 px-4 py-3.5 rounded-2xl bg-slate-800 text-white font-bold">Cancelar</button>
+        <button onclick="generateAPATask()" class="flex-1 px-4 py-3.5 rounded-2xl bg-emerald-600 text-white font-black shadow-xl" id="btnAPA">Redactar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: INVESTIGACIÓN ILIMITADA (FASE 6) -->
+  <div id="modalResearch" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-sm modal-fade">
+    <div class="glass-edu max-w-lg w-full rounded-3xl p-8 space-y-6 border-2 border-amber-500 shadow-2xl relative">
+      <h3 class="font-black text-2xl text-amber-300 text-center">Agente de Investigación 🔬</h3>
+      <p class="text-xs text-slate-300 text-center">IA iterativa anti-plagio (Turnitin Bypass).</p>
+      <input type="text" id="researchTopic" placeholder="Tesis o Tema Principal" class="w-full px-4 py-3.5 rounded-2xl bg-slate-900 border-2 border-amber-500/40 text-sm text-white font-bold" />
+      <div id="researchProgress" class="hidden text-center space-y-2">
+        <p class="text-amber-400 text-sm font-black animate-pulse" id="researchStatus">Generando Índice...</p>
+        <div class="w-full bg-slate-800 rounded-full h-2"><div id="researchBar" class="bg-amber-500 h-2 rounded-full transition-all" style="width: 0%"></div></div>
+      </div>
+      <div class="flex gap-4 pt-2">
+        <button onclick="document.getElementById('modalResearch').classList.add('hidden')" class="flex-1 px-4 py-3.5 rounded-2xl bg-slate-800 text-white font-bold">Cancelar</button>
+        <button onclick="startUnlimitedResearch()" class="flex-1 px-4 py-3.5 rounded-2xl bg-amber-600 text-white font-black shadow-xl" id="btnResearch">Iniciar Agente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: FILOSOFÍA REALISTA -->
+  <div id="modalFilosofia" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-sm modal-fade">
+    <div class="glass-edu max-w-lg w-full rounded-3xl p-8 space-y-6 border-2 border-amber-500 relative shadow-2xl">
+      <button onclick="document.getElementById('modalFilosofia').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-white font-black text-xl">✕</button>
+      <h3 class="font-black text-2xl text-amber-300 text-center">Filtro Aristotélico-Tomista</h3>
+      <p class="text-xs text-slate-400 text-center">Elimina utilitarismo. Analiza todo bajo humanismo cristiano.</p>
+      <textarea id="filosofiaInput" rows="4" class="w-full p-4 rounded-xl bg-slate-900 border-2 border-amber-500/40 text-white text-sm focus:border-amber-400" placeholder="Tema a analizar..."></textarea>
+      <button onclick="askRealistPhilosophy()" class="w-full py-4 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-black shadow-lg transition transform hover:scale-105">Analizar</button>
+    </div>
+  </div>
+
+  <!-- MODAL: SIMULADOR DE CASOS CLÍNICOS (FASE 6) -->
+  <div id="modalSimulator" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-sm modal-fade">
+    <div class="glass-edu max-w-2xl w-full rounded-3xl p-8 space-y-6 border-2 border-rose-500 shadow-2xl relative">
+      <div class="flex justify-between items-center border-b border-rose-500/30 pb-4">
+        <h3 class="font-black text-xl text-rose-300 flex items-center gap-3"><span>🩺</span> Práctica Clínica Roleplay</h3>
+        <button onclick="document.getElementById('modalSimulator').classList.add('hidden')" class="text-slate-400 hover:text-white font-black text-2xl transition">✕</button>
+      </div>
+      <p class="text-xs text-slate-300">Entrevista al paciente simulado. La IA adoptará un perfil clínico basado en el material. Diagnostícalo.</p>
+      <div id="simulatorChatBox" class="h-72 overflow-y-auto bg-slate-900 p-5 rounded-2xl space-y-4 border border-rose-500/30 text-sm shadow-inner custom-scrollbar">
+        <div class="p-4 rounded-2xl bg-slate-800 border border-slate-700 text-slate-300 font-medium italic">El paciente entra a tu consultorio, se sienta nerviosamente y evita el contacto visual... Empieza la entrevista.</div>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <input type="text" id="simulatorInput" placeholder="Ej. Hola, ¿qué te trae por aquí hoy?..." class="flex-1 px-5 py-4 rounded-2xl bg-slate-900 border-2 border-rose-500/40 text-sm text-white font-medium focus:border-rose-400 transition" />
+        <button onclick="sendSimulatorMessage()" class="px-8 py-4 rounded-2xl bg-rose-600 hover:bg-rose-500 font-black text-sm text-white shadow-xl transition-all transform hover:scale-105">Hablar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL MASTER (ADMINISTRACIÓN) -->
+  <div id="modalAdminPanel" class="hidden fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-6 backdrop-blur-md modal-fade">
+    <div class="glass-edu max-w-6xl w-full rounded-3xl p-8 space-y-6 border-2 border-purple-500 shadow-[0_0_50px_rgba(168,85,247,0.3)] relative">
+      <button onclick="document.getElementById('modalAdminPanel').classList.add('hidden')" class="absolute top-6 right-6 px-4 py-2 bg-red-950 text-red-300 rounded-xl font-bold">✕ Cerrar Panel</button>
+      <div class="border-b-2 border-purple-500/30 pb-4 flex justify-between items-end">
+        <div>
+          <span class="text-xs font-black bg-purple-500 text-white px-3 py-1 rounded-full tracking-widest uppercase">Seguridad Nivel 1</span>
+          <h2 class="text-3xl font-black text-purple-300 mt-2">Panel Master Administrativo</h2>
+        </div>
+        <button onclick="document.getElementById('adminCreateUserForm').classList.toggle('hidden')" class="px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-black shadow-lg transition">+ Nuevo Alumno</button>
+      </div>
+      <form id="adminCreateUserForm" class="hidden bg-slate-900 p-5 rounded-2xl border border-purple-500/40 grid grid-cols-1 md:grid-cols-6 gap-4 shadow-inner" onsubmit="adminCreateUser(event)">
+        <input type="text" id="adminNewName" placeholder="Nombre Real" required class="px-4 py-2.5 rounded-xl bg-slate-800 text-sm text-white focus:outline-none focus:border-purple-400 border border-slate-700" />
+        <input type="text" id="adminNewUser" placeholder="Usuario" required class="px-4 py-2.5 rounded-xl bg-slate-800 text-sm text-white focus:outline-none focus:border-purple-400 border border-slate-700" />
+        <input type="text" id="adminNewCareer" placeholder="Carrera" required class="px-4 py-2.5 rounded-xl bg-slate-800 text-sm text-white focus:outline-none focus:border-purple-400 border border-slate-700" />
+        <input type="password" id="adminNewPass" placeholder="Contraseña" required class="px-4 py-2.5 rounded-xl bg-slate-800 text-sm text-white focus:outline-none focus:border-purple-400 border border-slate-700" />
+        <input type="number" step="0.01" id="adminNewTokens" placeholder="Tokens ($)" required class="px-4 py-2.5 rounded-xl bg-slate-800 text-sm text-emerald-400 focus:outline-none focus:border-purple-400 border border-slate-700 font-black" />
+        <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl shadow-lg transition">Crear</button>
+      </form>
+      <div class="bg-slate-900 rounded-2xl border border-purple-500/40 max-h-[50vh] overflow-y-auto custom-scrollbar p-2">
+        <table class="w-full text-left text-sm text-slate-300">
+          <thead class="text-xs text-purple-400 bg-slate-950 uppercase border-b border-purple-500/30">
+            <tr><th class="px-6 py-4">Usuario</th><th class="px-6 py-4">Carrera</th><th class="px-6 py-4">Saldo Restante</th><th class="px-6 py-4">Acciones Master</th></tr>
+          </thead>
+          <tbody id="adminUsersTableBody" class="divide-y divide-slate-800"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
