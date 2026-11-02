@@ -19,7 +19,7 @@ const transporter = nodemailer.createTransport({
   service: 'gmail', 
   auth: {
     user: process.env.SMTP_EMAIL || 'tu_correo@gmail.com',
-    pass: process.env.SMTP_PASSWORD || 'tu_contraseña_de_aplicacion_gmail' 
+    pass: process.env.SMTP_PASSWORD || 'tu_contraseña_de_aplicacion' 
   }
 });
 
@@ -77,7 +77,7 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
 
       // 5. Enviar el Correo Electrónico al Cliente
       await transporter.sendMail({
-        from: '"Plataforma Universitaria SaaS" <no-reply@tudominio.com>',
+        from: '"Plataforma Universitaria SaaS" <no-reply@comptech.lat>',
         to: customerEmail,
         subject: '🚀 Tus accesos a la Plataforma Educativa',
         html: `
@@ -134,7 +134,7 @@ const TenantSchema = new mongoose.Schema({
   dbName: { type: String, unique: true }, 
   stripeCustomerId: String, 
   subscriptionStatus: { type: String, default: 'active' }, 
-  licenseExpiresAt: Date, // Nueva fecha de expiración
+  licenseExpiresAt: Date, 
   createdAt: { type: Date, default: Date.now } 
 });
 const TenantModel = mongoose.model('Tenant', TenantSchema);
@@ -201,7 +201,8 @@ async function serializeUser(user, DocumentModelRef) {
     const collectionDocs = savedDocs.filter(cd => cd.subjectId === s.id).map(cd => ({ id: cd.docId, title: cd.title, fileName: cd.fileName }));
     const map = new Map();
     [...embeddedDocs, ...collectionDocs].forEach(item => map.set(item.id, item));
-    return { ...s, documents: Array.from(map.values()), storybooks: s.storybooks || [], audiobooks: s.audiobooks || [] };
+    // Se incluye presentations (Fase 5)
+    return { ...s, documents: Array.from(map.values()), storybooks: s.storybooks || [], audiobooks: s.audiobooks || [], presentations: s.presentations || [] };
   });
   return obj;
 }
@@ -221,23 +222,23 @@ async function getFullDocumentsForSubject(DocumentModelRef, username, subjectId,
 
 // ================= RUTAS DE AUTENTICACIÓN Y ADMIN =================
 app.post('/api/auth/login', async (req, res) => { try { const user = await req.UserModel.findOne({ $or: [{ username: req.body.identifier.toLowerCase() }, { email: req.body.identifier.toLowerCase() }] }); if (!user || user.password !== req.body.password) return res.status(401).json({ error: "Incorrecto." }); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
-app.post('/api/auth/register', async (req, res) => { try { const newUser = new req.UserModel({ username: req.body.username.toLowerCase(), fullName: req.body.fullName, email: req.body.email.toLowerCase(), password: req.body.password, recoveryWord: req.body.recoveryWord, career: req.body.career, subjects: [{ id: 'subj-init', name: 'Mi Primera Materia', schedule: 'Semestre 1', documents: [], storybooks: [], audiobooks: [] }] }); await newUser.save(); res.json({ user: await serializeUser(newUser, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
+app.post('/api/auth/register', async (req, res) => { try { const newUser = new req.UserModel({ username: req.body.username.toLowerCase(), fullName: req.body.fullName, email: req.body.email.toLowerCase(), password: req.body.password, recoveryWord: req.body.recoveryWord, career: req.body.career, subjects: [{ id: 'subj-init', name: 'Mi Primera Materia', schedule: 'Semestre 1', documents: [], storybooks: [], audiobooks: [], presentations: [] }] }); await newUser.save(); res.json({ user: await serializeUser(newUser, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
 app.get('/api/auth/session/:username', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.params.username.toLowerCase() }); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
 app.post('/api/auth/reset-password', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); if (!user || user.recoveryWord !== req.body.recoveryWord) return res.status(401).json({ error: "Datos incorrectos." }); user.password = req.body.newPassword; await user.save(); res.json({ success: true, message: "Contraseña actualizada." }); } catch (err) { res.status(500).json({ error: err.message }); } });
 app.post('/api/user/change-password', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); if (!user || user.password !== req.body.oldPassword) return res.status(401).json({ error: "Actual incorrecta." }); user.password = req.body.newPassword; await user.save(); res.json({ success: true }); } catch (err) { res.status(500).json({ error: err.message }); } });
 
 // Admin / Tokens
 app.get('/api/admin/users', async (req, res) => { try { const u = await req.UserModel.findOne({ username: req.headers['x-user'] }); if (!u || u.role !== 'admin') return res.status(403).json({ error: "Acceso denegado." }); res.json(await req.UserModel.find({ role: { $ne: 'admin' } }, { password: 0, recoveryWord: 0 })); } catch (err) { res.status(500).json({ error: err.message }); } });
-app.post('/api/admin/create-user', async (req, res) => { try { const u = await req.UserModel.findOne({ username: req.headers['x-user'] }); if (!u || u.role !== 'admin') return res.status(403).json({ error: "Acceso denegado." }); await new req.UserModel({ username: req.body.username.toLowerCase(), fullName: req.body.fullName, email: `${req.body.username.toLowerCase()}@edu.com`, password: req.body.password, recoveryWord: 'admin123', career: req.body.career, aiAllowanceUSD: parseFloat(req.body.initialTokens) || 2.00, subjects: [{ id: 'subj-init', name: 'Materia 1', schedule: 'Semestre 1' }] }).save(); res.json({ success: true }); } catch (err) { res.status(500).json({ error: err.message }); } });
+app.post('/api/admin/create-user', async (req, res) => { try { const u = await req.UserModel.findOne({ username: req.headers['x-user'] }); if (!u || u.role !== 'admin') return res.status(403).json({ error: "Acceso denegado." }); await new req.UserModel({ username: req.body.username.toLowerCase(), fullName: req.body.fullName, email: `${req.body.username.toLowerCase()}@edu.com`, password: req.body.password, recoveryWord: 'admin123', career: req.body.career, aiAllowanceUSD: parseFloat(req.body.initialTokens) || 2.00, subjects: [{ id: 'subj-init', name: 'Materia 1', schedule: 'Semestre 1', presentations: [] }] }).save(); res.json({ success: true }); } catch (err) { res.status(500).json({ error: err.message }); } });
 app.post('/api/admin/add-tokens', async (req, res) => { try { const t = await req.UserModel.findOne({ username: req.body.targetUsername }); t.aiAllowanceUSD += parseFloat(req.body.amount); t.pendingTokenRequest = false; await t.save(); res.json({ success: true }); } catch (err) { res.status(500).json({ error: err.message }); } });
 app.post('/api/admin/force-reset', async (req, res) => { try { const t = await req.UserModel.findOne({ username: req.body.targetUsername }); t.password = req.body.newPassword; await t.save(); res.json({ success: true }); } catch (err) { res.status(500).json({ error: err.message }); } });
 app.post('/api/user/request-tokens', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username }); user.pendingTokenRequest = true; await user.save(); res.json({ success: true, user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
 
 // ================= GESTIÓN DE MATERIAS Y DOCUMENTOS =================
-app.post('/api/subjects', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); const newSubj = { id: 'subj-' + Date.now(), name: req.body.name, schedule: req.body.schedule, documents: [], storybooks: [], audiobooks: [] }; user.subjects.push(newSubj); user.markModified('subjects'); await user.save(); res.json({ user: await serializeUser(user, req.DocumentModel), newSubjectId: newSubj.id }); } catch (err) { res.status(500).json({ error: err.message }); } });
+app.post('/api/subjects', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); const newSubj = { id: 'subj-' + Date.now(), name: req.body.name, schedule: req.body.schedule, documents: [], storybooks: [], audiobooks: [], presentations: [] }; user.subjects.push(newSubj); user.markModified('subjects'); await user.save(); res.json({ user: await serializeUser(user, req.DocumentModel), newSubjectId: newSubj.id }); } catch (err) { res.status(500).json({ error: err.message }); } });
 app.delete('/api/subjects/:subjectId', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); await req.DocumentModel.deleteMany({ username: user.username, subjectId: req.params.subjectId }); user.subjects = user.subjects.filter(s => s.id !== req.params.subjectId); user.markModified('subjects'); await user.save(); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
 
-// ⚡ FASE 4: Extractor de YouTube + Subida Normal
+// Extractor de YouTube + Subida Normal
 app.post('/api/documents', upload.any(), async (req, res) => {
   try {
     const { username, subjectId, docTitle, youtubeUrl } = req.body;
@@ -266,7 +267,7 @@ app.post('/api/documents', upload.any(), async (req, res) => {
           docId: `doc-${Date.now()}-${Math.random()}`, username: user.username, subjectId,
           title: docTitle ? `${docTitle} (${file.originalname})` : file.originalname,
           fileName: file.originalname, mimeType: file.mimetype,
-          base64Data: file.buffer.toString("base64"), textContent: 'Texto simulado. Procesa el documento.', uploadedAt: dateStr
+          base64Data: file.buffer.toString("base64"), textContent: 'Texto simulado. Integra un parser para PDF/Docx si es necesario.', uploadedAt: dateStr
         }).save();
       }
     }
@@ -277,8 +278,9 @@ app.post('/api/documents', upload.any(), async (req, res) => {
 app.delete('/api/documents/:docId', async (req, res) => { try { await req.DocumentModel.deleteOne({ docId: req.params.docId, username: req.body.username.toLowerCase() }); const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
 app.delete('/api/audiobooks/:abId', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); const subj = user.subjects.find(s => s.id === req.body.subjectId); subj.audiobooks = subj.audiobooks.filter(ab => ab.id !== req.params.abId); user.markModified('subjects'); await user.save(); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
 app.delete('/api/storybooks/:sbId', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); const subj = user.subjects.find(s => s.id === req.body.subjectId); subj.storybooks = subj.storybooks.filter(sb => sb.id !== req.params.sbId); user.markModified('subjects'); await user.save(); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
+app.delete('/api/subjects/:subjectId/documents', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); await req.DocumentModel.deleteMany({ username: user.username, subjectId: req.params.subjectId }); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
 
-// ================= ENDPOINTS IA: FASE 2, 3 Y 4 =================
+// ================= ENDPOINTS IA: FASE 2, 3, 4 Y 5 =================
 
 // FASE 2: Motor TTS Clean
 app.post('/api/tts-clean', async (req, res) => {
@@ -377,6 +379,7 @@ app.post('/api/research/outline', async (req, res) => {
     await user.save(); res.json({ outline: JSON.parse(response.text).chapters });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/research/chapter', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
@@ -386,6 +389,42 @@ app.post('/api/research/chapter', async (req, res) => {
     if (previousChapterSummary) prompt += `\nResumen del capítulo anterior (para coherencia): "${previousChapterSummary}".`;
     const response = await generateWithFallback([prompt], null);
     await user.save(); res.json({ chapterContent: response.text });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// FASE 5: Presentaciones Interactivas (Slides + Trivia)
+app.post('/api/generate-presentation', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.25);
+    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
+    
+    const contents = [`Actúa como experto en diseño instruccional. Extrae el contenido clave de los adjuntos y diseña una presentación interactiva. Alterna entre diapositivas de resumen ('summary') y de evaluación/trivia ('trivia').`];
+    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
+    
+    const schema = { 
+      type: Type.OBJECT, properties: { presentationTitle: { type: Type.STRING }, slides: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { type: { type: Type.STRING, description: "'summary' o 'trivia'" }, title: { type: Type.STRING }, content: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctIndex: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["type", "title", "content"] } } }, required: ["presentationTitle", "slides"] 
+    };
+    
+    const response = await generateWithFallback(contents, schema);
+    const newPresentation = { id: 'pres-' + Date.now(), createdAt: new Date().toLocaleString('es-GT'), ...JSON.parse(response.text) };
+    
+    const subj = user.subjects.find(s => s.id === req.body.subjectId);
+    subj.presentations = subj.presentations || []; 
+    subj.presentations.push(newPresentation); 
+    user.markModified('subjects'); await user.save();
+    
+    res.json({ presentation: newPresentation, user: await serializeUser(user, req.DocumentModel) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete('/api/presentations/:presId', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    const subj = user.subjects.find(s => s.id === req.body.subjectId);
+    subj.presentations = subj.presentations.filter(p => p.id !== req.params.presId);
+    user.markModified('subjects'); await user.save();
+    res.json({ user: await serializeUser(user, req.DocumentModel) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
