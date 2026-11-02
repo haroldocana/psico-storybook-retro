@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Plataforma Académica Universitaria</title>
+  <title>Plataforma Académica Universitaria SaaS</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- LIBRERÍA PARA EFECTO LIBRO 3D (FASE 2) -->
@@ -51,7 +51,7 @@
       <div id="authError" class="hidden mb-4 p-4 rounded-2xl bg-red-950/90 border border-red-500 text-red-200 text-xs font-bold text-center"></div>
 
       <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
-        <div><label class="text-xs font-bold text-cyan-300 ml-1">Código de Institución</label><input type="text" id="loginTenant" placeholder="Ej. institucion_demo" required class="w-full mt-1.5 px-4 py-3.5 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-cyan-400 font-bold transition" /></div>
+        <div><label class="text-xs font-bold text-cyan-300 ml-1">Código de Institución (Enviado a tu correo)</label><input type="text" id="loginTenant" placeholder="Ej. tenant_u_galileo" required class="w-full mt-1.5 px-4 py-3.5 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-cyan-400 font-bold transition" /></div>
         <div><label class="text-xs font-bold text-cyan-300 ml-1">Usuario (ej. master)</label><input type="text" id="loginId" required class="w-full mt-1.5 px-4 py-3.5 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-cyan-400 font-bold transition" /></div>
         <div><label class="text-xs font-bold text-cyan-300 ml-1">Contraseña</label><input type="password" id="loginPass" required class="w-full mt-1.5 px-4 py-3.5 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-cyan-400 font-bold transition" /></div>
         <button type="submit" id="btnLoginBtn" class="w-full mt-6 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 font-black text-sm shadow-xl hover:brightness-110 transition-all transform hover:scale-105">Ingresar al Entorno</button>
@@ -59,7 +59,7 @@
       </form>
 
       <form id="registerForm" onsubmit="handleRegister(event)" class="hidden space-y-4">
-        <div><label class="text-xs font-bold text-cyan-300 ml-1">Código de Institución</label><input type="text" id="regTenant" placeholder="Ej. institucion_demo" required class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-emerald-400 transition" /></div>
+        <div><label class="text-xs font-bold text-cyan-300 ml-1">Código de Institución</label><input type="text" id="regTenant" placeholder="Ej. tenant_u_galileo" required class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-emerald-400 transition" /></div>
         <div><label class="text-xs font-bold text-cyan-300 ml-1">Nombre Completo</label><input type="text" id="regName" required placeholder="Ej. Harold Ocaña" class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-emerald-400 transition" /></div>
         <div class="grid grid-cols-2 gap-3">
           <div><label class="text-xs font-bold text-cyan-300 ml-1">Usuario</label><input type="text" id="regUser" required placeholder="haroldocana" class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-emerald-400 transition" /></div>
@@ -123,13 +123,13 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
           
-          <!-- SUBIDA DE ARCHIVOS Y YOUTUBE EXTRACTOR (FASE 4) -->
+          <!-- SUBIDA DE ARCHIVOS Y YOUTUBE EXTRACTOR -->
           <div class="glass-edu rounded-3xl p-7 space-y-6 flex flex-col justify-between border border-indigo-500/30 shadow-xl">
             <div>
               <div class="flex items-center justify-between border-b border-indigo-500/30 pb-3 mb-4"><h3 class="font-black text-base text-cyan-300 flex items-center gap-2"><span>1️⃣</span> Repositorio Multi-formato</h3></div>
               <form onsubmit="handleUploadDoc(event)" class="space-y-4">
                 <div><input type="text" id="docTitle" placeholder="Título del Material" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-900 border border-indigo-500/40 text-sm text-white font-medium focus:border-cyan-400 transition" /></div>
-                <div><input type="url" id="youtubeUrlInput" placeholder="Enlace de YouTube (Extraerá Transcripción Real)" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-900 border border-red-500/50 text-sm text-white font-medium focus:border-red-400 transition" /></div>
+                <div><input type="url" id="youtubeUrlInput" placeholder="Enlace de YouTube (Extraerá Transcripción)" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-900 border border-red-500/50 text-sm text-white font-medium focus:border-red-400 transition" /></div>
                 <div class="p-5 rounded-2xl bg-slate-900/90 border-2 border-dashed border-cyan-500/40 text-center"><input type="file" id="docFiles" multiple accept=".pdf,.docx,.txt" onchange="document.getElementById('selectedFilesPreview').textContent = this.files.length + ' archivos listos'" class="w-full text-xs text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-cyan-600 file:text-white file:font-black cursor-pointer" /><div id="selectedFilesPreview" class="text-xs text-cyan-300 mt-3 font-black"></div></div>
                 <button type="submit" id="btnUploadDoc" class="w-full py-4 rounded-2xl bg-cyan-600 hover:bg-cyan-500 font-black text-sm shadow-xl text-white transition-all transform hover:scale-105">📥 Guardar Material</button>
               </form>
@@ -140,13 +140,13 @@
             </div>
           </div>
 
-          <!-- CEREBRO IA, VISUALES Y TAREAS (FASES 3 Y 4) -->
+          <!-- CEREBRO IA, VISUALES Y TAREAS -->
           <div class="glass-edu rounded-3xl p-7 space-y-6 flex flex-col justify-between border border-indigo-500/30 shadow-xl">
             <div class="space-y-4">
               <div class="border-b border-indigo-500/30 pb-3 mb-4"><h3 class="font-black text-base text-teal-300 flex items-center gap-2"><span>2️⃣</span> Cerebro IA y Herramientas Avanzadas</h3></div>
               <div><select id="selectDocForAI" class="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-indigo-500/40 text-sm text-white font-bold focus:border-cyan-400 transition"></select></div>
               
-              <!-- GRID DE HERRAMIENTAS MÚLTIPLES -->
+              <!-- GRID DE HERRAMIENTAS MÚLTIPLES (INCLUYE FASE 5: PRESENTACIÓN) -->
               <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
                 <button onclick="generateMindMap()" class="py-3 px-2 rounded-xl bg-teal-600 font-black text-xs text-white shadow-lg hover:scale-105 transition-all">🧠 Mapa Mermaid</button>
                 <button onclick="generateGlossary()" class="py-3 px-2 rounded-xl bg-indigo-600 font-black text-xs text-white shadow-lg hover:scale-105 transition-all">📕 Glosario Técnico</button>
@@ -157,6 +157,9 @@
                 <button onclick="document.getElementById('modalTutor').classList.remove('hidden')" class="py-3 px-2 rounded-xl bg-slate-700 font-black text-xs text-cyan-300 border border-cyan-500 hover:bg-slate-600 shadow-lg hover:scale-105 transition-all">👨‍🏫 Tutor IA</button>
                 <button onclick="document.getElementById('modalAPA').classList.remove('hidden')" class="py-3 px-2 rounded-xl bg-slate-700 font-black text-xs text-emerald-300 border border-emerald-500 hover:bg-slate-600 shadow-lg hover:scale-105 transition-all">📝 Generar APA</button>
                 <button onclick="document.getElementById('modalResearch').classList.remove('hidden')" class="py-3 px-2 rounded-xl bg-slate-700 font-black text-xs text-amber-300 border border-amber-500 hover:bg-slate-600 shadow-lg hover:scale-105 transition-all">🔬 Investigar</button>
+                
+                <!-- FASE 5: PRESENTACIÓN INTERACTIVA -->
+                <button onclick="generatePresentation()" class="col-span-2 lg:col-span-4 py-3 px-2 rounded-xl bg-orange-600 font-black text-xs text-white shadow-lg hover:scale-105 transition-all border-2 border-orange-400">📊 Generar Presentación Interactiva (Diapositivas y Trivia)</button>
               </div>
 
               <!-- CREADOR DE AUDIOLIBROS -->
@@ -169,10 +172,13 @@
           </div>
         </div>
 
-        <!-- LISTADOS DE HISTORIAL (MONOGRAFÍAS Y AUDIOLIBROS) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div class="glass-edu rounded-3xl p-7 border border-indigo-500/30 shadow-xl"><p class="text-sm font-black text-slate-200 uppercase tracking-widest mb-4 border-b border-indigo-500/30 pb-3">🗂️ Historial de Monografías</p><div id="savedHistoryList" class="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar"></div></div>
-          <div class="glass-edu rounded-3xl p-7 border border-rose-500/30 shadow-xl bg-gradient-to-bl from-rose-950/20 to-transparent relative"><p class="text-sm font-black text-rose-300 uppercase tracking-widest mb-2 border-b border-rose-500/30 pb-3">🎧 Bitácora de Audiolibros (0 Tokens)</p><p class="text-xs text-slate-400 mb-4">Escucha tus libros completos sin gastar saldo de IA.</p><div id="savedAudiobooksList" class="space-y-3 max-h-40 overflow-y-auto pr-2 custom-scrollbar"></div></div>
+        <!-- LISTADOS DE HISTORIAL (INCLUYE FASE 5) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="glass-edu rounded-3xl p-7 border border-indigo-500/30 shadow-xl"><p class="text-sm font-black text-slate-200 uppercase tracking-widest mb-4 border-b border-indigo-500/30 pb-3">🗂️ Monografías</p><div id="savedHistoryList" class="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar"></div></div>
+          
+          <div class="glass-edu rounded-3xl p-7 border border-rose-500/30 shadow-xl bg-gradient-to-bl from-rose-950/20 to-transparent relative"><p class="text-sm font-black text-rose-300 uppercase tracking-widest mb-2 border-b border-rose-500/30 pb-3">🎧 Audiolibros</p><div id="savedAudiobooksList" class="space-y-3 max-h-40 overflow-y-auto pr-2 custom-scrollbar"></div></div>
+          
+          <div class="glass-edu rounded-3xl p-7 border border-orange-500/30 shadow-xl bg-gradient-to-bl from-orange-950/20 to-transparent relative"><p class="text-sm font-black text-orange-300 uppercase tracking-widest mb-2 border-b border-orange-500/30 pb-3">📊 Presentaciones</p><div id="savedPresentationsList" class="space-y-3 max-h-40 overflow-y-auto pr-2 custom-scrollbar"></div></div>
         </div>
 
         <!-- ÁREA DE VISUALIZACIÓN A PANTALLA COMPLETA -->
@@ -238,7 +244,7 @@
     </div>
   </div>
 
-  <!-- MODAL: TUTOR IA (FASE 3) -->
+  <!-- MODAL: TUTOR IA -->
   <div id="modalTutor" class="hidden fixed inset-0 bg-black/85 z-50 flex flex-col md:flex-row justify-end modal-fade">
     <div class="glass-edu w-full md:w-[400px] h-full p-6 space-y-6 border-l-2 border-cyan-500 shadow-2xl relative flex flex-col">
       <button onclick="document.getElementById('modalTutor').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-white font-black text-xl">✕</button>
@@ -250,7 +256,7 @@
     </div>
   </div>
 
-  <!-- MODAL: GENERADOR TAREAS APA (FASE 3) -->
+  <!-- MODAL: GENERADOR TAREAS APA -->
   <div id="modalAPA" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-sm modal-fade">
     <div class="glass-edu max-w-md w-full rounded-3xl p-8 space-y-6 border-2 border-emerald-500 shadow-2xl relative">
       <h3 class="font-black text-2xl text-white text-center">Generador Formato APA</h3>
@@ -263,7 +269,7 @@
     </div>
   </div>
 
-  <!-- MODAL: INVESTIGACIÓN ILIMITADA AGENTE (FASE 3) -->
+  <!-- MODAL: INVESTIGACIÓN ILIMITADA AGENTE -->
   <div id="modalResearch" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-sm modal-fade">
     <div class="glass-edu max-w-lg w-full rounded-3xl p-8 space-y-6 border-2 border-amber-500 shadow-2xl relative">
       <h3 class="font-black text-2xl text-amber-300 text-center">Agente de Investigación 🔬</h3>
@@ -280,7 +286,7 @@
     </div>
   </div>
 
-  <!-- MODAL: FILOSOFÍA REALISTA (FASE 4) -->
+  <!-- MODAL: FILOSOFÍA REALISTA -->
   <div id="modalFilosofia" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-sm modal-fade">
     <div class="glass-edu max-w-lg w-full rounded-3xl p-8 space-y-6 border-2 border-amber-500 relative shadow-2xl">
       <button onclick="document.getElementById('modalFilosofia').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-white font-black text-xl">✕</button>
