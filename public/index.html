@@ -43,6 +43,7 @@
       <div id="authError" class="hidden mb-4 p-4 rounded-2xl bg-red-950/90 border border-red-500 text-red-200 text-xs font-bold text-center"></div>
 
       <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+        <div><label class="text-xs font-bold text-cyan-300 ml-1">Código de Institución</label><input type="text" id="loginTenant" placeholder="Ej. institucion_demo" required class="w-full mt-1.5 px-4 py-3.5 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-cyan-400 font-bold transition" /></div>
         <div><label class="text-xs font-bold text-cyan-300 ml-1">Usuario (ej. master)</label><input type="text" id="loginId" required class="w-full mt-1.5 px-4 py-3.5 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-cyan-400 font-bold transition" /></div>
         <div><label class="text-xs font-bold text-cyan-300 ml-1">Contraseña</label><input type="password" id="loginPass" required class="w-full mt-1.5 px-4 py-3.5 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-cyan-400 font-bold transition" /></div>
         <button type="submit" id="btnLoginBtn" class="w-full mt-6 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 font-black text-sm shadow-xl hover:brightness-110 transition-all transform hover:scale-105">Ingresar al Entorno</button>
@@ -50,6 +51,7 @@
       </form>
 
       <form id="registerForm" onsubmit="handleRegister(event)" class="hidden space-y-4">
+        <div><label class="text-xs font-bold text-cyan-300 ml-1">Código de Institución</label><input type="text" id="regTenant" placeholder="Ej. institucion_demo" required class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-emerald-400 transition" /></div>
         <div><label class="text-xs font-bold text-cyan-300 ml-1">Nombre Completo</label><input type="text" id="regName" required placeholder="Ej. Harold Ocaña" class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-emerald-400 transition" /></div>
         <div class="grid grid-cols-2 gap-3">
           <div><label class="text-xs font-bold text-cyan-300 ml-1">Usuario</label><input type="text" id="regUser" required placeholder="haroldocana" class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white focus:outline-none focus:border-emerald-400 transition" /></div>
@@ -83,9 +85,7 @@
           <button onclick="requestMoreTokens()" class="ml-2 px-3 py-1.5 bg-indigo-600/50 hover:bg-indigo-500 rounded-lg text-[10px] text-white font-black border border-indigo-400 transition">+ Solicitar</button>
         </div>
         
-        <!-- NUEVO BOTÓN DE CAMBIAR CONTRASEÑA -->
         <button onclick="document.getElementById('modalChangePass').classList.remove('hidden')" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-black shadow-lg transition">🔑 Cambiar Clave</button>
-
         <button onclick="logout()" class="px-5 py-2.5 rounded-xl bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-800 text-xs font-black shadow-lg transition">Cerrar Sesión</button>
       </div>
     </header>
@@ -108,8 +108,8 @@
         </div>
 
         <div class="glass-edu rounded-3xl p-8 border-2 border-amber-500/50 shadow-2xl space-y-6 bg-gradient-to-br from-amber-950/40 to-slate-900">
-          <div class="flex items-center justify-between border-b border-amber-500/30 pb-4"><div class="flex items-center gap-4"><span class="text-4xl drop-shadow-md">🏛️</span><div><h3 class="font-black text-lg text-amber-300 uppercase tracking-wide">Santuario Fenomenológico</h3><p class="text-sm text-slate-300 mt-1">Exploración pura de Husserl y Heidegger. Libre de filosofía analítica.</p></div></div><button onclick="togglePhenomenologyDocs()" class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 font-black text-xs text-white shadow-lg transition">📖 Ver Glosario y Teoría</button></div>
-          <div id="phenomenologyDocs" class="hidden space-y-5 pt-3 animate-fade-in"><div class="bg-slate-900 p-6 rounded-2xl border border-amber-500/40 shadow-inner"><h4 class="font-black text-base text-cyan-300 mb-3 flex items-center gap-2"><span>📜</span> De la Consciencia al Ser</h4><p class="text-sm text-slate-300 leading-relaxed"><b>Edmund Husserl</b> funda la fenomenología para ir "a las cosas mismas". Su alumno, <b>Martin Heidegger</b>, toma este método pero lo enfoca en la existencia humana concreta, creando la ontología fundamental y descubriendo al <i>Dasein</i> (el Ser-ahí).</p></div></div>
+          <div class="flex items-center justify-between border-b border-amber-500/30 pb-4"><div class="flex items-center gap-4"><span class="text-4xl drop-shadow-md">🏛️</span><div><h3 class="font-black text-lg text-amber-300 uppercase tracking-wide">Santuario Fenomenológico</h3><p class="text-sm text-slate-300 mt-1">Exploración pura de Husserl y Heidegger.</p></div></div><button onclick="togglePhenomenologyDocs()" class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 font-black text-xs text-white shadow-lg transition">📖 Ver Glosario y Teoría</button></div>
+          <div id="phenomenologyDocs" class="hidden space-y-5 pt-3 animate-fade-in"><div class="bg-slate-900 p-6 rounded-2xl border border-amber-500/40 shadow-inner"><h4 class="font-black text-base text-cyan-300 mb-3 flex items-center gap-2"><span>📜</span> De la Consciencia al Ser</h4><p class="text-sm text-slate-300 leading-relaxed"><b>Edmund Husserl</b> funda la fenomenología para ir "a las cosas mismas". Su alumno, <b>Martin Heidegger</b>, toma este método pero lo enfoca en la existencia humana concreta...</p></div></div>
           <div class="pt-4 border-t border-amber-500/20"><h4 class="font-black text-sm text-slate-400 mb-3 uppercase tracking-widest">Oráculo Fenomenológico (Consulta a la IA)</h4><div class="flex gap-3"><input type="text" id="phenoQueryInput" placeholder="Ej. ¿Cómo explica Heidegger la Angustia?..." class="flex-1 px-5 py-4 rounded-2xl bg-slate-900 border border-amber-500/50 text-sm text-white focus:outline-none focus:border-amber-400 transition" /><button onclick="askPhenomenology()" class="px-8 py-4 rounded-2xl bg-amber-600 hover:bg-amber-500 font-black text-sm text-white shadow-xl transition-all transform hover:scale-105">Consultar Oráculo</button></div></div>
         </div>
 
@@ -221,7 +221,7 @@
     </div>
   </div>
 
-  <!-- FIX MODAL: PANEL MASTER Y CREAR USUARIO CON TOKENS -->
+  <!-- PANEL MASTER Y CREAR USUARIO CON TOKENS -->
   <div id="modalAdminPanel" class="hidden fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-6 backdrop-blur-md modal-fade">
     <div class="glass-edu max-w-6xl w-full rounded-3xl p-8 space-y-6 border-2 border-purple-500 shadow-[0_0_50px_rgba(168,85,247,0.3)] relative">
       <button onclick="document.getElementById('modalAdminPanel').classList.add('hidden')" class="absolute top-6 right-6 px-4 py-2 bg-red-950 text-red-300 rounded-xl font-bold">✕ Cerrar Panel</button>
@@ -234,7 +234,6 @@
         <button onclick="document.getElementById('adminCreateUserForm').classList.toggle('hidden')" class="px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-black shadow-lg transition">+ Nuevo Alumno</button>
       </div>
 
-      <!-- ACTUALIZADO: AHORA TIENE CAMPO DE TOKENS INICIALES -->
       <form id="adminCreateUserForm" class="hidden bg-slate-900 p-5 rounded-2xl border border-purple-500/40 grid grid-cols-1 md:grid-cols-6 gap-4 shadow-inner" onsubmit="adminCreateUser(event)">
         <input type="text" id="adminNewName" placeholder="Nombre Real" required class="px-4 py-2.5 rounded-xl bg-slate-800 text-sm text-white focus:outline-none focus:border-purple-400 border border-slate-700" />
         <input type="text" id="adminNewUser" placeholder="Usuario" required class="px-4 py-2.5 rounded-xl bg-slate-800 text-sm text-white focus:outline-none focus:border-purple-400 border border-slate-700" />
