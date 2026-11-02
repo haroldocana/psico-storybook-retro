@@ -428,7 +428,37 @@ async function getFullDocumentsForSubject(DocumentModelRef, username, subjectId,
   return docs.filter(d => d.docId === documentId);
 }
 
-// ENDPOINTS IA
+// ================= MOTOR DE LIMPIEZA TTS (FASE 2) =================
+app.post('/api/tts-clean', async (req, res) => {
+  try {
+    const { rawText } = req.body;
+    if (!rawText) return res.json({ cleanedText: "" });
+
+    // Lógica Regex para limpiar el texto antes de narrar
+    const cleanedText = rawText
+      // 1. Marcas de agua y textos de confidencialidad
+      .replace(/\b(CONFIDENCIAL|DRAFT|BORRADOR|PROPIEDAD DE)\b/gmi, '')
+      // 2. Numeración de páginas (ej. Página 12, - 12 -)
+      .replace(/(?:\bPágina\s+\d+\b|^\s*-\s*\d+\s*-\s*$|\b\d+\/\d+\b)/gmi, '')
+      // 3. Citas bibliográficas [12], (Autor, 2020)
+      .replace(/\[\d+(-\d+)?\]|\([A-Za-z]+,\s*\d{4}\)/g, '')
+      // 4. URLs (evita que la voz deletree enlaces largos)
+      .replace(/https?:\/\/[^\s]+/g, ' enlace omitido ')
+      // 5. Caracteres especiales de formato
+      .replace(/[*_~^|<>{}\\]/g, '')
+      // 6. Múltiples saltos de línea a punto (pausa de respiración)
+      .replace(/\n+/g, '. ')
+      // 7. Dobles espacios
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+
+    res.json({ cleanedText });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ================= ENDPOINTS IA =================
 app.post('/api/audiobook-chapters', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
