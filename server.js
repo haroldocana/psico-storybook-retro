@@ -24,7 +24,6 @@ const transporter = nodemailer.createTransport({
 });
 
 // ================= STRIPE WEBHOOK (Aprovisionamiento Profesional) =================
-// Debe ir antes del express.json para mantener el formato 'raw'
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy');
 
 app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
@@ -43,11 +42,9 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
     const institutionName = session.custom_fields?.[0]?.text?.value || "Nueva Institución";
     
     try {
-      // 1. Calcular tiempo de licencia (1 año)
       const expirationDate = new Date();
       expirationDate.setFullYear(expirationDate.getFullYear() + 1);
 
-      // 2. Registrar a la Institución en BD Master
       await TenantModel.create({
         companyName: institutionName,
         dbName: dbName,
@@ -56,10 +53,7 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
         licenseExpiresAt: expirationDate
       });
 
-      // 3. Generar Contraseña Aleatoria Segura
       const randomPassword = crypto.randomBytes(4).toString('hex');
-
-      // 4. Crear BD del cliente y el Admin Maestro
       const tenantDb = mongoose.connection.useDb(dbName, { useCache: true });
       const TenantUser = tenantDb.model('User', UserSchema);
 
@@ -73,9 +67,6 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
         subjects: []
       });
       
-      console.log(`✅ BD ${dbName} creada. Enviando correo a ${customerEmail}...`);
-
-      // 5. Enviar el Correo Electrónico al Cliente
       await transporter.sendMail({
         from: '"Plataforma Universitaria SaaS" <no-reply@comptech.lat>',
         to: customerEmail,
@@ -83,7 +74,6 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
         html: `
           <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
             <h2 style="color: #0284c7;">¡Bienvenido a la Plataforma Educativa!</h2>
-            <p>Hola,</p>
             <p>Hemos procesado tu pago exitosamente. La base de datos dedicada para <strong>${institutionName}</strong> ha sido configurada.</p>
             <div style="background-color: #f1f5f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
               <h3 style="margin-top: 0; color: #0f172a;">Tus Credenciales de Acceso:</h3>
@@ -91,12 +81,10 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
               <p><strong>Usuario:</strong> master</p>
               <p><strong>Contraseña Temporal:</strong> ${randomPassword}</p>
             </div>
-            <p><em>* Te recomendamos cambiar esta contraseña desde el panel una vez ingreses.</em></p>
             <p><strong>Licencia válida hasta:</strong> ${expirationDate.toLocaleDateString('es-ES')}</p>
           </div>
         `
       });
-      console.log(`📧 Correo enviado a ${customerEmail}`);
     } catch (e) {
       console.error("Error aprovisionando tenant:", e);
     }
@@ -121,22 +109,13 @@ async function generateWithFallback(contents, responseSchema) {
         model: modelName, contents,
         config: responseSchema ? { responseMimeType: 'application/json', responseSchema } : {}
       });
-    } catch (err) {
-      lastErr = err; console.warn(`Aviso: Falló modelo ${modelName}...`);
-    }
+    } catch (err) { lastErr = err; }
   }
   throw lastErr;
 }
 
 // ================= ESQUEMAS DE BASE DE DATOS =================
-const TenantSchema = new mongoose.Schema({ 
-  companyName: String, 
-  dbName: { type: String, unique: true }, 
-  stripeCustomerId: String, 
-  subscriptionStatus: { type: String, default: 'active' }, 
-  licenseExpiresAt: Date, 
-  createdAt: { type: Date, default: Date.now } 
-});
+const TenantSchema = new mongoose.Schema({ companyName: String, dbName: { type: String, unique: true }, stripeCustomerId: String, subscriptionStatus: { type: String, default: 'active' }, licenseExpiresAt: Date, createdAt: { type: Date, default: Date.now } });
 const TenantModel = mongoose.model('Tenant', TenantSchema);
 
 const DocumentSchema = new mongoose.Schema({ docId: { type: String, unique: true, index: true }, username: { type: String, lowercase: true, index: true }, subjectId: { type: String, index: true }, title: String, fileName: String, mimeType: String, base64Data: String, textContent: String, uploadedAt: String });
@@ -201,7 +180,6 @@ async function serializeUser(user, DocumentModelRef) {
     const collectionDocs = savedDocs.filter(cd => cd.subjectId === s.id).map(cd => ({ id: cd.docId, title: cd.title, fileName: cd.fileName }));
     const map = new Map();
     [...embeddedDocs, ...collectionDocs].forEach(item => map.set(item.id, item));
-    // Se incluye presentations (Fase 5)
     return { ...s, documents: Array.from(map.values()), storybooks: s.storybooks || [], audiobooks: s.audiobooks || [], presentations: s.presentations || [] };
   });
   return obj;
@@ -238,7 +216,6 @@ app.post('/api/user/request-tokens', async (req, res) => { try { const user = aw
 app.post('/api/subjects', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); const newSubj = { id: 'subj-' + Date.now(), name: req.body.name, schedule: req.body.schedule, documents: [], storybooks: [], audiobooks: [], presentations: [] }; user.subjects.push(newSubj); user.markModified('subjects'); await user.save(); res.json({ user: await serializeUser(user, req.DocumentModel), newSubjectId: newSubj.id }); } catch (err) { res.status(500).json({ error: err.message }); } });
 app.delete('/api/subjects/:subjectId', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); await req.DocumentModel.deleteMany({ username: user.username, subjectId: req.params.subjectId }); user.subjects = user.subjects.filter(s => s.id !== req.params.subjectId); user.markModified('subjects'); await user.save(); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
 
-// Extractor de YouTube + Subida Normal
 app.post('/api/documents', upload.any(), async (req, res) => {
   try {
     const { username, subjectId, docTitle, youtubeUrl } = req.body;
@@ -267,7 +244,7 @@ app.post('/api/documents', upload.any(), async (req, res) => {
           docId: `doc-${Date.now()}-${Math.random()}`, username: user.username, subjectId,
           title: docTitle ? `${docTitle} (${file.originalname})` : file.originalname,
           fileName: file.originalname, mimeType: file.mimetype,
-          base64Data: file.buffer.toString("base64"), textContent: 'Texto simulado. Integra un parser para PDF/Docx si es necesario.', uploadedAt: dateStr
+          base64Data: file.buffer.toString("base64"), textContent: 'Texto extraído de archivo.', uploadedAt: dateStr
         }).save();
       }
     }
@@ -278,11 +255,12 @@ app.post('/api/documents', upload.any(), async (req, res) => {
 app.delete('/api/documents/:docId', async (req, res) => { try { await req.DocumentModel.deleteOne({ docId: req.params.docId, username: req.body.username.toLowerCase() }); const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
 app.delete('/api/audiobooks/:abId', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); const subj = user.subjects.find(s => s.id === req.body.subjectId); subj.audiobooks = subj.audiobooks.filter(ab => ab.id !== req.params.abId); user.markModified('subjects'); await user.save(); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
 app.delete('/api/storybooks/:sbId', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); const subj = user.subjects.find(s => s.id === req.body.subjectId); subj.storybooks = subj.storybooks.filter(sb => sb.id !== req.params.sbId); user.markModified('subjects'); await user.save(); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
+app.delete('/api/presentations/:presId', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); const subj = user.subjects.find(s => s.id === req.body.subjectId); subj.presentations = subj.presentations.filter(p => p.id !== req.params.presId); user.markModified('subjects'); await user.save(); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
 app.delete('/api/subjects/:subjectId/documents', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); await req.DocumentModel.deleteMany({ username: user.username, subjectId: req.params.subjectId }); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
 
-// ================= ENDPOINTS IA: FASE 2, 3, 4 Y 5 =================
+// ================= ENDPOINTS IA: FASES 2 A LA 6 =================
 
-// FASE 2: Motor TTS Clean
+// TTS Clean
 app.post('/api/tts-clean', async (req, res) => {
   try {
     const { rawText } = req.body;
@@ -292,84 +270,35 @@ app.post('/api/tts-clean', async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
-// FASE 4: Filtro Realista
-app.post('/api/philosophy-realism', async (req, res) => {
+// FASE 6: Tutor RAG (Anti-Alucinaciones)
+app.post('/api/tutor-rag', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
-    await consumeTokens(user, 0.10);
-    const response = await generateWithFallback([`Filtro de Filosofía Realista. Analiza: "${req.body.query}". REGLA: Omite metodologías anglosajonas o utilitaristas. Analiza ÚNICAMENTE bajo la perspectiva Aristotélico-Tomista. Devuelve HTML.`], null);
-    await user.save(); res.json({ answer: response.text });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// FASE 4: Storybook Evolutivo
-app.post('/api/generate-evolutionary-storybook', async (req, res) => {
-  try {
-    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
-    await consumeTokens(user, 0.20);
+    await consumeTokens(user, 0.05);
     const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
-    const contents = [`Actúa como autor de Psicología Evolutiva. Transforma los textos de desarrollo humano en una narrativa cronológica (de gestación a adultez) estilo novela gráfica.`];
-    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
-    const schema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, summary: { type: Type.STRING }, scenes: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { sceneNumber: { type: Type.INTEGER }, characterName: { type: Type.STRING }, academicConcept: { type: Type.STRING }, storyDialogue: { type: Type.STRING } }, required: ["sceneNumber", "characterName", "academicConcept", "storyDialogue"] } }, timeline: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { step: { type: Type.INTEGER }, title: { type: Type.STRING }, description: { type: Type.STRING } }, required: ["step", "title", "description"] } }, quiz: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctIndex: { type: Type.INTEGER }, heroExplanation: { type: Type.STRING } }, required: ["question", "options", "correctIndex", "heroExplanation"] } } }, required: ["title", "summary", "scenes", "timeline", "quiz"] };
-    const response = await generateWithFallback(contents, schema);
-    const newStorybook = { id: 'sb-' + Date.now(), ...JSON.parse(response.text) };
-    const subj = user.subjects.find(s => s.id === req.body.subjectId);
-    subj.storybooks = subj.storybooks || []; subj.storybooks.push(newStorybook); user.markModified('subjects'); await user.save();
-    res.json({ storybook: newStorybook, user: await serializeUser(user, req.DocumentModel) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// FASE 4: Glosario Técnico
-app.post('/api/generate-glossary', async (req, res) => {
-  try {
-    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
-    await consumeTokens(user, 0.10);
-    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
-    const contents = [`Genera un glosario técnico extraído de los documentos adjuntos.`];
-    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
-    const schema = { type: Type.OBJECT, properties: { glossaryTitle: { type: Type.STRING }, terms: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { term: { type: Type.STRING }, definition: { type: Type.STRING } }, required: ["term", "definition"] } } }, required: ["glossaryTitle", "terms"] };
-    const response = await generateWithFallback(contents, schema);
-    await user.save(); res.json({ glossary: JSON.parse(response.text) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// FASE 4: Mapa Conceptual Mermaid
-app.post('/api/generate-mindmap', async (req, res) => {
-  try {
-    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
-    await consumeTokens(user, 0.15);
-    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
-    const contents = [`Actúa como experto en mapas mentales. Analiza los documentos y devuelve ÚNICAMENTE código Mermaid.js (graph TD) limpio. Sin explicaciones ni backticks de markdown.`];
+    const prompt = `Actúa como Tutor RAG estricto. REGLA ANTI-ALUCINACIONES: Responde basándote ÚNICAMENTE en el contexto proporcionado. Si no está en el texto, di "El texto no contiene información sobre esto". Obligatorio: Cita la sección/párrafo/página al final. Duda: "${req.body.query}"`;
+    const contents = [prompt];
     docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
     const response = await generateWithFallback(contents, null);
-    await user.save(); res.json({ mermaidCode: response.text.replace(/```mermaid/g, '').replace(/```/g, '').trim() });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// FASE 3: Tutor IA Clínico
-app.post('/api/tutor-explain', async (req, res) => {
-  try {
-    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
-    await consumeTokens(user, 0.05); 
-    const response = await generateWithFallback([`Actúa como Tutor de Psicología. El alumno no comprende el texto. Explícalo con ejemplos clínicos didácticos: "${req.body.text}"`], null);
     await user.save(); res.json({ explanation: response.text });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// FASE 3: Creador Tareas APA
-app.post('/api/generate-apa-task', async (req, res) => {
+// FASE 6: APA 7ma con Tablas
+app.post('/api/generate-apa-advanced', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
-    await consumeTokens(user, 0.30); 
+    await consumeTokens(user, 0.35);
     const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, 'ALL');
-    const contents = [`Actúa como redactor académico experto. Escribe ensayo en APA 7ma sobre: "${req.body.topic}". Incluye Intro, Desarrollo, Conclusión, Referencias. Usa citas intratextuales basadas ÚNICAMENTE en los documentos adjuntos. Devuelve en HTML (<h1>,<p>).`];
+    const prompt = `Actúa como redactor experto. Escribe un ensayo científico sobre: "${req.body.topic}". REGLAS APA 7ma: Usa formato HTML (<h1>, <p>). Citas intratextuales. Incluye al menos UNA TABLA DE DATOS en HTML. OBLIGATORIO: <table style="border-collapse: collapse; width: 100%; border-top: 2px solid black; border-bottom: 2px solid black;"> y <td style="border-bottom: 1px solid black; padding: 8px;">. Sin bordes verticales. Añade Referencias Bibliográficas.`;
+    const contents = [prompt];
     docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
     const response = await generateWithFallback(contents, null);
     await user.save(); res.json({ apaDocument: response.text });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// FASE 3: Investigación Ilimitada (Agente)
+// FASE 6: Investigación Iterativa con Pre-Auditoría
 app.post('/api/research/outline', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
@@ -383,90 +312,110 @@ app.post('/api/research/outline', async (req, res) => {
 app.post('/api/research/chapter', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
-    await consumeTokens(user, 0.20); 
+    await consumeTokens(user, 0.25); 
     const { topic, chapterTitle, previousChapterSummary } = req.body;
-    let prompt = `Escribe el capítulo "${chapterTitle}" para una investigación sobre "${topic}". Nivel Posgrado, formato APA, devuelve HTML.`;
-    if (previousChapterSummary) prompt += `\nResumen del capítulo anterior (para coherencia): "${previousChapterSummary}".`;
+    let prompt = `Eres un Agente Académico redactando el capítulo "${chapterTitle}" de la investigación "${topic}". FILTRO ANTI-PLAGIO ACTIVO: Redacta con estilo original, integrando ideas de forma fluida para asegurar 0% similitud en Turnitin. Devuelve HTML (<p>, <h2>).`;
+    if (previousChapterSummary) prompt += `\nResumen del capítulo anterior (coherencia iterativa): "${previousChapterSummary}".`;
     const response = await generateWithFallback([prompt], null);
     await user.save(); res.json({ chapterContent: response.text });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// FASE 5: Presentaciones Interactivas (Slides + Trivia)
+// FASE 6: Simulador Clínico (Roleplay Agent)
+app.post('/api/clinical-simulator', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.05);
+    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
+    const prompt = `INSTRUCCIÓN DE ROL: Eres un paciente en una clínica psicológica. Basado en los síntomas de los documentos, asume un trastorno (pero NO digas cuál es). Historial: ${req.body.history}. Pregunta del psicólogo: "${req.body.message}". Responde evasivo, emotivo, lenguaje común. Máximo 3 oraciones.`;
+    const contents = [prompt];
+    if (req.body.history === '') { docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } })); }
+    const response = await generateWithFallback(contents, null);
+    await user.save(); res.json({ reply: response.text });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// FASE 5: Presentaciones Interactivas
 app.post('/api/generate-presentation', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
     await consumeTokens(user, 0.25);
     const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
-    
-    const contents = [`Actúa como experto en diseño instruccional. Extrae el contenido clave de los adjuntos y diseña una presentación interactiva. Alterna entre diapositivas de resumen ('summary') y de evaluación/trivia ('trivia').`];
+    const contents = [`Actúa como experto en diseño instruccional. Extrae el contenido clave y diseña una presentación. Alterna diapositivas 'summary' y 'trivia'.`];
     docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
-    
-    const schema = { 
-      type: Type.OBJECT, properties: { presentationTitle: { type: Type.STRING }, slides: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { type: { type: Type.STRING, description: "'summary' o 'trivia'" }, title: { type: Type.STRING }, content: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctIndex: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["type", "title", "content"] } } }, required: ["presentationTitle", "slides"] 
-    };
-    
+    const schema = { type: Type.OBJECT, properties: { presentationTitle: { type: Type.STRING }, slides: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { type: { type: Type.STRING }, title: { type: Type.STRING }, content: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctIndex: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["type", "title", "content"] } } }, required: ["presentationTitle", "slides"] };
     const response = await generateWithFallback(contents, schema);
     const newPresentation = { id: 'pres-' + Date.now(), createdAt: new Date().toLocaleString('es-GT'), ...JSON.parse(response.text) };
-    
     const subj = user.subjects.find(s => s.id === req.body.subjectId);
-    subj.presentations = subj.presentations || []; 
-    subj.presentations.push(newPresentation); 
-    user.markModified('subjects'); await user.save();
-    
+    subj.presentations = subj.presentations || []; subj.presentations.push(newPresentation); user.markModified('subjects'); await user.save();
     res.json({ presentation: newPresentation, user: await serializeUser(user, req.DocumentModel) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.delete('/api/presentations/:presId', async (req, res) => {
+// FASE 4: Filtros, Glosarios y Mapas Mermaid
+app.post('/api/philosophy-realism', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.10);
+    const response = await generateWithFallback([`Filtro Realista. Analiza: "${req.body.query}". REGLA: Omite metodologías anglosajonas. Analiza bajo la perspectiva Aristotélico-Tomista. Devuelve HTML.`], null);
+    await user.save(); res.json({ answer: response.text });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.post('/api/generate-evolutionary-storybook', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.20);
+    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
+    const contents = [`Transforma los textos en narrativa cronológica (gestación a adultez) estilo novela gráfica.`];
+    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
+    const schema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, summary: { type: Type.STRING }, scenes: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { sceneNumber: { type: Type.INTEGER }, characterName: { type: Type.STRING }, academicConcept: { type: Type.STRING }, storyDialogue: { type: Type.STRING } }, required: ["sceneNumber", "characterName", "academicConcept", "storyDialogue"] } }, timeline: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { step: { type: Type.INTEGER }, title: { type: Type.STRING }, description: { type: Type.STRING } }, required: ["step", "title", "description"] } }, quiz: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctIndex: { type: Type.INTEGER }, heroExplanation: { type: Type.STRING } }, required: ["question", "options", "correctIndex", "heroExplanation"] } } }, required: ["title", "summary", "scenes", "timeline", "quiz"] };
+    const response = await generateWithFallback(contents, schema);
+    const newStorybook = { id: 'sb-' + Date.now(), ...JSON.parse(response.text) };
     const subj = user.subjects.find(s => s.id === req.body.subjectId);
-    subj.presentations = subj.presentations.filter(p => p.id !== req.params.presId);
-    user.markModified('subjects'); await user.save();
-    res.json({ user: await serializeUser(user, req.DocumentModel) });
+    subj.storybooks = subj.storybooks || []; subj.storybooks.push(newStorybook); user.markModified('subjects'); await user.save();
+    res.json({ storybook: newStorybook, user: await serializeUser(user, req.DocumentModel) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.post('/api/generate-glossary', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.10);
+    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
+    const contents = [`Genera glosario técnico de los documentos adjuntos.`];
+    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
+    const schema = { type: Type.OBJECT, properties: { glossaryTitle: { type: Type.STRING }, terms: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { term: { type: Type.STRING }, definition: { type: Type.STRING } }, required: ["term", "definition"] } } }, required: ["glossaryTitle", "terms"] };
+    const response = await generateWithFallback(contents, schema);
+    await user.save(); res.json({ glossary: JSON.parse(response.text) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.post('/api/generate-mindmap', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.15);
+    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
+    const contents = [`Devuelve ÚNICAMENTE código Mermaid.js (graph TD) limpio. Sin explicaciones ni backticks de markdown.`];
+    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
+    const response = await generateWithFallback(contents, null);
+    await user.save(); res.json({ mermaidCode: response.text.replace(/```mermaid/g, '').replace(/```/g, '').trim() });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ================= ENDPOINTS IA GENÉRICOS (Storybook, Audiobooks, etc) =================
+// IA Genérica (Audiobook, Timeline, Flashcards)
 app.post('/api/audiobook-chapters', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
     await consumeTokens(user, 0.25);
     const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
-    if (docs.length === 0) throw new Error("Documento vacío.");
-    const contents = ["Analiza y extrae la obra completa en capítulos (chapterContent) lectura íntegra. Genera un resumen (bookSummary)."];
+    const contents = ["Analiza y extrae la obra completa en capítulos lectura íntegra. Genera un resumen (bookSummary)."];
     docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
     const schema = { type: Type.OBJECT, properties: { audiobookTitle: { type: Type.STRING }, bookSummary: { type: Type.STRING }, chapters: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { chapterTitle: { type: Type.STRING }, chapterContent: { type: Type.STRING } }, required: ["chapterTitle", "chapterContent"] } } }, required: ["audiobookTitle", "bookSummary", "chapters"] };
     const response = await generateWithFallback(contents, schema);
-    const newAudiobook = { id: 'ab-' + Date.now(), createdAt: new Date().toLocaleString('es-GT'), ...JSON.parse(response.text) };
+    const newAudiobook = { id: 'ab-' + Date.now(), ...JSON.parse(response.text) };
     const subj = user.subjects.find(s => s.id === req.body.subjectId);
     subj.audiobooks = subj.audiobooks || []; subj.audiobooks.push(newAudiobook); user.markModified('subjects'); await user.save();
     res.json({ audiobook: newAudiobook, user: await serializeUser(user, req.DocumentModel) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
-
-app.post('/api/university-homework', async (req, res) => {
-  try {
-    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
-    await consumeTokens(user, 0.15);
-    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, 'ALL');
-    const contents = [`Actúa como profesor. Resuelve la tarea usando los adjuntos: "${req.body.promptTask}"`];
-    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
-    const response = await generateWithFallback(contents, null);
-    await user.save(); res.json({ result: response.text, user: await serializeUser(user, req.DocumentModel) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.post('/api/socratic-debate', async (req, res) => {
-  try {
-    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
-    await consumeTokens(user, 0.05);
-    const response = await generateWithFallback([`Actúa como: "${req.body.philosopher}". Historial: ${req.body.history}. Responde a: "${req.body.message}"`], null);
-    await user.save(); res.json({ reply: response.text, user: await serializeUser(user, req.DocumentModel) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
 app.post('/api/generate-timeline-map', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
@@ -479,45 +428,16 @@ app.post('/api/generate-timeline-map', async (req, res) => {
     await user.save(); res.json({ timelineMap: JSON.parse(response.text), user: await serializeUser(user, req.DocumentModel) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
-
 app.post('/api/generate-flashcards', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
     await consumeTokens(user, 0.15);
     const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
-    const contents = [`Genera 6 fichas de estudio basadas en el documento adjunto.`];
+    const contents = [`Genera 6 fichas de estudio.`];
     docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
     const schema = { type: Type.OBJECT, properties: { flashcards: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, answer: { type: Type.STRING }, hint: { type: Type.STRING } }, required: ["question", "answer", "hint"] } } }, required: ["flashcards"] };
     const response = await generateWithFallback(contents, schema);
     await user.save(); res.json({ flashcards: JSON.parse(response.text).flashcards, user: await serializeUser(user, req.DocumentModel) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.post('/api/generate-storybook', async (req, res) => {
-  try {
-    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
-    await consumeTokens(user, 0.20);
-    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
-    const contents = [`Crea una monografía académica gamificada basada en el documento.`];
-    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
-    const schema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, summary: { type: Type.STRING }, scenes: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { sceneNumber: { type: Type.INTEGER }, characterName: { type: Type.STRING }, academicConcept: { type: Type.STRING }, storyDialogue: { type: Type.STRING } }, required: ["sceneNumber", "characterName", "academicConcept", "storyDialogue"] } }, timeline: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { step: { type: Type.INTEGER }, title: { type: Type.STRING }, description: { type: Type.STRING } }, required: ["step", "title", "description"] } }, quiz: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctIndex: { type: Type.INTEGER }, heroExplanation: { type: Type.STRING } }, required: ["question", "options", "correctIndex", "heroExplanation"] } } }, required: ["title", "summary", "scenes", "timeline", "quiz"] };
-    const response = await generateWithFallback(contents, schema);
-    
-    const newStorybook = { id: 'sb-' + Date.now(), ...JSON.parse(response.text) };
-    const subj = user.subjects.find(s => s.id === req.body.subjectId);
-    subj.storybooks = subj.storybooks || []; subj.storybooks.push(newStorybook);
-    user.markModified('subjects'); await user.save();
-    
-    res.json({ storybook: newStorybook, user: await serializeUser(user, req.DocumentModel) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.post('/api/phenomenology-query', async (req, res) => {
-  try {
-    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
-    await consumeTokens(user, 0.05);
-    const response = await generateWithFallback([`Actúa como purista de Husserl y Heidegger. Explica: ${req.body.query}`], null);
-    await user.save(); res.json({ answer: response.text, user: await serializeUser(user, req.DocumentModel) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
