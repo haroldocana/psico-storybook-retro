@@ -314,6 +314,7 @@ window.renderDashboard = function() {
   document.getElementById('selectDocForAI').innerHTML = `<option value="ALL">📚 USAR TODOS LOS ARCHIVOS (${docs.length})</option>` + docs.map(d => `<option value="${d.id}">📄 ${d.title}</option>`).join('');
   document.getElementById('audiobookDocSelect').innerHTML = `<option value="">-- Elige el Libro Completo --</option>` + docs.map(d => `<option value="${d.id}">📖 ${d.title}</option>`).join('');
 
+  // Historial Monografías
   document.getElementById('savedHistoryList').innerHTML = (subj.storybooks || []).slice().reverse().map(sb => `
     <div class="p-3.5 rounded-xl bg-slate-900 border border-indigo-500/30 flex justify-between items-center text-sm shadow-sm hover:border-cyan-500 transition">
       <div onclick='openStorybook(${JSON.stringify(sb).replace(/'/g, "&#39;")})' class="cursor-pointer truncate flex-1 text-slate-200 font-black hover:text-cyan-300">📖 ${sb.title}</div>
@@ -321,12 +322,23 @@ window.renderDashboard = function() {
     </div>
   `).join('') || '<p class="text-xs text-slate-500 italic p-3 border border-dashed border-slate-700 rounded-xl text-center">Sin monografías aún.</p>';
 
+  // Historial Audiolibros
   document.getElementById('savedAudiobooksList').innerHTML = (subj.audiobooks || []).slice().reverse().map(ab => `
     <div class="p-3.5 rounded-xl bg-slate-900 border border-rose-500/30 flex justify-between items-center text-sm shadow-sm hover:border-rose-500 transition">
       <div onclick='openSavedAudiobook(${JSON.stringify(ab).replace(/'/g, "&#39;")})' class="cursor-pointer truncate flex-1 text-slate-200 font-black hover:text-rose-300">🎧 ${ab.audiobookTitle}</div>
       <button onclick="deleteSavedAudiobook('${ab.id}')" class="text-red-400 ml-3 font-black bg-red-950/50 px-2 py-1 rounded-lg">🗑️</button>
     </div>
   `).join('') || '<p class="text-xs text-slate-500 italic p-3 border border-dashed border-slate-700 rounded-xl text-center">Sin audiolibros aún.</p>';
+
+  // Historial Presentaciones Interactivas (FASE 5)
+  if (document.getElementById('savedPresentationsList')) {
+    document.getElementById('savedPresentationsList').innerHTML = (subj.presentations || []).slice().reverse().map(p => `
+      <div class="p-3.5 rounded-xl bg-slate-900 border border-orange-500/30 flex justify-between items-center text-sm shadow-sm hover:border-orange-500 transition">
+        <div onclick='openPresentation(${JSON.stringify(p).replace(/'/g, "&#39;")})' class="cursor-pointer truncate flex-1 text-slate-200 font-black hover:text-orange-300">📊 ${p.presentationTitle}</div>
+        <button onclick="deleteSavedPresentation('${p.id}')" class="text-red-400 ml-3 font-black bg-red-950/50 px-2 py-1 rounded-lg">🗑️</button>
+      </div>
+    `).join('') || '<p class="text-xs text-slate-500 italic p-3 border border-dashed border-slate-700 rounded-xl text-center">Sin presentaciones.</p>';
+  }
 };
 
 window.selectSubject = function(id) { activeSubjectId = id; localStorage.setItem(`psico_subj_${currentUser.username}`, id); document.getElementById('viewerArea').classList.add('hidden'); renderDashboard(); };
@@ -430,7 +442,7 @@ window.submitUniversityHomework = async function() {
 
 window.generateAudiobook = async function() {
   const selectedDocId = document.getElementById('audiobookDocSelect').value;
-  if(!selectedDocId) return alert('Selecciona un libro.');
+  if(!selectedDocId) return alert('Selecciona un documento.');
   const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
   v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">🎧</span><p class="text-rose-400 font-black text-2xl uppercase mt-4">Extrayendo Obra Completa...</p></div>`;
   try {
@@ -520,7 +532,6 @@ window.generateStorybook = async function() {
   } catch (e) { alert('Error servidor.'); closeFullScreenViewer(); }
 };
 
-// Funciones de renderizado UI Storybook/Audiobook (Igual a como lo tenías, usando los HTML inyectados)
 window.openStorybook = function(sb) {
   const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
   v.innerHTML = `
@@ -551,7 +562,7 @@ window.openStorybook = function(sb) {
       <div class="bg-slate-950/90 rounded-3xl p-8 md:p-10 border-4 border-amber-400 space-y-8 shadow-2xl relative overflow-hidden mt-10">
         <div class="absolute -bottom-10 -right-10 text-9xl opacity-5">🏆</div><div class="flex items-center gap-4 border-b-2 border-amber-500/30 pb-4 relative z-10"><span class="text-4xl drop-shadow-md">🏆</span><div><h3 class="font-black text-xl text-amber-300 uppercase tracking-widest">Trivia Gamificada</h3></div></div>
         <div class="space-y-6 relative z-10">
-          ${(sb.quiz || []).map((q, idx) => `<div class="p-6 rounded-3xl bg-slate-900 border-2 border-indigo-500/40 space-y-4 shadow-lg"><p class="text-base font-black text-slate-100 flex gap-3"><span class="text-amber-400">Pregunta ${idx + 1}:</span> <span>${q.question}</span></p><div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">${(q.options || []).map((opt, oIdx) => `<button onclick="alert('${oIdx === q.correctIndex ? '🏆 CORRECTA!' : '❌ Incorrecta.'} ${JSON.stringify(q.heroExplanation).replace(/'/g, "\\'").replace(/^"|"$/g, '')}')" class="text-left text-sm font-bold p-4 rounded-2xl bg-slate-950 hover:bg-indigo-950 border-2 border-indigo-500/30 text-slate-200 shadow-md border-b-4"><span class="text-indigo-400 mr-2">${String.fromCharCode(65 + oIdx)})</span> ${opt}</button>`).join('')}</div></div>`).join('')}
+          ${(sb.quiz || []).map((q, idx) => `<div class="p-6 rounded-3xl bg-slate-900 border-2 border-indigo-500/40 space-y-4 shadow-lg"><p class="text-base font-black text-slate-100 flex gap-3"><span class="text-amber-400">Pregunta ${idx + 1}:</span> <span>${q.question}</span></p><div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">${(q.options || []).map((opt, oIdx) => `<button onclick="alert('${oIdx === q.correctIndex ? '🏆 CORRECTA!' : '❌ Incorrecta.'} \\n\\nExplicación: ${JSON.stringify(q.heroExplanation).replace(/'/g, "\\'").replace(/^"|"$/g, '')}')" class="text-left text-sm font-bold p-4 rounded-2xl bg-slate-950 hover:bg-indigo-950 border-2 border-indigo-500/30 text-slate-200 shadow-md border-b-4"><span class="text-indigo-400 mr-2">${String.fromCharCode(65 + oIdx)})</span> ${opt}</button>`).join('')}</div></div>`).join('')}
         </div>
       </div>
     </div>
@@ -598,6 +609,7 @@ window.openSavedAudiobook = function(ab) {
   }
   renderAudiobookUI(); playCurrentChapter();
 };
+
 window.downloadAudiobookSummary = () => {
   const safeTitle = window.currentAudiobookTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   const content = `<div class="chapter-box"><h2>Resumen Analítico</h2><p>${window.currentAudiobookSummary.replace(/\n/g, '<br>')}</p></div>`;
@@ -784,7 +796,6 @@ window.startUnlimitedResearch = async function() {
 // ==========================================
 // 14. FASE 4: MÓDULOS ESPECIALIZADOS
 // ==========================================
-
 window.askRealistPhilosophy = async function() {
   const query = document.getElementById('filosofiaInput').value.trim();
   if (!query) return alert("Ingresa un tema a analizar.");
@@ -853,4 +864,86 @@ window.generateEvoStorybook = async function() {
     if (res.ok) { window.openStorybook(data.storybook); renderDashboard(); }
     else alert(data.error);
   } catch (err) { alert('Error al generar Storybook.'); }
+};
+
+// ==========================================
+// 15. FASE 5: PRESENTACIONES INTERACTIVAS
+// ==========================================
+
+window.deleteSavedPresentation = async function(id) {
+  if (!confirm('¿Borrar presentación?')) return;
+  try { 
+    const res = await apiFetch(`/api/presentations/${id}`, { method: 'DELETE', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId }) }); 
+    if (res.ok) { currentUser = (await res.json()).user; renderDashboard(); } 
+  } catch(e) {}
+};
+
+window.generatePresentation = async function() {
+  const docId = document.getElementById('selectDocForAI').value;
+  const v = document.getElementById('viewerArea'); 
+  v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
+  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">📊</span><p class="text-orange-300 font-black text-2xl uppercase mt-4">Construyendo Diapositivas e Interacciones...</p></div>`;
+  
+  try {
+    const res = await apiFetch('/api/generate-presentation', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: docId }) });
+    const data = await res.json();
+    if (res.ok) { 
+      currentUser = data.user; 
+      renderDashboard(); 
+      window.openPresentation(data.presentation); 
+    } else { 
+      alert(data.error); closeFullScreenViewer(); 
+    }
+  } catch (err) { alert('Error al generar la presentación.'); closeFullScreenViewer(); }
+};
+
+window.openPresentation = function(pres) {
+  const v = document.getElementById('viewerArea'); 
+  v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
+  let currentSlide = 0;
+
+  window.renderSlide = function() {
+    const slide = pres.slides[currentSlide];
+    let contentHtml = '';
+
+    if (slide.type === 'trivia') {
+      contentHtml = `
+        <div class="space-y-4">
+          <h3 class="text-2xl font-black text-amber-400 text-center mb-6">🤔 ${slide.content}</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            ${(slide.options || []).map((opt, i) => `
+              <button onclick="alert('${i === slide.correctIndex ? '✅ ¡CORRECTO!' : '❌ INCORRECTO.'} \\n\\nExplicación: ${slide.explanation}')" class="p-4 bg-slate-800 border-2 border-indigo-500/40 rounded-xl text-slate-200 font-bold hover:bg-indigo-900 transition">${opt}</button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    } else {
+      contentHtml = `<p class="text-lg text-slate-200 leading-relaxed font-medium text-justify whitespace-pre-wrap">${slide.content}</p>`;
+    }
+
+    v.innerHTML = `
+      <div class="max-w-5xl mx-auto glass-edu rounded-3xl p-10 space-y-6 border-2 border-orange-500 mt-10 relative shadow-2xl min-h-[500px] flex flex-col justify-between">
+        <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-slate-800 text-white font-bold z-50">✕ Cerrar</button>
+        
+        <div>
+          <div class="flex justify-between items-center border-b border-orange-500/30 pb-4 mb-6">
+            <h2 class="text-2xl font-black text-orange-300">📊 ${pres.presentationTitle}</h2>
+            <span class="px-3 py-1 rounded-full bg-slate-800 text-slate-300 text-xs font-black">Diapositiva ${currentSlide + 1} de ${pres.slides.length}</span>
+          </div>
+          <h1 class="text-3xl font-black text-white mb-6 text-center">${slide.title}</h1>
+          ${contentHtml}
+        </div>
+
+        <div class="flex justify-between items-center pt-6 border-t border-slate-700/50">
+          <button onclick="prevSlide()" class="px-6 py-3 rounded-xl bg-slate-800 text-white font-black hover:bg-slate-700 ${currentSlide === 0 ? 'opacity-50 cursor-not-allowed' : ''}">⬅ Anterior</button>
+          <button onclick="nextSlide()" class="px-6 py-3 rounded-xl bg-orange-600 text-white font-black hover:bg-orange-500 ${currentSlide === pres.slides.length - 1 ? 'opacity-50 cursor-not-allowed' : ''}">Siguiente ➡</button>
+        </div>
+      </div>
+    `;
+  };
+
+  window.prevSlide = () => { if (currentSlide > 0) { currentSlide--; renderSlide(); } };
+  window.nextSlide = () => { if (currentSlide < pres.slides.length - 1) { currentSlide++; renderSlide(); } };
+
+  renderSlide();
 };
