@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // ================= STRIPE WEBHOOK (Debe ir ANTES del express.json) =================
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_tu_key_aqui');
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy');
 
 app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
@@ -26,11 +26,9 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    // Generamos un nombre de BD único, ej: institucion_cus_12345
-    const dbName = `institucion_${session.customer.toLowerCase().replace('cus_', '')}`;
+    const dbName = `tenant_${session.customer.toLowerCase().replace('cus_', '')}`;
     
     try {
-      // 1. Registrar a la Institución en la BD Master
       await TenantModel.create({
         companyName: session.custom_fields?.[0]?.text?.value || "Nueva Institución",
         dbName: dbName,
@@ -38,21 +36,19 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
         subscriptionStatus: 'active'
       });
 
-      // 2. Conectarse a la nueva BD física del cliente
       const tenantDb = mongoose.connection.useDb(dbName, { useCache: true });
       const TenantUser = tenantDb.model('User', UserSchema);
 
-      // 3. Crear el Administrador Maestro para este colegio/universidad
       await TenantUser.create({
         username: 'master',
         fullName: 'Administrador Maestro',
         email: session.customer_details.email,
         password: 'admin_temporal_123',
         role: 'admin',
-        aiAllowanceUSD: 50.00, // Bolsón de Tokens Inicial
+        aiAllowanceUSD: 50.00,
         subjects: []
       });
-      console.log(`✅ Base de datos ${dbName} creada para nuevo cliente.`);
+      console.log(`✅ Base de datos ${dbName} aprovisionada.`);
     } catch (e) {
       console.error("Error aprovisionando tenant:", e);
     }
@@ -92,7 +88,6 @@ async function generateWithFallback(contents, responseSchema) {
 }
 
 // ================= ESQUEMAS DE BASE DE DATOS =================
-// 1. Esquema Master (SaaS Control - COMPILADO GLOBALMENTE)
 const TenantSchema = new mongoose.Schema({
   companyName: String,
   dbName: { type: String, unique: true },
@@ -102,7 +97,6 @@ const TenantSchema = new mongoose.Schema({
 });
 const TenantModel = mongoose.model('Tenant', TenantSchema);
 
-// 2. Esquemas Tenant (NO SE COMPILAN GLOBALMENTE)
 const DocumentSchema = new mongoose.Schema({
   docId: { type: String, unique: true, index: true },
   username: { type: String, lowercase: true, index: true },
@@ -138,7 +132,7 @@ async function connectDB() {
     await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 5000 });
     console.log("✅ MongoDB Master conectado correctamente.");
     
-    // Crear un tenant de prueba si no existe (Para desarrollo)
+    // Institución de prueba local
     const testDbName = 'institucion_demo';
     const existing = await TenantModel.findOne({ dbName: testDbName });
     if (!existing) {
@@ -152,33 +146,50 @@ async function connectDB() {
     throw err;
   }
 }
-connectDB().catch(() => console.log("Se reintentará conectar con la primera petición..."));
+connectDB().catch(() => console.log("Se reintentará conectar..."));
+
+// ================= RUTA DEV CREAR TENANT MANUAL =================
+app.post('/dev/crear-institucion', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) await connectDB();
+    const { codigo_institucion } = req.body;
+    if (!codigo_institucion) return res.status(400).json({error: "Falta codigo_institucion"});
+    
+    await TenantModel.findOneAndUpdate(
+      { dbName: codigo_institucion.toLowerCase() },
+      { companyName: "Universidad de Pruebas", dbName: codigo_institucion.toLowerCase(), stripeCustomerId: "dev_123", subscriptionStatus: 'active' },
+      { upsert: true }
+    );
+    const tenantDb = mongoose.connection.useDb(codigo_institucion.toLowerCase(), { useCache: true });
+    const TenantUser = tenantDb.model('User', UserSchema);
+    await TenantUser.findOneAndUpdate(
+      { username: 'master' },
+      { fullName: 'Administrador Maestro', email: 'master@dev.edu', password: 'master123', role: 'admin', aiAllowanceUSD: 9999 },
+      { upsert: true }
+    );
+    res.json({ success: true, message: `Institución ${codigo_institucion} creada.` });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
 
 // ================= MIDDLEWARE MULTI-TENANT ENRUTADOR =================
 app.use('/api', async (req, res, next) => {
   try {
     if (mongoose.connection.readyState !== 1) await connectDB();
-    
     const tenantId = req.headers['x-tenant-id'];
     if (!tenantId) return res.status(400).json({ error: "Falta el código de la institución (Tenant ID)." });
 
     const cleanTenantId = tenantId.trim().toLowerCase();
     const tenant = await TenantModel.findOne({ dbName: cleanTenantId });
-    
     if (!tenant || tenant.subscriptionStatus !== 'active') {
-      return res.status(403).json({ error: "Institución no encontrada o suscripción inactiva." });
+      return res.status(403).json({ error: "Institución inactiva o no encontrada." });
     }
 
-    // Cambiar dinámicamente de Base de Datos
     const tenantDb = mongoose.connection.useDb(tenant.dbName, { useCache: true });
-    
-    // Inyectar modelos en el request para que los endpoints los usen
     req.UserModel = tenantDb.model('User', UserSchema);
     req.DocumentModel = tenantDb.model('Document', DocumentSchema);
-
     next();
   } catch (error) {
-    return res.status(500).json({ error: "Sin conexión a la base de datos del Tenant." });
+    return res.status(500).json({ error: "Sin conexión a BD Tenant." });
   }
 });
 
@@ -196,13 +207,13 @@ async function serializeUser(user, DocumentModelRef) {
   return obj;
 }
 
-// ================= AUTENTICACIÓN Y CONTRASEÑAS =================
+// ================= AUTENTICACIÓN Y ADMIN =================
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { identifier, password } = req.body;
     const cleanId = (identifier || '').trim().toLowerCase();
     const user = await req.UserModel.findOne({ $or: [{ username: cleanId }, { email: cleanId }] });
-    if (!user || user.password !== password) return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
+    if (!user || user.password !== password) return res.status(401).json({ error: "Credenciales incorrectas." });
     res.json({ user: await serializeUser(user, req.DocumentModel) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -212,7 +223,6 @@ app.post('/api/auth/register', async (req, res) => {
     const { fullName, username, email, password, recoveryWord, career } = req.body;
     const cleanUsername = (username || '').trim().toLowerCase();
     if (await req.UserModel.findOne({ username: cleanUsername })) return res.status(400).json({ error: "El usuario ya existe." });
-    
     const newUser = new req.UserModel({
       username: cleanUsername, fullName, email: (email || `${cleanUsername}@universidad.edu`).toLowerCase(),
       password, recoveryWord, career: career || 'Estudios Generales',
@@ -226,7 +236,7 @@ app.post('/api/auth/register', async (req, res) => {
 app.get('/api/auth/session/:username', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.params.username.trim().toLowerCase() });
-    if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+    if (!user) return res.status(404).json({ error: "No encontrado" });
     res.json({ user: await serializeUser(user, req.DocumentModel) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -235,11 +245,9 @@ app.post('/api/auth/reset-password', async (req, res) => {
   try {
     const { username, recoveryWord, newPassword } = req.body;
     const user = await req.UserModel.findOne({ username: username.toLowerCase() });
-    if (!user) return res.status(404).json({ error: "Usuario no existe." });
-    if (user.recoveryWord !== recoveryWord) return res.status(401).json({ error: "Palabra clave de recuperación incorrecta." });
-    user.password = newPassword;
-    await user.save();
-    res.json({ success: true, message: "Contraseña actualizada exitosamente." });
+    if (!user || user.recoveryWord !== recoveryWord) return res.status(401).json({ error: "Datos incorrectos." });
+    user.password = newPassword; await user.save();
+    res.json({ success: true, message: "Contraseña actualizada." });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -247,16 +255,12 @@ app.post('/api/user/change-password', async (req, res) => {
   try {
     const { username, oldPassword, newPassword } = req.body;
     const user = await req.UserModel.findOne({ username: username.toLowerCase() });
-    if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
-    if (user.password !== oldPassword) return res.status(401).json({ error: "La contraseña actual es incorrecta." });
-    
-    user.password = newPassword;
-    await user.save();
+    if (!user || user.password !== oldPassword) return res.status(401).json({ error: "Contraseña actual incorrecta." });
+    user.password = newPassword; await user.save();
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ================= PANEL DE ADMINISTRADOR =================
 app.get('/api/admin/users', async (req, res) => {
   try {
     const requester = await req.UserModel.findOne({ username: req.headers['x-user'] });
@@ -270,19 +274,15 @@ app.post('/api/admin/create-user', async (req, res) => {
   try {
     const requester = await req.UserModel.findOne({ username: req.headers['x-user'] });
     if (!requester || requester.role !== 'admin') return res.status(403).json({ error: "Acceso denegado." });
-    
     const { fullName, username, password, career, initialTokens } = req.body;
     const cleanUsername = username.trim().toLowerCase();
-    
     if (await req.UserModel.findOne({ username: cleanUsername })) return res.status(400).json({ error: "El usuario ya existe." });
-    
     await new req.UserModel({
       username: cleanUsername, fullName, email: `${cleanUsername}@universidad.edu`,
       password, recoveryWord: 'admin123', career: career || 'Estudios Generales',
       aiAllowanceUSD: parseFloat(initialTokens) || 2.00,
       subjects: [{ id: 'subj-init', name: 'Mi Primera Materia', schedule: 'Semestre 1', documents: [], storybooks: [], audiobooks: [] }]
     }).save();
-    
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -291,10 +291,8 @@ app.post('/api/admin/add-tokens', async (req, res) => {
   try {
     const requester = await req.UserModel.findOne({ username: req.headers['x-user'] });
     if (!requester || requester.role !== 'admin') return res.status(403).json({ error: "Acceso denegado." });
-    
     const targetUser = await req.UserModel.findOne({ username: req.body.targetUsername });
     if (!targetUser) return res.status(404).json({ error: "Usuario no encontrado." });
-
     targetUser.aiAllowanceUSD += parseFloat(req.body.amount);
     targetUser.pendingTokenRequest = false;
     await targetUser.save();
@@ -306,7 +304,6 @@ app.post('/api/admin/force-reset', async (req, res) => {
   try {
     const requester = await req.UserModel.findOne({ username: req.headers['x-user'] });
     if (!requester || requester.role !== 'admin') return res.status(403).json({ error: "Acceso denegado." });
-    
     const targetUser = await req.UserModel.findOne({ username: req.body.targetUsername });
     targetUser.password = req.body.newPassword;
     await targetUser.save();
@@ -317,21 +314,18 @@ app.post('/api/admin/force-reset', async (req, res) => {
 app.post('/api/user/request-tokens', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username });
-    user.pendingTokenRequest = true;
-    await user.save();
+    user.pendingTokenRequest = true; await user.save();
     res.json({ success: true, user: await serializeUser(user, req.DocumentModel) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ================= GESTIÓN DE MATERIAS Y ARCHIVOS =================
+// ================= MATERIAS Y ARCHIVOS =================
 app.post('/api/subjects', async (req, res) => {
   try {
     const { username, name, schedule } = req.body;
     const user = await req.UserModel.findOne({ username: (username || '').toLowerCase() });
     const newSubj = { id: 'subj-' + Date.now(), name, schedule: schedule || 'Semestre Actual', documents: [], storybooks: [], audiobooks: [] };
-    user.subjects.push(newSubj);
-    user.markModified('subjects');
-    await user.save();
+    user.subjects.push(newSubj); user.markModified('subjects'); await user.save();
     res.json({ user: await serializeUser(user, req.DocumentModel), newSubjectId: newSubj.id });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -341,8 +335,7 @@ app.delete('/api/subjects/:subjectId', async (req, res) => {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
     await req.DocumentModel.deleteMany({ username: user.username, subjectId: req.params.subjectId });
     user.subjects = user.subjects.filter(s => s.id !== req.params.subjectId);
-    user.markModified('subjects');
-    await user.save();
+    user.markModified('subjects'); await user.save();
     res.json({ user: await serializeUser(user, req.DocumentModel) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -352,7 +345,6 @@ app.post('/api/documents', upload.any(), async (req, res) => {
     const { username, subjectId, docTitle, youtubeUrl } = req.body;
     const user = await req.UserModel.findOne({ username: username.toLowerCase() });
     const dateStr = new Date().toLocaleDateString('es-GT');
-    
     if (youtubeUrl && youtubeUrl.includes('youtu')) {
       const ytRes = await generateWithFallback([`Extrae un resumen detallado y puntos clave del siguiente video de YouTube: ${youtubeUrl}`], null);
       await new req.DocumentModel({
@@ -361,7 +353,6 @@ app.post('/api/documents', upload.any(), async (req, res) => {
         base64Data: null, textContent: `Resumen de Video:\n${ytRes.text}`, uploadedAt: dateStr
       }).save();
     }
-
     if (req.files && req.files.length > 0) {
       for (let file of req.files) {
         await new req.DocumentModel({
@@ -372,7 +363,6 @@ app.post('/api/documents', upload.any(), async (req, res) => {
         }).save();
       }
     }
-
     res.json({ user: await serializeUser(user, req.DocumentModel) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -417,7 +407,7 @@ app.delete('/api/subjects/:subjectId/documents', async (req, res) => {
 async function consumeTokens(user, costUSD) {
   if (user.role === 'admin') return true; 
   const remaining = user.aiAllowanceUSD - user.aiConsumptionUSD;
-  if (remaining <= 0) throw new Error("Saldo de Tokens agotado. Solicita más saldo a tu administrador.");
+  if (remaining <= 0) throw new Error("Saldo agotado. Solicita más tokens.");
   user.aiConsumptionUSD += costUSD;
   return true;
 }
@@ -428,55 +418,94 @@ async function getFullDocumentsForSubject(DocumentModelRef, username, subjectId,
   return docs.filter(d => d.docId === documentId);
 }
 
-// ================= MOTOR DE LIMPIEZA TTS (FASE 2) =================
+// ================= FASE 2: MOTOR TTS =================
 app.post('/api/tts-clean', async (req, res) => {
   try {
     const { rawText } = req.body;
     if (!rawText) return res.json({ cleanedText: "" });
-
-    // Lógica Regex para limpiar el texto antes de narrar
     const cleanedText = rawText
-      // 1. Marcas de agua y textos de confidencialidad
       .replace(/\b(CONFIDENCIAL|DRAFT|BORRADOR|PROPIEDAD DE)\b/gmi, '')
-      // 2. Numeración de páginas (ej. Página 12, - 12 -)
       .replace(/(?:\bPágina\s+\d+\b|^\s*-\s*\d+\s*-\s*$|\b\d+\/\d+\b)/gmi, '')
-      // 3. Citas bibliográficas [12], (Autor, 2020)
       .replace(/\[\d+(-\d+)?\]|\([A-Za-z]+,\s*\d{4}\)/g, '')
-      // 4. URLs (evita que la voz deletree enlaces largos)
       .replace(/https?:\/\/[^\s]+/g, ' enlace omitido ')
-      // 5. Caracteres especiales de formato
       .replace(/[*_~^|<>{}\\]/g, '')
-      // 6. Múltiples saltos de línea a punto (pausa de respiración)
       .replace(/\n+/g, '. ')
-      // 7. Dobles espacios
       .replace(/\s{2,}/g, ' ')
       .trim();
-
     res.json({ cleanedText });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
-// ================= ENDPOINTS IA =================
+// ================= FASE 3: CEREBRO DE IA (TUTOR, APA E INVESTIGACIÓN) =================
+app.post('/api/tutor-explain', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.05); 
+    const prompt = `Actúa como un Tutor Académico de Psicología Clínica. 
+    El alumno no comprende el siguiente texto. Explícalo de forma didáctica, con ejemplos clínicos reales.
+    Texto a analizar: "${req.body.text}"`;
+    const response = await generateWithFallback([prompt], null);
+    await user.save();
+    res.json({ explanation: response.text });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/generate-apa-task', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.30); 
+    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, 'ALL');
+    const contents = [
+      `Actúa como redactor académico experto. Escribe un ensayo sobre: "${req.body.topic}".
+      REGLAS: Formato APA 7ma, Introducción, Desarrollo, Conclusión, Referencias. Usa citas intratextuales basándote EXCLUSIVAMENTE en los documentos adjuntos. Devuelve en HTML (<h1>, <h2>, <p>).`
+    ];
+    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
+    const response = await generateWithFallback(contents, null);
+    await user.save();
+    res.json({ apaDocument: response.text });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/research/outline', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.10);
+    const prompt = `Actúa como Director de Tesis. Diseña un índice detallado para una investigación sobre: "${req.body.topic}". Devuelve estrictamente un arreglo JSON de capítulos.`;
+    const schema = { type: Type.OBJECT, properties: { chapters: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["chapters"] };
+    const response = await generateWithFallback([prompt], schema);
+    await user.save();
+    res.json({ outline: JSON.parse(response.text).chapters });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/research/chapter', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.20); 
+    const { topic, chapterTitle, previousChapterSummary } = req.body;
+    let prompt = `Escribe el capítulo "${chapterTitle}" para una investigación sobre "${topic}". Nivel académico avanzado. Formato APA. Devuelve en HTML (<p>, <h2>).`;
+    if (previousChapterSummary) prompt += `\nResumen del capítulo anterior para coherencia: "${previousChapterSummary}".`;
+    const response = await generateWithFallback([prompt], null);
+    await user.save();
+    res.json({ chapterContent: response.text });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ================= ENDPOINTS IA CLÁSICOS =================
 app.post('/api/audiobook-chapters', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
     await consumeTokens(user, 0.25);
     const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
     if (docs.length === 0) throw new Error("El libro está vacío o es ilegible.");
-
     const contents = ["Analiza el siguiente documento y extrae la obra completa dividida en capítulos (chapterContent). NO HAGAS RESÚMENES, quiero la lectura íntegra. Genera también un resumen analítico descargable (bookSummary)."];
     docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
-
     const schema = { type: Type.OBJECT, properties: { audiobookTitle: { type: Type.STRING }, bookSummary: { type: Type.STRING }, chapters: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { chapterTitle: { type: Type.STRING }, chapterContent: { type: Type.STRING } }, required: ["chapterTitle", "chapterContent"] } } }, required: ["audiobookTitle", "bookSummary", "chapters"] };
     const response = await generateWithFallback(contents, schema);
-    
     const newAudiobook = { id: 'ab-' + Date.now(), createdAt: new Date().toLocaleString('es-GT'), ...JSON.parse(response.text) };
     const subj = user.subjects.find(s => s.id === req.body.subjectId);
     subj.audiobooks = subj.audiobooks || []; subj.audiobooks.push(newAudiobook);
     user.markModified('subjects'); await user.save();
-    
     res.json({ audiobook: newAudiobook, user: await serializeUser(user, req.DocumentModel) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -573,4 +602,4 @@ app.post('/api/generate-storybook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor Multi-Tenant activo en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Servidor Total Multi-Tenant activo en puerto ${PORT}`));
