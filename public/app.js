@@ -56,24 +56,57 @@ window.speakText = function(text) {
 };
 
 // ==========================================
-// 3. FUNCIONES DE AUTENTICACIÓN Y VALIDACIÓN
+// 3. AUTENTICACIÓN Y GESTIÓN DE INSTITUCIÓN (DEV/PROD)
 // ==========================================
 window.switchAuthTab = function(tab) {
   document.getElementById('authError').classList.add('hidden');
   document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
   document.getElementById('registerForm').classList.toggle('hidden', tab !== 'register');
+  document.getElementById('tenantForm').classList.toggle('hidden', tab !== 'tenant');
+  
   document.getElementById('tabLogin').className = tab === 'login' 
-    ? 'flex-1 py-3 rounded-xl text-xs font-black bg-indigo-600 text-white shadow transition-all' 
-    : 'flex-1 py-3 rounded-xl text-xs font-black text-slate-400 hover:text-white transition-all';
+    ? 'flex-1 py-3 rounded-xl text-[10px] font-black bg-indigo-600 text-white shadow transition-all' 
+    : 'flex-1 py-3 rounded-xl text-[10px] font-black text-slate-400 hover:text-white transition-all';
+    
   document.getElementById('tabRegister').className = tab === 'register' 
-    ? 'flex-1 py-3 rounded-xl text-xs font-black bg-emerald-600 text-white shadow transition-all' 
-    : 'flex-1 py-3 rounded-xl text-xs font-black text-slate-400 hover:text-white transition-all';
+    ? 'flex-1 py-3 rounded-xl text-[10px] font-black bg-emerald-600 text-white shadow transition-all' 
+    : 'flex-1 py-3 rounded-xl text-[10px] font-black text-slate-400 hover:text-white transition-all';
+
+  document.getElementById('tabTenant').className = tab === 'tenant' 
+    ? 'flex-1 py-3 rounded-xl text-[10px] font-black bg-amber-600 text-white shadow transition-all' 
+    : 'flex-1 py-3 rounded-xl text-[10px] font-black text-slate-400 hover:text-white transition-all';
 };
 
 window.showAuthError = function(msg) { 
   const el = document.getElementById('authError'); 
   el.textContent = msg; 
   el.classList.remove('hidden'); 
+};
+
+window.handleCreateTenant = async function(e) {
+  e.preventDefault();
+  const tenantId = document.getElementById('newTenantId').value.trim().toLowerCase();
+  if (!tenantId) return showAuthError("Escribe un código.");
+  
+  const btn = document.getElementById('btnCreateTenant');
+  const originalText = btn.innerHTML; btn.innerHTML = '⏳ Creando...'; btn.disabled = true;
+
+  try {
+    const res = await fetch('/dev/crear-institucion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ codigo_institucion: tenantId })
+    });
+    const data = await res.json();
+    if (!res.ok) { showAuthError(data.error); btn.innerHTML = originalText; btn.disabled = false; return; }
+
+    alert(`✅ Institución "${tenantId}" creada. Usuario maestro: master / master123`);
+    document.getElementById('loginTenant').value = tenantId;
+    document.getElementById('loginId').value = 'master';
+    document.getElementById('loginPass').value = 'master123';
+    switchAuthTab('login');
+  } catch (err) { showAuthError('Error de red.'); }
+  finally { btn.innerHTML = originalText; btn.disabled = false; }
 };
 
 window.handleLogin = async function(e) {
@@ -85,22 +118,18 @@ window.handleLogin = async function(e) {
   if (!tenantId || !loginId || !loginPass) return showAuthError("Llena todos los campos.");
 
   const btn = document.getElementById('btnLoginBtn');
-  const originalText = btn.innerHTML;
-  btn.innerHTML = '⏳ Conectando...'; btn.disabled = true;
-  document.getElementById('authError').classList.add('hidden');
+  const originalText = btn.innerHTML; btn.innerHTML = '⏳ Conectando...'; btn.disabled = true;
 
   try {
     localStorage.setItem('psico_tenant_id', tenantId);
     const res = await apiFetch('/api/auth/login', { method: 'POST', body: JSON.stringify({ identifier: loginId, password: loginPass }) });
     let data; try { data = await res.json(); } catch(err) { throw new Error(); }
     if (!res.ok) {
-      localStorage.removeItem('psico_tenant_id'); showAuthError(data.error || "Error al iniciar sesión.");
+      localStorage.removeItem('psico_tenant_id'); showAuthError(data.error || "Credenciales incorrectas.");
       btn.innerHTML = originalText; btn.disabled = false; return;
     }
     btn.innerHTML = originalText; btn.disabled = false; enterApp(data.user);
-  } catch (e) { 
-    showAuthError('Error de red.'); btn.innerHTML = originalText; btn.disabled = false;
-  }
+  } catch (e) { showAuthError('Error de red.'); btn.innerHTML = originalText; btn.disabled = false; }
 };
 
 window.handleRegister = async function(e) {
@@ -111,14 +140,12 @@ window.handleRegister = async function(e) {
   const regCareer = document.getElementById('regCareer').value.trim();
   const regEmail = document.getElementById('regEmail').value.trim();
   const regPass = document.getElementById('regPass').value;
-  const regRecovery = document.getElementById('regRecovery') ? document.getElementById('regRecovery').value.trim() : 'clave123';
+  const regRecovery = document.getElementById('regRecovery').value.trim();
 
-  if (!tenantId || !regName || !regUser || !regCareer || !regEmail || !regPass) return showAuthError("Todos los campos son obligatorios.");
-  if (regUser.includes(" ")) return showAuthError("El usuario no debe contener espacios.");
-  if (regPass.length < 6) return showAuthError("La contraseña debe tener al menos 6 caracteres.");
+  if (!tenantId || !regName || !regUser || !regCareer || !regEmail || !regPass) return showAuthError("Campos obligatorios.");
 
   const btn = document.getElementById('btnRegBtn');
-  const originalText = btn.innerHTML; btn.innerHTML = '⏳ Creando perfil...'; btn.disabled = true;
+  const originalText = btn.innerHTML; btn.innerHTML = '⏳ Creando...'; btn.disabled = true;
 
   try {
     localStorage.setItem('psico_tenant_id', tenantId);
@@ -127,7 +154,7 @@ window.handleRegister = async function(e) {
     });
     let data; try { data = await res.json(); } catch(err) { throw new Error(); }
     if (!res.ok) {
-      localStorage.removeItem('psico_tenant_id'); showAuthError(data.error || "Error al registrar la cuenta.");
+      localStorage.removeItem('psico_tenant_id'); showAuthError(data.error || "Institución inactiva o no encontrada. Créala primero.");
       btn.innerHTML = originalText; btn.disabled = false; return;
     }
     btn.innerHTML = originalText; btn.disabled = false; enterApp(data.user);
@@ -147,22 +174,19 @@ window.recoverPassword = async function() {
     const data = await res.json();
     if(res.ok) { alert(data.message); document.getElementById('modalForgotPass').classList.add('hidden'); } 
     else { alert(data.error); }
-  } catch(e) { alert("Error al intentar recuperar."); }
+  } catch(e) { alert("Error al recuperar."); }
 };
 
 window.changeUserPassword = async function() {
   const oldP = document.getElementById('changePassOld').value;
   const newP = document.getElementById('changePassNew').value;
-  if(!oldP || !newP) return alert("Llena ambos campos para cambiar la contraseña.");
+  if(!oldP || !newP) return alert("Llena ambos campos.");
   try {
     const res = await apiFetch('/api/user/change-password', { method: 'POST', body: JSON.stringify({ username: currentUser.username, oldPassword: oldP, newPassword: newP }) });
     const data = await res.json();
-    if(res.ok) {
-      alert("Contraseña actualizada con éxito.");
-      document.getElementById('modalChangePass').classList.add('hidden');
-      document.getElementById('changePassOld').value = ''; document.getElementById('changePassNew').value = '';
-    } else { alert(data.error); }
-  } catch(e) { alert("Error al cambiar contraseña."); }
+    if(res.ok) { alert("Contraseña actualizada."); document.getElementById('modalChangePass').classList.add('hidden'); } 
+    else { alert(data.error); }
+  } catch(e) { alert("Error de red."); }
 };
 
 window.enterApp = function(user) {
@@ -175,10 +199,7 @@ window.enterApp = function(user) {
   document.getElementById('appScreen').classList.remove('hidden');
   
   const btnAdmin = document.getElementById('btnAdminPanel');
-  if(btnAdmin) {
-    if(user.role === 'admin') btnAdmin.classList.remove('hidden');
-    else btnAdmin.classList.add('hidden');
-  }
+  if(btnAdmin) { btnAdmin.classList.toggle('hidden', user.role !== 'admin'); }
   renderDashboard();
 };
 
@@ -190,14 +211,14 @@ window.logout = function() {
 };
 
 // ==========================================
-// 4. SISTEMA DE TOKENS IA Y ADMIN
+// 4. TOKENS Y PANEL ADMIN
 // ==========================================
 window.requestMoreTokens = async function() {
   if(!confirm("¿Solicitar más Saldo al Master?")) return;
   try {
     const res = await apiFetch('/api/user/request-tokens', { method:'POST', body: JSON.stringify({username: currentUser.username}) });
     if(res.ok) { alert("✅ Solicitud enviada."); currentUser.pendingTokenRequest = true; renderDashboard(); }
-  } catch(e) { alert("Error al enviar solicitud."); }
+  } catch(e) { alert("Error."); }
 };
 
 window.loadAdminUsers = async function() {
@@ -209,19 +230,19 @@ window.loadAdminUsers = async function() {
     
     tbody.innerHTML = users.map(u => {
       const remaining = (u.aiAllowanceUSD - u.aiConsumptionUSD).toFixed(2);
-      const reqBadge = u.pendingTokenRequest ? `<span class="px-2 py-0.5 bg-rose-500 text-white text-[10px] rounded-full font-black animate-pulse ml-2">Solicita Saldo</span>` : '';
+      const reqBadge = u.pendingTokenRequest ? `<span class="px-2 py-0.5 bg-rose-500 text-white text-[10px] rounded-full font-black animate-pulse ml-2">Pide Saldo</span>` : '';
       return `
       <tr class="hover:bg-slate-800 transition border-b border-slate-800">
-        <td class="px-6 py-4 font-bold text-white">${u.username} <br> <span class="text-xs text-slate-400 font-normal">${u.email}</span> ${reqBadge}</td>
+        <td class="px-6 py-4 font-bold text-white">${u.username} <br> <span class="text-xs text-slate-400">${u.email}</span> ${reqBadge}</td>
         <td class="px-6 py-4">${u.career}</td>
         <td class="px-6 py-4 font-black ${remaining < 1 ? 'text-red-400' : 'text-emerald-400'}">$${remaining}</td>
         <td class="px-6 py-4 flex gap-2">
-          <button onclick="adminAddTokens('${u.username}')" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-white text-xs font-black shadow transition">+ $5 Saldo</button>
-          <button onclick="adminResetPass('${u.username}')" class="px-3 py-2 bg-rose-600 hover:bg-rose-500 rounded-lg text-white text-xs font-black shadow transition">Reset Pass</button>
+          <button onclick="adminAddTokens('${u.username}')" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-white text-xs font-black">+ $5</button>
+          <button onclick="adminResetPass('${u.username}')" class="px-3 py-2 bg-rose-600 hover:bg-rose-500 rounded-lg text-white text-xs font-black">Reset</button>
         </td>
       </tr>`;
     }).join('');
-  } catch(e) { console.error("Error cargando usuarios master", e); }
+  } catch(e) { console.error(e); }
 };
 
 window.adminCreateUser = async function(e) {
@@ -230,44 +251,36 @@ window.adminCreateUser = async function(e) {
   const u = document.getElementById('adminNewUser').value.trim();
   const p = document.getElementById('adminNewPass').value;
   const c = document.getElementById('adminNewCareer').value.trim();
-  const t = document.getElementById('adminNewTokens') ? document.getElementById('adminNewTokens').value : '2.00';
-  if (!n || !u || !p || !c || !t) return alert("Todos los campos son obligatorios.");
+  const t = document.getElementById('adminNewTokens').value;
   try {
     const res = await apiFetch('/api/admin/create-user', { method: 'POST', headers: {'x-user': currentUser.username}, body: JSON.stringify({ fullName: n, username: u, password: p, career: c, initialTokens: t }) });
-    const data = await res.json();
-    if(res.ok) { alert('Alumno creado exitosamente.'); document.getElementById('adminCreateUserForm').reset(); loadAdminUsers(); } 
-    else { alert(data.error); }
-  } catch(err) { alert('Error al crear usuario.'); }
+    if(res.ok) { alert('Creado.'); document.getElementById('adminCreateUserForm').reset(); loadAdminUsers(); } 
+    else { alert((await res.json()).error); }
+  } catch(err) { alert('Error.'); }
 };
 
 window.adminAddTokens = async function(username) {
-  if(!confirm(`¿Añadir $5.00 USD a ${username}?`)) return;
   try {
-    const res = await apiFetch('/api/admin/add-tokens', { method:'POST', headers:{'x-user': currentUser.username}, body: JSON.stringify({targetUsername: username, amount: 5.00}) });
-    if (res.ok) { alert(`Saldo añadido a ${username}.`); loadAdminUsers(); }
-  } catch(e) { alert("Error al añadir saldo."); }
+    await apiFetch('/api/admin/add-tokens', { method:'POST', headers:{'x-user': currentUser.username}, body: JSON.stringify({targetUsername: username, amount: 5.00}) });
+    loadAdminUsers();
+  } catch(e) { alert("Error."); }
 };
 
 window.adminResetPass = async function(username) {
-  const newP = prompt(`NUEVA CONTRASEÑA para ${username}:`);
+  const newP = prompt(`Nueva contraseña para ${username}:`);
   if(!newP) return;
   try {
     await apiFetch('/api/admin/force-reset', { method:'POST', headers:{'x-user': currentUser.username}, body: JSON.stringify({targetUsername: username, newPassword: newP}) });
-    alert(`Contraseña reseteada.`);
-  } catch(e) { alert("Error al resetear contraseña."); }
+    alert(`Actualizada.`);
+  } catch(e) { alert("Error."); }
 };
 
 // ==========================================
-// 5. RENDERIZADO DEL DASHBOARD Y MATERIAS
+// 5. RENDERIZADO DEL DASHBOARD
 // ==========================================
-window.updateSelectedFilesList = function() {
-  const input = document.getElementById('docFiles');
-  document.getElementById('selectedFilesPreview').textContent = input.files.length > 0 ? `✅ ${input.files.length} archivo(s) listos.` : '';
-};
-
 window.renderDashboard = function() {
   document.getElementById('careerTitleBanner').textContent = `Entorno: ${currentUser.career || 'Universitario'}`;
-  document.getElementById('userHeaderInfo').innerHTML = `👤 <b>${currentUser.fullName}</b> | Institución: ${localStorage.getItem('psico_tenant_id')}`;
+  document.getElementById('userHeaderInfo').innerHTML = `👤 <b>${currentUser.fullName}</b> | Inst: ${localStorage.getItem('psico_tenant_id')}`;
   
   const balance = (currentUser.aiAllowanceUSD - currentUser.aiConsumptionUSD).toFixed(2);
   const billingEl = document.getElementById('aiBilling');
@@ -298,39 +311,35 @@ window.renderDashboard = function() {
   document.getElementById('progressText').textContent = domainScore + '%';
   document.getElementById('savedLibraryBadge').textContent = docs.length;
   
-  // Incluye el botón "Leer 3D"
   document.getElementById('savedDocsList').innerHTML = docs.length === 0 
     ? `<p class="text-xs text-slate-500 italic p-3 border border-dashed border-slate-700 rounded-xl text-center">Repositorio vacío.</p>` 
     : docs.map(d => `
       <div class="flex items-center justify-between px-4 py-3 rounded-xl bg-slate-900 border border-indigo-500/30 text-sm gap-3 shadow-sm hover:border-indigo-400 transition">
         <div class="truncate text-slate-200 font-bold flex-1">📄 ${d.title}</div>
         <div class="flex gap-2">
-          <button onclick="openImmersiveBook('${d.id}')" class="text-cyan-400 font-black hover:text-cyan-300 bg-cyan-950/50 px-3 py-1 rounded-lg transition transform hover:scale-105">📖 Leer 3D</button>
+          <button onclick="openImmersiveBook('${d.id}')" class="text-cyan-400 font-black hover:text-cyan-300 bg-cyan-950/50 px-3 py-1 rounded-lg transition">📖 Leer 3D</button>
           <button onclick="deleteSavedDoc('${d.id}')" class="text-red-400 font-black hover:text-red-300 bg-red-950/50 px-2 py-1 rounded-lg">🗑️</button>
         </div>
       </div>
     `).join('');
 
-  document.getElementById('selectDocForAI').innerHTML = `<option value="ALL">📚 USAR TODOS LOS ARCHIVOS (${docs.length})</option>` + docs.map(d => `<option value="${d.id}">📄 ${d.title}</option>`).join('');
-  document.getElementById('audiobookDocSelect').innerHTML = `<option value="">-- Elige el Libro Completo --</option>` + docs.map(d => `<option value="${d.id}">📖 ${d.title}</option>`).join('');
+  document.getElementById('selectDocForAI').innerHTML = `<option value="ALL">📚 USAR TODOS (${docs.length})</option>` + docs.map(d => `<option value="${d.id}">📄 ${d.title}</option>`).join('');
+  document.getElementById('audiobookDocSelect').innerHTML = `<option value="">-- Elige Libro --</option>` + docs.map(d => `<option value="${d.id}">📖 ${d.title}</option>`).join('');
 
-  // Historial Monografías
   document.getElementById('savedHistoryList').innerHTML = (subj.storybooks || []).slice().reverse().map(sb => `
     <div class="p-3.5 rounded-xl bg-slate-900 border border-indigo-500/30 flex justify-between items-center text-sm shadow-sm hover:border-cyan-500 transition">
       <div onclick='openStorybook(${JSON.stringify(sb).replace(/'/g, "&#39;")})' class="cursor-pointer truncate flex-1 text-slate-200 font-black hover:text-cyan-300">📖 ${sb.title}</div>
       <button onclick="deleteSavedStorybook('${sb.id}')" class="text-red-400 ml-3 font-black bg-red-950/50 px-2 py-1 rounded-lg">🗑️</button>
     </div>
-  `).join('') || '<p class="text-xs text-slate-500 italic p-3 border border-dashed border-slate-700 rounded-xl text-center">Sin monografías aún.</p>';
+  `).join('') || '<p class="text-xs text-slate-500 italic p-3 border border-dashed border-slate-700 rounded-xl text-center">Sin monografías.</p>';
 
-  // Historial Audiolibros
   document.getElementById('savedAudiobooksList').innerHTML = (subj.audiobooks || []).slice().reverse().map(ab => `
     <div class="p-3.5 rounded-xl bg-slate-900 border border-rose-500/30 flex justify-between items-center text-sm shadow-sm hover:border-rose-500 transition">
       <div onclick='openSavedAudiobook(${JSON.stringify(ab).replace(/'/g, "&#39;")})' class="cursor-pointer truncate flex-1 text-slate-200 font-black hover:text-rose-300">🎧 ${ab.audiobookTitle}</div>
       <button onclick="deleteSavedAudiobook('${ab.id}')" class="text-red-400 ml-3 font-black bg-red-950/50 px-2 py-1 rounded-lg">🗑️</button>
     </div>
-  `).join('') || '<p class="text-xs text-slate-500 italic p-3 border border-dashed border-slate-700 rounded-xl text-center">Sin audiolibros aún.</p>';
+  `).join('') || '<p class="text-xs text-slate-500 italic p-3 border border-dashed border-slate-700 rounded-xl text-center">Sin audiolibros.</p>';
 
-  // Historial Presentaciones Interactivas (FASE 5)
   if (document.getElementById('savedPresentationsList')) {
     document.getElementById('savedPresentationsList').innerHTML = (subj.presentations || []).slice().reverse().map(p => `
       <div class="p-3.5 rounded-xl bg-slate-900 border border-orange-500/30 flex justify-between items-center text-sm shadow-sm hover:border-orange-500 transition">
@@ -342,27 +351,26 @@ window.renderDashboard = function() {
 };
 
 window.selectSubject = function(id) { activeSubjectId = id; localStorage.setItem(`psico_subj_${currentUser.username}`, id); document.getElementById('viewerArea').classList.add('hidden'); renderDashboard(); };
-window.toggleNewSubjectModal = function() { document.getElementById('modalSubject').classList.toggle('hidden'); };
 window.createNewSubject = async function() {
   const name = document.getElementById('newSubjName').value.trim();
   if (!name) return alert("Nombre obligatorio.");
   try {
     const res = await apiFetch('/api/subjects', { method: 'POST', body: JSON.stringify({ username: currentUser.username, name: name, schedule: document.getElementById('newSubjSchedule').value }) });
     const data = await res.json();
-    if (res.ok) { currentUser = data.user; activeSubjectId = data.newSubjectId; toggleNewSubjectModal(); document.getElementById('newSubjName').value = ''; document.getElementById('newSubjSchedule').value = ''; renderDashboard(); }
-  } catch(e) { alert("Error al crear materia."); }
+    if (res.ok) { currentUser = data.user; activeSubjectId = data.newSubjectId; document.getElementById('modalSubject').classList.add('hidden'); renderDashboard(); }
+  } catch(e) { alert("Error."); }
 };
 window.deleteActiveSubject = async function() {
-  if (!activeSubjectId || !confirm('¿Borrar esta materia y TODOS sus documentos permanentemente?')) return;
+  if (!activeSubjectId || !confirm('¿Borrar materia y documentos?')) return;
   try {
     const res = await apiFetch(`/api/subjects/${activeSubjectId}`, { method: 'DELETE', body: JSON.stringify({ username: currentUser.username }) });
     const data = await res.json();
     if (res.ok) { currentUser = data.user; activeSubjectId = currentUser.subjects[0]?.id || null; document.getElementById('viewerArea').classList.add('hidden'); renderDashboard(); }
-  } catch(e) { alert("Error al borrar materia."); }
+  } catch(e) { alert("Error."); }
 };
 
 // ==========================================
-// 6. SUBIDA Y REPOSITORIO
+// 6. GESTIÓN DE ARCHIVOS Y DOCUMENTOS
 // ==========================================
 window.handleUploadDoc = async function(e) {
   e.preventDefault();
@@ -376,16 +384,16 @@ window.handleUploadDoc = async function(e) {
   try {
     const res = await apiFetch('/api/documents', { method: 'POST', body: fd });
     const data = await res.json();
-    if (res.ok) { currentUser = data.user; document.getElementById('docTitle').value = ''; document.getElementById('docFiles').value = ''; document.getElementById('selectedFilesPreview').textContent = ''; document.getElementById('youtubeUrlInput').value = ''; renderDashboard(); alert('¡Material procesado!'); } 
+    if (res.ok) { currentUser = data.user; document.getElementById('docTitle').value = ''; document.getElementById('docFiles').value = ''; document.getElementById('selectedFilesPreview').textContent = ''; document.getElementById('youtubeUrlInput').value = ''; renderDashboard(); alert('¡Material guardado!'); } 
     else { alert(data.error); }
-  } catch (err) { alert('Error al subir.'); } finally { btn.innerHTML = originalText; btn.disabled = false; }
+  } catch (err) { alert('Error.'); } finally { btn.innerHTML = originalText; btn.disabled = false; }
 };
 window.deleteSavedDoc = async function(id) {
-  if (!confirm('¿Borrar documento permanentemente?')) return;
+  if (!confirm('¿Borrar documento?')) return;
   try { const res = await apiFetch(`/api/documents/${id}`, { method: 'DELETE', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId }) }); if (res.ok) { currentUser = (await res.json()).user; renderDashboard(); } } catch(e) {}
 };
 window.clearAllSubjectDocs = async function() {
-  if (!confirm('¿SEGURO de querer vaciar el repositorio?')) return;
+  if (!confirm('¿Vaciar repositorio?')) return;
   try { const res = await apiFetch(`/api/subjects/${activeSubjectId}/documents`, { method: 'DELETE', body: JSON.stringify({ username: currentUser.username }) }); if (res.ok) { currentUser = (await res.json()).user; renderDashboard(); } } catch(e) {}
 };
 window.deleteSavedStorybook = async function(sbId) {
@@ -396,364 +404,79 @@ window.deleteSavedAudiobook = async function(abId) {
   if (!confirm('¿Borrar audiolibro?')) return;
   try { const res = await apiFetch(`/api/audiobooks/${abId}`, { method: 'DELETE', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId }) }); if (res.ok) { currentUser = (await res.json()).user; renderDashboard(); } } catch(e) {}
 };
+window.deleteSavedPresentation = async function(id) {
+  if (!confirm('¿Borrar presentación?')) return;
+  try { const res = await apiFetch(`/api/presentations/${id}`, { method: 'DELETE', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId }) }); if (res.ok) { currentUser = (await res.json()).user; renderDashboard(); } } catch(e) {}
+};
 
 // ==========================================
-// 7. EXPORTACIÓN A WORD Y VISOR FULL SCREEN
+// 7. EXPORTACIÓN APA OFICIAL A WORD
 // ==========================================
 window.exportToWord = function(title, contentHtml) {
-  const htmlContent = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>${title}</title><style>body { font-family: 'Arial', sans-serif; line-height: 1.6; color: #000; padding: 20px; } h1, h2, h3, h4 { color: #1a365d; } p { margin-bottom: 15px; } .chapter-box { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; background-color: #f9f9f9; }</style></head><body><div style="text-align: center; margin-bottom: 30px;"><h1 style="color: #0284c7;">DOCUMENTO ACADÉMICO</h1></div>${contentHtml}</body></html>`;
+  const htmlContent = `
+    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+    <head>
+      <meta charset='utf-8'>
+      <title>${title}</title>
+      <style>
+        body { font-family: 'Times New Roman', serif; line-height: 2.0; color: #000; font-size: 12pt; text-align: justify; }
+        p { text-indent: 0.5in; margin-bottom: 0; }
+        h1, h2 { text-align: center; font-weight: bold; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; font-size: 10pt; }
+        th, td { border-left: none; border-right: none; padding: 8px; text-align: left; }
+        th { border-top: 2px solid #000; border-bottom: 1px solid #000; }
+        tr:last-child td { border-bottom: 2px solid #000; }
+      </style>
+    </head>
+    <body>${contentHtml}</body>
+    </html>`;
   const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/msword' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${title}.doc`; 
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 };
 
-// ==========================================
-// 8. ORÁCULO Y HERRAMIENTAS IA
-// ==========================================
-window.togglePhenomenologyDocs = function() { document.getElementById('phenomenologyDocs').classList.toggle('hidden'); };
-
-window.askPhenomenology = async function() {
-  const query = document.getElementById('phenoQueryInput').value.trim();
-  if (!query) return alert('Escribe tu duda primero.');
-  const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
-  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">🏛️</span><p class="text-amber-300 font-black text-2xl uppercase mt-4">Consultando al Oráculo...</p></div>`;
-  try {
-    const res = await apiFetch('/api/phenomenology-query', { method: 'POST', body: JSON.stringify({ username: currentUser.username, query }) });
-    const data = await res.json();
-    if (!res.ok) return alert(data.error);
-    currentUser = data.user; renderDashboard();
-    v.innerHTML = `<div class="max-w-4xl mx-auto glass-edu rounded-3xl p-10 space-y-6 border-2 border-amber-500 relative shadow-2xl bg-gradient-to-b from-amber-950/40 to-slate-900 mt-10"><button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-red-950 text-red-300 font-bold hover:bg-red-900 shadow-lg">✕ Cerrar</button><h2 class="text-3xl font-black text-amber-300 mb-5">🏛️ Respuesta Fenomenológica</h2><div class="bg-slate-900/80 p-8 rounded-2xl border border-amber-500/30 text-slate-100 whitespace-pre-wrap">${data.answer}</div></div>`;
-  } catch (err) { alert('Error: ' + err.message); closeFullScreenViewer(); }
-};
-
-window.submitUniversityHomework = async function() {
-  const promptTask = document.getElementById('homeworkPromptInput').value.trim();
-  if (!promptTask) return alert('Escribe la tarea.');
-  const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
-  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">📝</span><p class="text-emerald-300 font-black text-2xl uppercase mt-4">Redactando Resolución...</p></div>`;
-  try {
-    const res = await apiFetch('/api/university-homework', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, promptTask }) });
-    const data = await res.json();
-    if (!res.ok) { closeFullScreenViewer(); return alert(data.error); }
-    currentUser = data.user; renderDashboard();
-    v.innerHTML = `<div class="max-w-5xl mx-auto glass-edu rounded-3xl p-10 space-y-6 border-2 border-emerald-500 relative shadow-2xl mt-10"><button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-red-950 text-red-300 font-bold">✕ Cerrar</button><div class="flex gap-3 justify-end mb-4 border-b border-indigo-500/30 pb-4"><button onclick="exportToWord('Resolucion', document.getElementById('exportableHomework').innerHTML)" class="px-5 py-3 bg-indigo-600 font-black text-white rounded-2xl">📥 Descargar .doc</button></div><div id="exportableHomework" class="bg-slate-900 p-8 rounded-2xl text-slate-100 whitespace-pre-wrap">${data.result}</div></div>`;
-  } catch (err) { alert('Error: ' + err.message); closeFullScreenViewer(); }
-};
-
-window.generateAudiobook = async function() {
-  const selectedDocId = document.getElementById('audiobookDocSelect').value;
-  if(!selectedDocId) return alert('Selecciona un documento.');
-  const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
-  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">🎧</span><p class="text-rose-400 font-black text-2xl uppercase mt-4">Extrayendo Obra Completa...</p></div>`;
-  try {
-    const res = await apiFetch('/api/audiobook-chapters', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: selectedDocId }) });
-    const data = await res.json();
-    if (!res.ok) { closeFullScreenViewer(); return alert(data.error); }
-    currentUser = data.user; renderDashboard(); window.openSavedAudiobook(data.audiobook);
-  } catch (err) { alert('Error: ' + err.message); closeFullScreenViewer(); }
-};
-
-window.generateTimelineMap = async function() { 
-  const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
-  v.innerHTML = `<div class="text-center animate-pulse pt-32"><p class="text-amber-300 font-black text-3xl">🗺️</p><p class="text-amber-300 font-black text-xl mt-4 uppercase tracking-widest">Mapeando Evolución...</p></div>`;
-  try { 
-    const res = await apiFetch('/api/generate-timeline-map', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value }) }); 
-    const data = await res.json(); 
-    if (!res.ok) { closeFullScreenViewer(); return alert(data.error); }
-    currentUser = data.user; renderDashboard(); const tm = data.timelineMap; 
-    v.innerHTML = `
-      <div class="max-w-6xl mx-auto glass-edu rounded-3xl p-10 space-y-8 border-2 border-amber-500 relative shadow-2xl mt-10">
-        <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-red-950 text-red-300 font-bold text-sm hover:bg-red-900 shadow-lg">✕ Cerrar Mapa</button>
-        <div class="border-b-2 border-amber-500/30 pb-6 text-center"><h2 class="text-4xl font-black text-amber-300 mt-4">${tm.timelineTitle}</h2></div>
-        <div class="space-y-6 pt-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-1 before:bg-gradient-to-b before:from-amber-500 before:to-indigo-500">
-          ${tm.eras.map((e, idx) => `
-            <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-              <div class="flex items-center justify-center w-10 h-10 rounded-full border-4 border-slate-900 bg-amber-500 text-slate-900 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 font-black">${idx + 1}</div>
-              <div class="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] p-6 rounded-3xl bg-slate-900 border-2 border-cyan-500/40 shadow-xl transition-transform hover:scale-105">
-                <span class="text-[10px] font-black px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 uppercase tracking-widest">${e.eraName}</span>
-                <h4 class="font-black text-lg text-teal-300 mt-3 flex items-center gap-2"><span>👤</span> ${e.mainAuthor}</h4>
-                <p class="text-sm text-slate-200 mt-3 leading-relaxed bg-slate-950/50 p-3 rounded-xl border border-slate-800"><b>Idea Central:</b> ${e.coreIdea}</p>
-                <p class="text-xs text-amber-400 mt-3 font-bold bg-amber-950/30 p-3 rounded-xl border border-amber-900/50"><b>Conexión:</b> ${e.refutationOrLink}</p>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `; 
-  } catch (err) { alert('Error Timeline: ' + err.message); closeFullScreenViewer(); }
-};
-
-window.generateFlashcards = async function() { 
-  const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden'); 
-  v.innerHTML = `<div class="text-center animate-pulse pt-32"><p class="text-purple-300 font-black text-3xl">🃏</p><p class="text-purple-300 font-black text-xl mt-4 uppercase tracking-widest">Generando Fichas Teóricas...</p></div>`;
-  try { 
-    const res = await apiFetch('/api/generate-flashcards', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value }) }); 
-    const data = await res.json(); 
-    if (!res.ok) { closeFullScreenViewer(); return alert(data.error); }
-    currentUser = data.user; renderDashboard(); 
-    v.innerHTML = `
-      <div class="max-w-5xl mx-auto glass-edu rounded-3xl p-10 space-y-8 border-2 border-purple-500 relative shadow-2xl mt-10">
-        <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-red-950 text-red-300 font-bold text-sm hover:bg-red-900 shadow-lg z-20">✕ Cerrar Fichas</button>
-        <div class="text-center border-b-2 border-purple-500/30 pb-6"><h2 class="text-4xl font-black text-purple-300 mt-4">🃏 Fichas Académicas</h2></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pt-4">
-          ${data.flashcards.map((fc, i) => `
-            <div onclick="this.classList.toggle('flipped')" class="flashcard h-80 cursor-pointer relative group">
-              <div class="flashcard-inner w-full h-full relative rounded-3xl shadow-2xl">
-                <div class="flashcard-front bg-slate-900 border-2 border-purple-500/60 p-6 rounded-3xl flex flex-col justify-between items-center text-center group-hover:border-purple-400 transition-colors">
-                  <span class="text-xs font-black px-4 py-1.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-800 uppercase tracking-widest">Ficha #${i+1}</span>
-                  <p class="text-lg font-black text-slate-100 leading-snug mt-4 px-2">${fc.question}</p>
-                  <div class="mt-auto pt-4 w-full border-t border-slate-800"><span class="text-xs text-purple-400/80 font-bold uppercase tracking-widest animate-pulse">Haz clic para girar 🔄</span></div>
-                </div>
-                <div class="flashcard-back bg-gradient-to-br from-indigo-950 to-purple-950 border-2 border-indigo-400 p-6 rounded-3xl flex flex-col justify-between overflow-y-auto custom-scrollbar text-center">
-                  <span class="text-xs font-black px-4 py-1.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800 uppercase tracking-widest mx-auto">Respuesta Oficial</span>
-                  <p class="text-base text-slate-100 font-medium leading-relaxed mt-4">${fc.answer}</p>
-                  <div class="mt-4 p-3 rounded-xl bg-amber-950/40 border border-amber-900/50">
-                    <span class="text-xs text-amber-300 font-black uppercase block mb-1">💡 Tip Clínica</span>
-                    <span class="text-[11px] text-amber-200/80 font-medium">${fc.hint}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `; 
-  } catch (err) { alert('Error Flashcards: ' + err.message); closeFullScreenViewer(); }
-};
-
-window.generateStorybook = async function() { 
-  const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden'); 
-  v.innerHTML = `<div class="text-center animate-pulse pt-32"><p class="text-cyan-300 font-black text-3xl">📖</p><p class="text-cyan-300 font-black text-xl mt-4 uppercase tracking-widest">Redactando Monografía...</p></div>`;
-  try { 
-    const res = await apiFetch('/api/generate-storybook', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: document.getElementById('selectDocForAI').value, focusTopic: document.getElementById('focusTopic').value }) }); 
-    const data = await res.json(); 
-    if (res.ok) { currentUser = data.user; renderDashboard(); window.openStorybook(data.storybook); } 
-    else { closeFullScreenViewer(); alert(data.error); }
-  } catch (e) { alert('Error servidor.'); closeFullScreenViewer(); }
-};
-
-window.openStorybook = function(sb) {
-  const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
-  v.innerHTML = `
-    <div id="exportableStorybook" class="max-w-6xl mx-auto glass-edu rounded-[2.5rem] p-8 md:p-12 space-y-10 cartoon-card relative shadow-[0_20px_50px_rgba(0,0,0,0.5)] mt-8 mb-8">
-      <button onclick="closeFullScreenViewer()" class="absolute top-8 right-8 px-5 py-3 rounded-2xl bg-red-950 hover:bg-red-900 text-red-300 font-black text-sm shadow-xl z-20 transition-all border border-red-800 border-b-4">✕ Cerrar Monografía</button>
-      <div class="flex flex-wrap justify-between items-end gap-6 border-b-4 border-cyan-400 pb-6 pr-40">
-        <div><span class="px-4 py-1.5 rounded-full text-xs font-black bg-cyan-400 text-slate-950 uppercase tracking-widest shadow-md">Monografía Académica</span><h2 class="text-4xl md:text-5xl font-black mt-4 bg-gradient-to-r from-cyan-300 via-teal-200 to-indigo-300 bg-clip-text text-transparent leading-tight tracking-tight">${sb.title}</h2></div>
-        <div class="flex gap-3">
-          <button onclick="speakText('${sb.summary.replace(/'/g, "")}')" class="px-5 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 font-black text-sm text-white shadow-lg transition-all border-cyan-700 border-b-4 flex items-center gap-2"><span>🔊</span> Escuchar Todo</button>
-          <button onclick="exportToWord('${sb.title.replace(/ /g, '_')}', document.getElementById('exportableStorybook').innerHTML)" class="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-black text-sm text-white shadow-lg transition-all border-indigo-700 border-b-4 flex items-center gap-2"><span>📥</span> Guardar .doc</button>
-        </div>
-      </div>
-      <div class="speech-bubble p-8 text-sm font-bold shadow-2xl flex items-start gap-6 transform hover:scale-[1.01] transition-transform">
-        <span class="text-5xl drop-shadow-md hidden md:block">👨‍🏫</span>
-        <div><p class="text-emerald-900 font-black mb-3 text-xl uppercase tracking-wider border-b-2 border-emerald-900/20 pb-2 inline-block">Resumen Conceptual y Clínico:</p><p class="text-emerald-950 font-semibold leading-loose text-base text-justify">${sb.summary}</p></div>
-      </div>
-      <div class="bg-slate-950/90 rounded-3xl p-8 border-4 border-cyan-400 shadow-2xl space-y-6 relative overflow-hidden">
-        <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl"></div><h3 class="font-black text-xl text-cyan-300 uppercase tracking-widest flex items-center gap-3"><span>⏳</span> Línea de Evolución Teórica</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
-          ${(sb.timeline || []).map(t => `<div class="p-6 rounded-3xl bg-slate-900 border-2 border-cyan-400/60 shadow-xl flex flex-col h-full"><span class="text-[10px] font-black px-3 py-1 rounded-full bg-cyan-400 text-slate-950 uppercase w-max tracking-widest">Fase ${t.step}</span><h4 class="font-black text-base mt-4 text-amber-300">${t.title}</h4><p class="text-sm text-slate-300 mt-3 font-medium leading-relaxed flex-grow">${t.description}</p></div>`).join('')}
-        </div>
-      </div>
-      <div class="space-y-6 pt-4"><h3 class="font-black text-xl text-teal-300 uppercase tracking-widest px-2 flex items-center gap-3"><span>📚</span> Exposición Analítica</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          ${(sb.scenes || []).map(sc => `<div class="cartoon-card rounded-3xl p-8 space-y-6 flex flex-col justify-between shadow-2xl bg-gradient-to-br from-slate-900 to-slate-950"><div class="flex justify-between items-start border-b-2 border-indigo-500/30 pb-4"><div><span class="text-xs font-black px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 uppercase tracking-widest shadow-sm">Módulo #${sc.sceneNumber}</span><h4 class="font-black text-xl text-white mt-3">${sc.characterName}</h4></div><button onclick="speakText('${sc.storyDialogue.replace(/'/g, "")}')" class="text-xs px-4 py-2 bg-cyan-700 hover:bg-cyan-600 text-white rounded-xl font-black shadow-md transition border-cyan-800 border-b-4 flex items-center gap-2"><span>🔊</span> Narrar</button></div><div class="speech-bubble p-6 text-sm font-bold leading-relaxed shadow-lg"><p class="text-emerald-950 font-black mb-3 text-base flex items-center gap-2"><span>📘</span> Concepto Clave: <span class="text-emerald-800">${sc.academicConcept}</span></p><div class="bg-white/50 p-4 rounded-2xl border border-emerald-900/10"><p class="text-emerald-900 italic font-bold text-sm leading-relaxed">"${sc.storyDialogue}"</p></div></div></div>`).join('')}
-        </div>
-      </div>
-      <div class="bg-slate-950/90 rounded-3xl p-8 md:p-10 border-4 border-amber-400 space-y-8 shadow-2xl relative overflow-hidden mt-10">
-        <div class="absolute -bottom-10 -right-10 text-9xl opacity-5">🏆</div><div class="flex items-center gap-4 border-b-2 border-amber-500/30 pb-4 relative z-10"><span class="text-4xl drop-shadow-md">🏆</span><div><h3 class="font-black text-xl text-amber-300 uppercase tracking-widest">Trivia Gamificada</h3></div></div>
-        <div class="space-y-6 relative z-10">
-          ${(sb.quiz || []).map((q, idx) => `<div class="p-6 rounded-3xl bg-slate-900 border-2 border-indigo-500/40 space-y-4 shadow-lg"><p class="text-base font-black text-slate-100 flex gap-3"><span class="text-amber-400">Pregunta ${idx + 1}:</span> <span>${q.question}</span></p><div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">${(q.options || []).map((opt, oIdx) => `<button onclick="alert('${oIdx === q.correctIndex ? '🏆 CORRECTA!' : '❌ Incorrecta.'} \\n\\nExplicación: ${JSON.stringify(q.heroExplanation).replace(/'/g, "\\'").replace(/^"|"$/g, '')}')" class="text-left text-sm font-bold p-4 rounded-2xl bg-slate-950 hover:bg-indigo-950 border-2 border-indigo-500/30 text-slate-200 shadow-md border-b-4"><span class="text-indigo-400 mr-2">${String.fromCharCode(65 + oIdx)})</span> ${opt}</button>`).join('')}</div></div>`).join('')}
-        </div>
-      </div>
-    </div>
-  `;
-  v.scrollIntoView({ behavior: 'smooth' });
-};
-
-window.openSavedAudiobook = function(ab) {
-  const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
-  window.currentAudiobookSummary = ab.bookSummary || ''; window.currentAudiobookTitle = ab.audiobookTitle || 'Libro';
-  let currentChapterIdx = 0;
-  function playCurrentChapter() {
-    if (!('speechSynthesis' in window)) return alert('TTS no soportado.');
-    window.speechSynthesis.cancel();
-    const rawText = `${ab.chapters[currentChapterIdx].chapterTitle}. ${ab.chapters[currentChapterIdx].chapterContent}`;
-    const cleanedText = cleanTextForAudio(rawText);
-    const utterance = new SpeechSynthesisUtterance(cleanedText);
-    utterance.lang = 'es-ES'; utterance.rate = 1.0;
-    utterance.onend = () => { if (currentChapterIdx < ab.chapters.length - 1) { currentChapterIdx++; renderAudiobookUI(); playCurrentChapter(); } };
-    window.speechSynthesis.speak(utterance);
-  }
-  window.jumpToChapter = (idx) => { currentChapterIdx = idx; renderAudiobookUI(); playCurrentChapter(); };
-  window.pauseAudiobook = () => { window.speechSynthesis.pause(); };
-  window.resumeAudiobook = () => { window.speechSynthesis.resume(); };
-  window.stopAudiobook = () => { window.speechSynthesis.cancel(); };
-
-  function renderAudiobookUI() {
-    v.innerHTML = `
-      <div class="max-w-6xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-rose-500 relative shadow-2xl mt-4">
-        <button onclick="closeFullScreenViewer(); window.speechSynthesis.cancel();" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-red-950 text-red-300 font-black text-sm hover:bg-red-900 shadow-lg z-10">✕ Cerrar Audio</button>
-        <div class="border-b-2 border-rose-500/30 pb-5 pr-32 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
-          <div><span class="px-3 py-1 rounded-full text-[10px] font-black bg-emerald-500 text-slate-950 uppercase tracking-widest shadow">🎧 Reproduciendo desde Bitácora</span><h2 class="text-3xl font-black mt-3 text-rose-300 leading-tight">${ab.audiobookTitle}</h2></div>
-          <button onclick="downloadAudiobookSummary()" class="px-5 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black text-sm shadow-xl flex items-center gap-2 border border-emerald-400"><span class="text-xl">📥</span> Descargar Puntos Clave</button>
-        </div>
-        <div class="bg-slate-900/90 p-6 rounded-3xl border-2 border-rose-500/50 flex flex-wrap items-center justify-between gap-6 shadow-xl relative overflow-hidden"><div class="absolute left-0 top-0 bottom-0 w-1 bg-rose-500"></div><div class="pl-2"><p class="text-xs text-rose-400 font-black uppercase tracking-widest">Reproduciendo Ahora:</p><p class="text-xl font-black text-white mt-1">${ab.chapters[currentChapterIdx].chapterTitle}</p></div><div class="flex items-center gap-3"><button onclick="playCurrentChapter()" class="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm shadow-md transition transform hover:scale-105">▶️ Reiniciar</button><button onclick="pauseAudiobook()" class="px-5 py-3 rounded-xl bg-amber-600 text-white font-black text-sm">⏸️ Pausar</button><button onclick="resumeAudiobook()" class="px-5 py-3 rounded-xl bg-cyan-600 text-white font-black text-sm">⏯️ Seguir</button><button onclick="stopAudiobook()" class="px-5 py-3 rounded-xl bg-red-900 text-white font-black text-sm">⏹️ Parar</button></div></div>
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4">
-          <div class="space-y-3 max-h-[500px] overflow-y-auto pr-3 custom-scrollbar bg-slate-950/50 p-4 rounded-3xl border border-slate-800"><p class="text-xs font-black text-slate-400 mb-4 uppercase tracking-widest text-center border-b border-slate-800 pb-2">ÍNDICE</p>
-            ${ab.chapters.map((ch, idx) => `<button onclick="jumpToChapter(${idx})" class="w-full text-left p-4 rounded-2xl border-2 transition-all text-sm font-bold flex items-center gap-3 ${idx === currentChapterIdx ? 'bg-rose-900/60 border-rose-400 text-white shadow-lg transform scale-[1.02]' : 'bg-slate-900 border-slate-800 text-slate-400'}"><span class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${idx === currentChapterIdx ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-500'}">${idx === currentChapterIdx ? '🔊' : idx + 1}</span><span class="line-clamp-2">${ch.chapterTitle}</span></button>`).join('')}
-          </div>
-          <div class="lg:col-span-2 bg-slate-900 p-8 rounded-3xl border-2 border-indigo-500/20 max-h-[500px] overflow-y-auto space-y-4 shadow-inner custom-scrollbar relative"><p class="text-xs font-black text-rose-300 uppercase tracking-widest sticky top-0 bg-slate-900/90 py-2 backdrop-blur-sm border-b border-indigo-500/30">Transcripción del Texto Extraído:</p><p class="text-base text-slate-200 leading-relaxed font-medium whitespace-pre-wrap mt-4 text-justify pr-2">${ab.chapters[currentChapterIdx].chapterContent}</p></div>
-        </div>
-      </div>
-    `;
-  }
-  renderAudiobookUI(); playCurrentChapter();
-};
-
-window.downloadAudiobookSummary = () => {
-  const safeTitle = window.currentAudiobookTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-  const content = `<div class="chapter-box"><h2>Resumen Analítico</h2><p>${window.currentAudiobookSummary.replace(/\n/g, '<br>')}</p></div>`;
-  exportToWord('Resumen_' + safeTitle, content);
-};
-
-// ==========================================
-// 11. DEBATE SOCRÁTICO
-// ==========================================
-window.openSocraticModal = function() { document.getElementById('modalSocratic').classList.toggle('hidden'); };
-window.sendSocraticMessage = async function() {
-  const input = document.getElementById('socraticInput'); const msg = input.value.trim(); if (!msg) return;
-  const box = document.getElementById('socraticChatBox'); const philosopher = document.getElementById('socraticPhilosopher').value;
-  box.innerHTML += `<div class="p-4 rounded-2xl bg-slate-800 text-right text-slate-200 font-medium ml-12 shadow-sm border border-slate-700"><b>Tú:</b> ${msg}</div>`;
-  input.value = ''; socraticHistory += `\nEstudiante: ${msg}`;
-  try {
-    const res = await apiFetch('/api/socratic-debate', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, philosopher, message: msg, history: socraticHistory }) });
-    const data = await res.json();
-    if (res.ok) {
-      socraticHistory += `\n${philosopher}: ${data.reply}`;
-      box.innerHTML += `<div class="p-4 rounded-2xl bg-indigo-950/90 border border-indigo-800 text-indigo-100 font-medium mr-12 shadow-md"><b>${philosopher}:</b> ${data.reply}</div>`;
-      box.scrollTop = box.scrollHeight;
-    }
-  } catch (e) { alert('Error en el debate.'); }
-};
-
-// ==========================================
-// 12. FASE 2: LECTOR INMERSIVO 3D Y TTS LIMPIO
-// ==========================================
-window.pageFlipInstance = null;
-window.isSpeakingTTS = false;
-
-window.openImmersiveBook = function(docId) {
-  const subj = currentUser.subjects.find(s => s.id === activeSubjectId);
-  const doc = subj.documents.find(d => d.id === docId);
-  if (!doc) return alert("Documento no encontrado.");
-
-  const v = document.getElementById('viewerArea');
-  v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
-
-  v.innerHTML = `
-    <div class="max-w-4xl mx-auto mt-6 relative flex flex-col items-center">
-      <button onclick="closeFullScreenViewer()" class="absolute -top-10 right-0 px-5 py-2 bg-slate-800 text-slate-300 rounded-xl font-bold border border-slate-600 hover:bg-slate-700 transition z-50">← Volver a Biblioteca</button>
-      <div id="book-wrapper" class="relative mt-8 drop-shadow-2xl">
-        <div id="flipbook" class="bg-slate-300"></div>
-      </div>
-      <button id="ttsFloatingBtn" onclick="playCurrentPageTTS()" class="fixed bottom-12 right-12 w-16 h-16 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.6)] bg-cyan-500 border-4 border-cyan-300 text-2xl z-50 transform transition hover:scale-110 flex items-center justify-center">🔊</button>
-    </div>
-  `;
-
-  const rawText = doc.textContent || "Este documento aún no tiene texto extraído para lectura inmersiva. Procesalo con la IA primero.";
-  const charsPerPage = 1000; 
-  let pagesHtml = '';
-  
-  for (let i = 0; i < rawText.length; i += charsPerPage) {
-    const pageText = rawText.substring(i, i + charsPerPage);
-    const pageNumber = (i / charsPerPage) + 1;
-    pagesHtml += `
-      <div class="page p-10 bg-[#fdfbf7] text-slate-900 border border-slate-300 shadow-[inset_0_0_20px_rgba(0,0,0,0.05)] overflow-hidden">
-        <h4 class="text-center font-black text-[10px] uppercase text-slate-400 mb-6 border-b border-slate-300 pb-2 tracking-widest">${doc.title} - Pág ${pageNumber}</h4>
-        <div class="page-content text-sm text-justify leading-relaxed whitespace-pre-wrap font-medium">${pageText}</div>
-      </div>
-    `;
-  }
-
-  setTimeout(() => {
-    const bookEl = document.getElementById('flipbook');
-    bookEl.innerHTML = pagesHtml;
-    window.pageFlipInstance = new St.PageFlip(bookEl, {
-      width: 400, height: 600, size: "stretch", minWidth: 315, maxWidth: 1000,
-      minHeight: 400, maxHeight: 800, maxShadowOpacity: 0.3, showCover: false, mobileScrollSupport: true
-    });
-    window.pageFlipInstance.loadFromHTML(document.querySelectorAll('.page'));
-    window.pageFlipInstance.on('flip', (e) => { if (window.isSpeakingTTS) stopTTS(); });
-  }, 100);
-};
-
-function stopTTS() {
-  window.speechSynthesis.cancel(); window.isSpeakingTTS = false;
-  const btn = document.getElementById('ttsFloatingBtn');
-  if(btn) { btn.innerHTML = '🔊'; btn.className = "fixed bottom-12 right-12 w-16 h-16 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.6)] bg-cyan-500 border-4 border-cyan-300 text-2xl z-50 transform transition hover:scale-110 flex items-center justify-center"; }
-}
-
-const originalCloseFullScreenViewer = window.closeFullScreenViewer;
 window.closeFullScreenViewer = function() {
-  stopTTS();
-  if (window.pageFlipInstance) { window.pageFlipInstance.destroy(); window.pageFlipInstance = null; }
-  originalCloseFullScreenViewer();
-};
-
-window.playCurrentPageTTS = async function() {
-  if (!('speechSynthesis' in window)) return alert('TTS no soportado.');
-  const btn = document.getElementById('ttsFloatingBtn');
-  if (window.isSpeakingTTS) { stopTTS(); return; }
-
-  const currentPageIdx = window.pageFlipInstance.getCurrentPageIndex();
-  const pages = document.querySelectorAll('.page-content');
-  if(!pages[currentPageIdx]) return;
-  const rawPageText = pages[currentPageIdx].textContent;
-  btn.innerHTML = '⏳';
-
-  try {
-    const res = await apiFetch('/api/tts-clean', { method: 'POST', body: JSON.stringify({ rawText: rawPageText }) });
-    const { cleanedText } = await res.json();
-    const utterance = new SpeechSynthesisUtterance(cleanedText);
-    utterance.lang = 'es-ES'; utterance.rate = 1.0; utterance.onend = () => stopTTS();
-    window.speechSynthesis.speak(utterance);
-    window.isSpeakingTTS = true;
-    btn.innerHTML = '🛑';
-    btn.className = "fixed bottom-12 right-12 w-16 h-16 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.6)] bg-rose-500 border-4 border-rose-300 text-2xl z-50 transform transition hover:scale-110 flex items-center justify-center animate-pulse";
-  } catch (err) { alert("Error TTS."); stopTTS(); }
+  document.getElementById('viewerArea').classList.add('hidden');
+  document.getElementById('viewerArea').innerHTML = '';
 };
 
 // ==========================================
-// 13. FASE 3: CEREBRO DE IA (Tutor, APA e Investigación)
+// 8. CEREBRO DE IA (FASE 6: RAG, APA, INVESTIGACIÓN, SIMULADOR)
 // ==========================================
+
+// 1. TUTOR RAG (ANTI-ALUCINACIONES)
 window.askTutor = async function() {
-  const text = document.getElementById('tutorInput').value.trim();
-  if (!text) return alert("Pega un texto para explicar.");
+  const query = document.getElementById('tutorInput').value.trim();
+  const docId = document.getElementById('selectDocForAI').value;
+  if (!query) return alert("Escribe tu duda.");
+  
   const box = document.getElementById('tutorResponse');
-  box.innerHTML = `<span class="animate-pulse text-cyan-400 font-bold">Pensando la explicación...</span>`;
+  box.innerHTML = `<span class="animate-pulse text-cyan-400 font-bold">🔍 Buscando en literatura y citando fuente...</span>`;
   try {
-    const res = await apiFetch('/api/tutor-explain', { method: 'POST', body: JSON.stringify({ username: currentUser.username, text }) });
+    const res = await apiFetch('/api/tutor-rag', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: docId, query }) });
     const data = await res.json();
-    if (res.ok) { box.innerHTML = `<b class="text-cyan-300">Tutor:</b><br><br>${data.explanation}`; renderDashboard(); } 
+    if (res.ok) { box.innerHTML = `<b class="text-cyan-300">Tutor RAG:</b><br><br>${data.explanation}`; renderDashboard(); } 
     else box.innerHTML = `<span class="text-red-400">${data.error}</span>`;
   } catch (e) { box.innerHTML = "Error de red."; }
 };
 
+// 2. CREADOR APA CON TABLAS
 window.generateAPATask = async function() {
   const topic = document.getElementById('apaTopic').value.trim();
-  if (!topic) return alert("Escribe el tema de la tarea.");
-  const btn = document.getElementById('btnAPA'); btn.innerText = "Escribiendo..."; btn.disabled = true;
+  if (!topic) return alert("Escribe el tema.");
+  const btn = document.getElementById('btnAPA'); btn.innerText = "Redactando APA..."; btn.disabled = true;
   try {
-    const res = await apiFetch('/api/generate-apa-task', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, topic }) });
+    const res = await apiFetch('/api/generate-apa-advanced', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, topic }) });
     const data = await res.json();
     if (res.ok) {
       document.getElementById('modalAPA').classList.add('hidden');
       exportToWord(`Ensayo_APA_${topic.substring(0,10)}`, data.apaDocument); renderDashboard();
     } else alert(data.error);
-  } catch (e) { alert("Error al generar Tarea APA."); }
+  } catch (e) { alert("Error al generar."); }
   finally { btn.innerText = "Redactar"; btn.disabled = false; }
 };
 
+// 3. INVESTIGACIÓN ILIMITADA (AGENTE ITERATIVO CON PRE-AUDITORÍA)
 window.startUnlimitedResearch = async function() {
   const topic = document.getElementById('researchTopic').value.trim();
   if (!topic) return alert("Define el tema.");
@@ -771,7 +494,7 @@ window.startUnlimitedResearch = async function() {
     if (!res.ok) throw new Error(data.error);
     
     const chapters = data.outline;
-    let fullDocumentHTML = `<div style="text-align:center;"><h1>Tesis: ${topic}</h1><br><p>Generado por Agente IA</p></div><br><hr><br>`;
+    let fullDocumentHTML = `<div style="text-align:center;"><h1>Tesis: ${topic}</h1><br><p>Agente IA Anti-Plagio</p></div><br><hr><br>`;
     let previousSummary = "";
 
     for (let i = 0; i < chapters.length; i++) {
@@ -781,169 +504,149 @@ window.startUnlimitedResearch = async function() {
       data = await res.json();
       if (!res.ok) throw new Error(data.error);
       fullDocumentHTML += `<h1>Capítulo ${i + 1}: ${chapters[i]}</h1>\n${data.chapterContent}\n<br><br>`;
-      previousSummary = `El capítulo anterior trató sobre ${chapters[i]}. Se abordaron estos conceptos básicos.`;
+      previousSummary = `El capítulo anterior trató sobre ${chapters[i]}.`;
     }
     exportToWord(`Investigacion_${topic.substring(0,15)}`, fullDocumentHTML);
     alert("¡Investigación generada con éxito!");
     document.getElementById('modalResearch').classList.add('hidden'); renderDashboard();
-  } catch (e) { alert("El Agente se detuvo: " + e.message); } 
+  } catch (e) { alert("Error: " + e.message); } 
   finally {
     btn.classList.remove('hidden'); document.getElementById('researchProgress').classList.add('hidden');
     barEl.style.width = "0%"; btn.innerText = "Iniciar Agente";
   }
 };
 
+// 4. SIMULADOR DE CASOS CLÍNICOS (ROLEPLAY)
+let clinicalSimulatorHistory = '';
+window.sendSimulatorMessage = async function() {
+  const input = document.getElementById('simulatorInput'); 
+  const msg = input.value.trim(); if (!msg) return;
+  const box = document.getElementById('simulatorChatBox'); 
+  const docId = document.getElementById('selectDocForAI').value;
+  
+  box.innerHTML += `<div class="p-4 rounded-2xl bg-slate-800 text-right text-slate-200 font-medium ml-12 shadow-sm border border-slate-700"><b>Psicólogo:</b> ${msg}</div>`;
+  input.value = ''; clinicalSimulatorHistory += `\nPsicólogo: ${msg}`;
+  try {
+    const res = await apiFetch('/api/clinical-simulator', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: docId, message: msg, history: clinicalSimulatorHistory }) });
+    const data = await res.json();
+    if (res.ok) {
+      clinicalSimulatorHistory += `\nPaciente: ${data.reply}`;
+      box.innerHTML += `<div class="p-4 rounded-2xl bg-rose-950/90 border border-rose-800 text-rose-100 font-medium mr-12 shadow-md"><b>Paciente:</b> ${data.reply}</div>`;
+      box.scrollTop = box.scrollHeight;
+    }
+  } catch (e) { alert('Error.'); }
+};
+
 // ==========================================
-// 14. FASE 4: MÓDULOS ESPECIALIZADOS
+// 9. FASE 4 Y 5: VISUALES, MERMAID Y SLIDES
 // ==========================================
 window.askRealistPhilosophy = async function() {
   const query = document.getElementById('filosofiaInput').value.trim();
-  if (!query) return alert("Ingresa un tema a analizar.");
+  if (!query) return alert("Ingresa un tema.");
   const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
   document.getElementById('modalFilosofia').classList.add('hidden');
-  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">🏛️</span><p class="text-amber-300 font-black text-2xl uppercase mt-4">Purificando vía Tomás de Aquino...</p></div>`;
+  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">🏛️</span><p class="text-amber-300 font-black text-2xl uppercase mt-4">Analizando bajo Tomismo...</p></div>`;
   try {
     const res = await apiFetch('/api/philosophy-realism', { method: 'POST', body: JSON.stringify({ username: currentUser.username, query }) });
     const data = await res.json();
-    if (!res.ok) return alert(data.error);
-    v.innerHTML = `
-      <div class="max-w-5xl mx-auto glass-edu rounded-3xl p-10 space-y-6 border-2 border-amber-500 mt-10 relative shadow-2xl">
-        <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-slate-800 text-white font-bold">✕ Cerrar</button>
-        <h2 class="text-3xl font-black text-amber-300 border-b border-amber-500/30 pb-4">Síntesis Filosófica Realista</h2>
-        <div class="bg-slate-900 p-8 rounded-2xl text-slate-100 whitespace-pre-wrap">${data.answer}</div>
-      </div>`;
-    renderDashboard();
-  } catch (err) { alert('Error: ' + err.message); closeFullScreenViewer(); }
+    v.innerHTML = `<div class="max-w-5xl mx-auto glass-edu rounded-3xl p-10 space-y-6 border-2 border-amber-500 mt-10 relative shadow-2xl"><button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-slate-800 text-white font-bold">✕ Cerrar</button><h2 class="text-3xl font-black text-amber-300 border-b border-amber-500/30 pb-4">Síntesis Filosófica</h2><div class="bg-slate-900 p-8 rounded-2xl text-slate-100 whitespace-pre-wrap">${data.answer}</div></div>`;
+  } catch (err) { alert('Error.'); closeFullScreenViewer(); }
 };
 
 window.generateGlossary = async function() {
   const docId = document.getElementById('selectDocForAI').value;
   const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
-  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">📕</span><p class="text-indigo-300 font-black text-2xl uppercase mt-4">Extrayendo Glosario Técnico...</p></div>`;
+  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">📕</span><p class="text-indigo-300 font-black text-2xl uppercase mt-4">Extrayendo Glosario...</p></div>`;
   try {
     const res = await apiFetch('/api/generate-glossary', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: docId }) });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
     const g = data.glossary;
-    v.innerHTML = `
-      <div class="max-w-5xl mx-auto glass-edu rounded-3xl p-10 border-2 border-indigo-500 mt-10 relative">
-        <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-slate-800 text-white font-bold">✕ Cerrar</button>
-        <h2 class="text-3xl font-black text-indigo-300 mb-8 border-b border-indigo-500/30 pb-4">📕 ${g.glossaryTitle || 'Glosario'}</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          ${g.terms.map(t => `<div class="p-4 bg-slate-900 border border-indigo-500/40 rounded-xl"><b class="text-indigo-300 text-lg">${t.term}</b><p class="text-slate-300 text-sm mt-2">${t.definition}</p></div>`).join('')}
-        </div>
-      </div>`;
-  } catch (err) { alert('Error al generar glosario.'); closeFullScreenViewer(); }
+    v.innerHTML = `<div class="max-w-5xl mx-auto glass-edu rounded-3xl p-10 border-2 border-indigo-500 mt-10 relative"><button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-slate-800 text-white font-bold">✕ Cerrar</button><h2 class="text-3xl font-black text-indigo-300 mb-8 border-b border-indigo-500/30 pb-4">📕 ${g.glossaryTitle || 'Glosario'}</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4">${g.terms.map(t => `<div class="p-4 bg-slate-900 border border-indigo-500/40 rounded-xl"><b class="text-indigo-300 text-lg">${t.term}</b><p class="text-slate-300 text-sm mt-2">${t.definition}</p></div>`).join('')}</div></div>`;
+  } catch (err) { alert('Error.'); closeFullScreenViewer(); }
 };
 
 window.generateMindMap = async function() {
   const docId = document.getElementById('selectDocForAI').value;
   const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
-  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">🧠</span><p class="text-teal-300 font-black text-2xl uppercase mt-4">Construyendo Mapa Mermaid.js...</p></div>`;
+  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">🧠</span><p class="text-teal-300 font-black text-2xl uppercase mt-4">Construyendo Mapa Mermaid...</p></div>`;
   try {
     const res = await apiFetch('/api/generate-mindmap', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: docId }) });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    v.innerHTML = `
-      <div class="max-w-6xl mx-auto glass-edu rounded-3xl p-10 border-2 border-teal-500 mt-10 relative">
-        <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-slate-800 text-white font-bold z-50">✕ Cerrar</button>
-        <h2 class="text-3xl font-black text-teal-300 mb-8 border-b border-teal-500/30 pb-4">🧠 Mapa Conceptual</h2>
-        <div class="bg-slate-900 p-4 rounded-xl overflow-auto flex justify-center">
-          <div class="mermaid">${data.mermaidCode}</div>
-        </div>
-      </div>`;
+    v.innerHTML = `<div class="max-w-6xl mx-auto glass-edu rounded-3xl p-10 border-2 border-teal-500 mt-10 relative"><button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-slate-800 text-white font-bold z-50">✕ Cerrar</button><h2 class="text-3xl font-black text-teal-300 mb-8 border-b border-teal-500/30 pb-4">🧠 Mapa Conceptual</h2><div class="bg-slate-900 p-4 rounded-xl overflow-auto flex justify-center"><div class="mermaid">${data.mermaidCode}</div></div></div>`;
     setTimeout(() => { mermaid.init(undefined, document.querySelectorAll('.mermaid')); }, 100);
-  } catch (err) { alert('Error al generar Mapa Visual.'); closeFullScreenViewer(); }
-};
-
-window.generateEvoStorybook = async function() {
-  const docId = document.getElementById('selectDocForAI').value;
-  try {
-    const res = await apiFetch('/api/generate-evolutionary-storybook', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: docId }) });
-    const data = await res.json();
-    if (res.ok) { window.openStorybook(data.storybook); renderDashboard(); }
-    else alert(data.error);
-  } catch (err) { alert('Error al generar Storybook.'); }
-};
-
-// ==========================================
-// 15. FASE 5: PRESENTACIONES INTERACTIVAS
-// ==========================================
-
-window.deleteSavedPresentation = async function(id) {
-  if (!confirm('¿Borrar presentación?')) return;
-  try { 
-    const res = await apiFetch(`/api/presentations/${id}`, { method: 'DELETE', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId }) }); 
-    if (res.ok) { currentUser = (await res.json()).user; renderDashboard(); } 
-  } catch(e) {}
+  } catch (err) { alert('Error.'); closeFullScreenViewer(); }
 };
 
 window.generatePresentation = async function() {
   const docId = document.getElementById('selectDocForAI').value;
-  const v = document.getElementById('viewerArea'); 
-  v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
-  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">📊</span><p class="text-orange-300 font-black text-2xl uppercase mt-4">Construyendo Diapositivas e Interacciones...</p></div>`;
-  
+  const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
+  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">📊</span><p class="text-orange-300 font-black text-2xl uppercase mt-4">Construyendo Diapositivas...</p></div>`;
   try {
     const res = await apiFetch('/api/generate-presentation', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: docId }) });
     const data = await res.json();
-    if (res.ok) { 
-      currentUser = data.user; 
-      renderDashboard(); 
-      window.openPresentation(data.presentation); 
-    } else { 
-      alert(data.error); closeFullScreenViewer(); 
-    }
-  } catch (err) { alert('Error al generar la presentación.'); closeFullScreenViewer(); }
+    if (res.ok) { currentUser = data.user; renderDashboard(); openPresentation(data.presentation); }
+    else { alert(data.error); closeFullScreenViewer(); }
+  } catch (err) { alert('Error.'); closeFullScreenViewer(); }
 };
 
 window.openPresentation = function(pres) {
-  const v = document.getElementById('viewerArea'); 
-  v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
+  const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
   let currentSlide = 0;
-
   window.renderSlide = function() {
     const slide = pres.slides[currentSlide];
-    let contentHtml = '';
-
-    if (slide.type === 'trivia') {
-      contentHtml = `
-        <div class="space-y-4">
-          <h3 class="text-2xl font-black text-amber-400 text-center mb-6">🤔 ${slide.content}</h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            ${(slide.options || []).map((opt, i) => `
-              <button onclick="alert('${i === slide.correctIndex ? '✅ ¡CORRECTO!' : '❌ INCORRECTO.'} \\n\\nExplicación: ${slide.explanation}')" class="p-4 bg-slate-800 border-2 border-indigo-500/40 rounded-xl text-slate-200 font-bold hover:bg-indigo-900 transition">${opt}</button>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    } else {
-      contentHtml = `<p class="text-lg text-slate-200 leading-relaxed font-medium text-justify whitespace-pre-wrap">${slide.content}</p>`;
-    }
+    let contentHtml = slide.type === 'trivia' ? `
+      <div class="space-y-4"><h3 class="text-2xl font-black text-amber-400 text-center mb-6">🤔 ${slide.content}</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        ${(slide.options || []).map((opt, i) => `<button onclick="alert('${i === slide.correctIndex ? '✅ CORRECTO!' : '❌ INCORRECTO.'} \\n\\n${slide.explanation}')" class="p-4 bg-slate-800 border border-indigo-500/40 rounded-xl text-slate-200 font-bold hover:bg-indigo-900 transition">${opt}</button>`).join('')}
+      </div></div>` : `<p class="text-lg text-slate-200 leading-relaxed font-medium text-justify whitespace-pre-wrap">${slide.content}</p>`;
 
     v.innerHTML = `
       <div class="max-w-5xl mx-auto glass-edu rounded-3xl p-10 space-y-6 border-2 border-orange-500 mt-10 relative shadow-2xl min-h-[500px] flex flex-col justify-between">
         <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-slate-800 text-white font-bold z-50">✕ Cerrar</button>
-        
         <div>
-          <div class="flex justify-between items-center border-b border-orange-500/30 pb-4 mb-6">
-            <h2 class="text-2xl font-black text-orange-300">📊 ${pres.presentationTitle}</h2>
-            <span class="px-3 py-1 rounded-full bg-slate-800 text-slate-300 text-xs font-black">Diapositiva ${currentSlide + 1} de ${pres.slides.length}</span>
-          </div>
+          <div class="flex justify-between items-center border-b border-orange-500/30 pb-4 mb-6"><h2 class="text-2xl font-black text-orange-300">📊 ${pres.presentationTitle}</h2><span class="px-3 py-1 rounded-full bg-slate-800 text-slate-300 text-xs font-black">Slide ${currentSlide + 1} / ${pres.slides.length}</span></div>
           <h1 class="text-3xl font-black text-white mb-6 text-center">${slide.title}</h1>
           ${contentHtml}
         </div>
-
         <div class="flex justify-between items-center pt-6 border-t border-slate-700/50">
-          <button onclick="prevSlide()" class="px-6 py-3 rounded-xl bg-slate-800 text-white font-black hover:bg-slate-700 ${currentSlide === 0 ? 'opacity-50 cursor-not-allowed' : ''}">⬅ Anterior</button>
-          <button onclick="nextSlide()" class="px-6 py-3 rounded-xl bg-orange-600 text-white font-black hover:bg-orange-500 ${currentSlide === pres.slides.length - 1 ? 'opacity-50 cursor-not-allowed' : ''}">Siguiente ➡</button>
+          <button onclick="prevSlide()" class="px-6 py-3 rounded-xl bg-slate-800 text-white font-black ${currentSlide === 0 ? 'opacity-50' : ''}">⬅ Anterior</button>
+          <button onclick="nextSlide()" class="px-6 py-3 rounded-xl bg-orange-600 text-white font-black ${currentSlide === pres.slides.length - 1 ? 'opacity-50' : ''}">Siguiente ➡</button>
         </div>
-      </div>
-    `;
+      </div>`;
   };
-
   window.prevSlide = () => { if (currentSlide > 0) { currentSlide--; renderSlide(); } };
   window.nextSlide = () => { if (currentSlide < pres.slides.length - 1) { currentSlide++; renderSlide(); } };
-
   renderSlide();
+};
+
+window.generateAudiobook = async function() {
+  const selectedDocId = document.getElementById('audiobookDocSelect').value;
+  if(!selectedDocId) return alert('Elige libro.');
+  const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
+  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">🎧</span><p class="text-rose-400 font-black text-2xl uppercase mt-4">Extrayendo Audiolibro...</p></div>`;
+  try {
+    const res = await apiFetch('/api/audiobook-chapters', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: selectedDocId }) });
+    const data = await res.json();
+    currentUser = data.user; renderDashboard(); openSavedAudiobook(data.audiobook);
+  } catch (err) { alert('Error.'); closeFullScreenViewer(); }
+};
+
+window.openSavedAudiobook = function(ab) {
+  const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
+  window.currentAudiobookSummary = ab.bookSummary || ''; window.currentAudiobookTitle = ab.audiobookTitle || 'Libro';
+  let currentChapterIdx = 0;
+  function playCurrentChapter() {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const rawText = `${ab.chapters[currentChapterIdx].chapterTitle}. ${ab.chapters[currentChapterIdx].chapterContent}`;
+    const utterance = new SpeechSynthesisUtterance(cleanTextForAudio(rawText));
+    utterance.lang = 'es-ES';
+    utterance.onend = () => { if (currentChapterIdx < ab.chapters.length - 1) { currentChapterIdx++; renderAudiobookUI(); playCurrentChapter(); } };
+    window.speechSynthesis.speak(utterance);
+  }
+  window.jumpToChapter = (idx) => { currentChapterIdx = idx; renderAudiobookUI(); playCurrentChapter(); };
+  function renderAudiobookUI() {
+    v.innerHTML = `<div class="max-w-6xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-rose-500 relative shadow-2xl mt-4"><button onclick="closeFullScreenViewer(); window.speechSynthesis.cancel();" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-red-950 text-red-300 font-bold z-10">✕ Cerrar</button><h2 class="text-3xl font-black text-rose-300">${ab.audiobookTitle}</h2><div class="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4"><div class="space-y-3 max-h-[500px] overflow-y-auto pr-3">${ab.chapters.map((ch, idx) => `<button onclick="jumpToChapter(${idx})" class="w-full text-left p-4 rounded-xl text-sm font-bold ${idx === currentChapterIdx ? 'bg-rose-900 text-white' : 'bg-slate-900 text-slate-400'}">${ch.chapterTitle}</button>`).join('')}</div><div class="lg:col-span-2 bg-slate-900 p-8 rounded-3xl max-h-[500px] overflow-y-auto text-slate-200 whitespace-pre-wrap">${ab.chapters[currentChapterIdx].chapterContent}</div></div></div>`;
+  }
+  renderAudiobookUI(); playCurrentChapter();
 };
