@@ -95,7 +95,12 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
 // ================= CONFIGURACIÓN BÁSICA =================
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
+
+// Límite de 50MB por archivo para evitar errores al subir múltiples documentos
+const upload = multer({ 
+  storage: multer.memoryStorage(), 
+  limits: { fileSize: 50 * 1024 * 1024 } 
+});
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
@@ -349,6 +354,7 @@ app.post('/api/philosophy-realism', async (req, res) => {
     await user.save(); res.json({ answer: response.text });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/generate-evolutionary-storybook', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
@@ -364,6 +370,7 @@ app.post('/api/generate-evolutionary-storybook', async (req, res) => {
     res.json({ storybook: newStorybook, user: await serializeUser(user, req.DocumentModel) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/generate-glossary', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
@@ -376,6 +383,7 @@ app.post('/api/generate-glossary', async (req, res) => {
     await user.save(); res.json({ glossary: JSON.parse(response.text) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/generate-mindmap', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
