@@ -56,7 +56,7 @@ window.speakText = function(text) {
 };
 
 // ==========================================
-// 3. AUTENTICACIÓN Y GESTIÓN DE INSTITUCIÓN (DEV/PROD)
+// 3. AUTENTICACIÓN Y GESTIÓN DE INSTITUCIÓN
 // ==========================================
 window.switchAuthTab = function(tab) {
   document.getElementById('authError').classList.add('hidden');
@@ -443,8 +443,6 @@ window.closeFullScreenViewer = function() {
 // ==========================================
 // 8. CEREBRO DE IA (FASE 6: RAG, APA, INVESTIGACIÓN, SIMULADOR)
 // ==========================================
-
-// 1. TUTOR RAG (ANTI-ALUCINACIONES)
 window.askTutor = async function() {
   const query = document.getElementById('tutorInput').value.trim();
   const docId = document.getElementById('selectDocForAI').value;
@@ -460,7 +458,6 @@ window.askTutor = async function() {
   } catch (e) { box.innerHTML = "Error de red."; }
 };
 
-// 2. CREADOR APA CON TABLAS
 window.generateAPATask = async function() {
   const topic = document.getElementById('apaTopic').value.trim();
   if (!topic) return alert("Escribe el tema.");
@@ -476,7 +473,6 @@ window.generateAPATask = async function() {
   finally { btn.innerText = "Redactar"; btn.disabled = false; }
 };
 
-// 3. INVESTIGACIÓN ILIMITADA (AGENTE ITERATIVO CON PRE-AUDITORÍA)
 window.startUnlimitedResearch = async function() {
   const topic = document.getElementById('researchTopic').value.trim();
   if (!topic) return alert("Define el tema.");
@@ -516,7 +512,6 @@ window.startUnlimitedResearch = async function() {
   }
 };
 
-// 4. SIMULADOR DE CASOS CLÍNICOS (ROLEPLAY)
 let clinicalSimulatorHistory = '';
 window.sendSimulatorMessage = async function() {
   const input = document.getElementById('simulatorInput'); 
