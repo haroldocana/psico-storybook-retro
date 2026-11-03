@@ -92,11 +92,12 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
   res.json({ received: true });
 });
 
-// ================= CONFIGURACIÓN BÁSICA =================
+// ================= CONFIGURACIÓN BÁSICA CON LÍMITES AMPLIADOS =================
 app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Límite de 50MB por archivo para evitar errores al subir múltiples documentos
+// Límite de 50MB por archivo para soportar documentos pesados (como el de 17MB)
 const upload = multer({ 
   storage: multer.memoryStorage(), 
   limits: { fileSize: 50 * 1024 * 1024 } 
