@@ -97,17 +97,19 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Límite de 50MB por archivo para soportar documentos pesados (como el de 17MB)
+// Límite de 50MB por archivo para soportar documentos
 const upload = multer({ 
   storage: multer.memoryStorage(), 
   limits: { fileSize: 50 * 1024 * 1024 } 
 });
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+// Modelo estándar y estable actual
+const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 
 async function generateWithFallback(contents, responseSchema) {
-  const modelsToTry = [DEFAULT_GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-4-argon', 'gemini-3.0-flash'];
+  // Lista actualizada con modelos oficiales compatibles
+  const modelsToTry = [DEFAULT_GEMINI_MODEL, 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.5-flash'];
   let lastErr = null;
   for (const modelName of modelsToTry) {
     try {
@@ -242,6 +244,13 @@ app.post('/api/documents', upload.any(), async (req, res) => {
 
     if (req.files && req.files.length > 0) {
       for (let file of req.files) {
+        // Control de límite estricto de 15MB para evitar el error de rango/offset en MongoDB
+        if (file.buffer.length > 15 * 1024 * 1024) {
+          return res.status(400).json({ 
+            error: `El archivo "${file.originalname}" pesa más de 15MB. Divídelo en partes para subirlo correctamente.` 
+          });
+        }
+
         await new req.DocumentModel({
           docId: `doc-${Date.now()}-${Math.random()}`, username: user.username, subjectId,
           title: docTitle ? `${docTitle} (${file.originalname})` : file.originalname,
@@ -251,7 +260,7 @@ app.post('/api/documents', upload.any(), async (req, res) => {
       }
     }
     res.json({ user: await serializeUser(user, req.DocumentModel) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: "Error al procesar el archivo. Es probable que sea demasiado pesado." }); }
 });
 
 app.delete('/api/documents/:docId', async (req, res) => { try { await req.DocumentModel.deleteOne({ docId: req.params.docId, username: req.body.username.toLowerCase() }); const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
