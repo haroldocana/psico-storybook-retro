@@ -97,7 +97,10 @@
       <main class="lg:col-span-9 space-y-8">
         <div class="glass-edu rounded-3xl p-8 flex flex-wrap items-center justify-between gap-6 border border-indigo-500/30 shadow-xl">
           <div><span id="activeSubjMeta" class="text-xs font-black text-cyan-400 uppercase"></span><h2 id="activeSubjTitle" class="text-3xl font-black mt-2 text-white">Selecciona materia</h2></div>
-          <button onclick="deleteActiveSubject()" class="px-4 py-3 rounded-2xl bg-red-950/80 text-red-300 border border-red-800 font-bold text-xs">🗑️ Borrar Materia</button>
+          <div class="flex flex-wrap items-center gap-4 text-sm">
+            <div class="px-5 py-3 rounded-2xl bg-slate-900 border border-indigo-500/40 flex items-center gap-4 shadow-inner"><span class="font-bold text-slate-300">Progreso:</span><div class="w-32 bg-slate-800 rounded-full h-3.5 overflow-hidden"><div id="progressBar" class="bg-gradient-to-r from-cyan-400 to-emerald-400 h-3.5 rounded-full transition-all duration-700" style="width: 0%"></div></div><span id="progressText" class="font-black text-cyan-400">0%</span></div>
+            <button onclick="deleteActiveSubject()" class="px-4 py-3 rounded-2xl bg-red-950/80 text-red-300 border border-red-800 font-bold text-xs">🗑️ Borrar Materia</button>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
