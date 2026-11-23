@@ -62,6 +62,8 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
         fullName: 'Administrador Maestro',
         email: customerEmail,
         password: randomPassword,
+        mustChangePassword: true,
+        universityName: institutionName,
         role: 'admin',
         aiAllowanceUSD: 50.00,
         subjects: []
@@ -126,21 +128,14 @@ async function generateWithFallback(contents, responseSchema) {
 function sanitizeForFluidTTS(rawText) {
   if (!rawText) return "";
   return rawText
-    // Elimina encabezados de control y paginación
     .replace(/\b(CONFIDENCIAL|DRAFT|BORRADOR|PÁGINA|PÁG)\b\.?\s*\d*/gi, ' ')
-    // Elimina citas bibliográficas entre paréntesis o corchetes (ej. (Frankl, 1946) o [1, 2])
     .replace(/\[[^\]]*\]/g, ' ')
     .replace(/\([^)]*\d{4}[^)]*\)/g, ' ')
-    // Elimina URLs y correos
     .replace(/https?:\/\/[^\s]+/g, ' ')
     .replace(/[\w.-]+@[\w.-]+\.\w+/g, ' ')
-    // Convierte saltos de línea y viñetas en espacios fluidos
     .replace(/[\r\n•▪◦●\-–—]+/g, ' ')
-    // Elimina signos de puntuación y caracteres especiales (incluyendo comas, punto y coma, paréntesis, símbolos) para lectura corrida
     .replace(/[,;:()[\]{}"'«»“”‘’*#_~^|<>/\\+=@$%&!?¡¿]/g, ' ')
-    // Conserva puntos finales solo como espacio suave para que el motor TTS no haga cortes bruscos ni lea caracteres
     .replace(/\./g, ' ')
-    // Normaliza múltiples espacios en uno solo
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -194,7 +189,9 @@ const UserSchema = new mongoose.Schema({
   fullName: String,
   email: { type: String, lowercase: true },
   password: String,
+  mustChangePassword: { type: Boolean, default: true },
   recoveryWord: String,
+  universityName: { type: String, default: 'Universidad Galileo' },
   career: String,
   careerCode: { type: String, default: 'PSIC_CLINICA_GALILEO' },
   citationStyle: { type: String, default: 'APA7' },
@@ -415,26 +412,48 @@ async function connectDB() {
 }
 connectDB().catch(() => console.log("Reintentando conexión..."));
 
-// ================= DEV TENANT =================
-app.post('/dev/crear-institucion', async (req, res) => {
+// ================= CREACIÓN CONTROLADA DE INSTITUCIONES / UNIVERSIDADES =================
+app.post('/api/admin/create-institution', async (req, res) => {
   try {
     if (mongoose.connection.readyState !== 1) await connectDB();
-    const { codigo_institucion } = req.body;
+    const { adminSecret, codigo_institucion, universityName, adminEmail, adminPassword } = req.body;
+
+    if (adminSecret && adminSecret !== (process.env.MASTER_ADMIN_KEY || 'aprendepro_master_2026')) {
+      return res.status(403).json({ error: "Clave maestra inválida." });
+    }
     if (!codigo_institucion) return res.status(400).json({ error: "Falta codigo_institucion" });
 
+    const cleanCode = codigo_institucion.trim().toLowerCase();
+    const instName = universityName || `Institución ${cleanCode.toUpperCase()}`;
+
     await TenantModel.findOneAndUpdate(
-      { dbName: codigo_institucion.toLowerCase() },
-      { companyName: "Institución Dev", dbName: codigo_institucion.toLowerCase(), stripeCustomerId: "dev_123", subscriptionStatus: 'active' },
+      { dbName: cleanCode },
+      {
+        companyName: instName,
+        dbName: cleanCode,
+        stripeCustomerId: `inst_${Date.now()}`,
+        subscriptionStatus: 'active',
+        licenseExpiresAt: new Date(new Date().setFullYear(new Date().getFullYear() + 1))
+      },
       { upsert: true }
     );
-    const tenantDb = mongoose.connection.useDb(codigo_institucion.toLowerCase(), { useCache: true });
+
+    const tenantDb = mongoose.connection.useDb(cleanCode, { useCache: true });
     const TenantUser = tenantDb.model('User', UserSchema);
     await TenantUser.findOneAndUpdate(
       { username: 'master' },
-      { fullName: 'Admin Maestro', email: 'master@dev.edu', password: 'master123', role: 'admin', aiAllowanceUSD: 9999 },
+      {
+        fullName: 'Administrador Maestro',
+        email: adminEmail || 'master@aprendepro.edu',
+        password: adminPassword || 'master123',
+        mustChangePassword: false,
+        universityName: instName,
+        role: 'admin',
+        aiAllowanceUSD: 9999
+      },
       { upsert: true }
     );
-    res.json({ success: true, message: `Institución ${codigo_institucion} creada.` });
+    res.json({ success: true, message: `Institución "${instName}" (${cleanCode}) creada y activada.` });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -449,6 +468,7 @@ app.use('/api', async (req, res, next) => {
     if (!tenant || tenant.subscriptionStatus !== 'active') return res.status(403).json({ error: "Institución inactiva o no encontrada." });
 
     const tenantDb = mongoose.connection.useDb(tenant.dbName, { useCache: true });
+    req.TenantInfo = tenant;
     req.UserModel = tenantDb.model('User', UserSchema);
     req.DocumentModel = tenantDb.model('Document', DocumentSchema);
     req.KnowledgeModel = getKnowledgeModel(tenantDb);
@@ -553,54 +573,16 @@ app.post('/api/auth/login', async (req, res) => {
     const user = await req.UserModel.findOne({
       $or: [{ username: req.body.identifier.toLowerCase() }, { email: req.body.identifier.toLowerCase() }]
     });
-    if (!user || user.password !== req.body.password) return res.status(401).json({ error: "Incorrecto." });
+    if (!user || user.password !== req.body.password) return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
     res.json({ user: await serializeUser(user, req.DocumentModel) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/auth/register', async (req, res) => {
-  try {
-    const selectedCareerCode = req.body.careerCode || 'PSIC_CLINICA_GALILEO';
-    const selectedCycle = parseInt(req.body.cycleNumber) || 1;
-    const pensum = await CareerPensumModel.findOne({ careerCode: selectedCareerCode });
-
-    let initialSubjects = [{
-      id: 'subj-init',
-      name: 'Mi Primera Materia',
-      schedule: 'Semestre 1',
-      domainTags: ['CLINICAL_HUMANIST_SIM', 'INTERACTIVE_NEURO_ATLAS', 'SYNAPSE_LAB'],
-      documents: [], storybooks: [], audiobooks: [], presentations: []
-    }];
-
-    if (pensum) {
-      const cycle = pensum.cycles.find(c => c.cycleNumber === selectedCycle) || pensum.cycles[0];
-      if (cycle) {
-        initialSubjects = cycle.courses.map(c => ({
-          id: `${c.courseCode}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-          courseCode: c.courseCode,
-          name: c.name,
-          credits: c.credits,
-          schedule: cycle.cycleName,
-          domainTags: c.domainTags,
-          documents: [], storybooks: [], audiobooks: [], presentations: []
-        }));
-      }
-    }
-
-    const newUser = new req.UserModel({
-      username: req.body.username.toLowerCase(),
-      fullName: req.body.fullName,
-      email: req.body.email.toLowerCase(),
-      password: req.body.password,
-      recoveryWord: req.body.recoveryWord,
-      career: pensum ? pensum.careerName : (req.body.career || 'Licenciatura en Psicología Clínica'),
-      careerCode: selectedCareerCode,
-      citationStyle: pensum ? pensum.citationStyle : 'APA7',
-      subjects: initialSubjects
-    });
-    await newUser.save();
-    res.json({ user: await serializeUser(newUser, req.DocumentModel) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+// Auto-registro público deshabilitado: solo el administrador crea cuentas tras verificar pago
+app.post('/api/auth/register', (req, res) => {
+  return res.status(403).json({
+    error: "El registro libre está deshabilitado. Tras verificar tu pago, el administrador activará tu cuenta y te enviará tus credenciales por correo."
+  });
 });
 
 app.get('/api/auth/session/:username', async (req, res) => {
@@ -610,23 +592,19 @@ app.get('/api/auth/session/:username', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/auth/reset-password', async (req, res) => {
-  try {
-    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
-    if (!user || user.recoveryWord !== req.body.recoveryWord) return res.status(401).json({ error: "Datos incorrectos." });
-    user.password = req.body.newPassword;
-    await user.save();
-    res.json({ success: true, message: "Contraseña actualizada." });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
 app.post('/api/user/change-password', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
-    if (!user || user.password !== req.body.oldPassword) return res.status(401).json({ error: "Actual incorrecta." });
+    if (!user || user.password !== req.body.oldPassword) {
+      return res.status(401).json({ error: "La contraseña actual es incorrecta." });
+    }
+    if (!req.body.newPassword || req.body.newPassword.length < 6) {
+      return res.status(400).json({ error: "La nueva contraseña debe tener al menos 6 caracteres." });
+    }
     user.password = req.body.newPassword;
+    user.mustChangePassword = false;
     await user.save();
-    res.json({ success: true });
+    res.json({ success: true, message: "Contraseña actualizada correctamente.", user: await serializeUser(user, req.DocumentModel) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -638,21 +616,83 @@ app.get('/api/admin/users', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Creación de usuario post-pago por el administrador con envío automático de enlace y credenciales por correo
 app.post('/api/admin/create-user', async (req, res) => {
   try {
-    const u = await req.UserModel.findOne({ username: req.headers['x-user'] });
-    if (!u || u.role !== 'admin') return res.status(403).json({ error: "Acceso denegado." });
-    await new req.UserModel({
-      username: req.body.username.toLowerCase(),
-      fullName: req.body.fullName,
-      email: `${req.body.username.toLowerCase()}@edu.com`,
-      password: req.body.password,
+    const adminUser = await req.UserModel.findOne({ username: req.headers['x-user'] });
+    if (!adminUser || adminUser.role !== 'admin') return res.status(403).json({ error: "Acceso denegado." });
+
+    const {
+      username,
+      fullName,
+      email,
+      password,
+      universityName,
+      career,
+      careerCode,
+      cycleNumber,
+      initialTokens,
+      platformUrl
+    } = req.body;
+
+    const tenantCode = req.headers['x-tenant-id'].trim().toLowerCase();
+    const instName = universityName || req.TenantInfo?.companyName || 'Institución Educativa';
+    const selectedCareerCode = careerCode || 'PSIC_CLINICA_GALILEO';
+    const pensum = await CareerPensumModel.findOne({ careerCode: selectedCareerCode });
+    const cycle = pensum?.cycles.find(c => c.cycleNumber === parseInt(cycleNumber || 1)) || pensum?.cycles[0];
+
+    const initialSubjects = cycle ? cycle.courses.map(c => ({
+      id: `${c.courseCode}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      courseCode: c.courseCode,
+      name: c.name,
+      credits: c.credits,
+      schedule: cycle.cycleName,
+      domainTags: c.domainTags,
+      documents: [], storybooks: [], audiobooks: [], presentations: []
+    })) : [{ id: 'subj-init', name: 'Materia 1', schedule: 'Semestre 1', domainTags: [], presentations: [] }];
+
+    const cleanUsername = username.trim().toLowerCase();
+    const tempPassword = password || crypto.randomBytes(4).toString('hex');
+    const studentEmail = (email || `${cleanUsername}@edu.com`).trim().toLowerCase();
+
+    const createdUser = await new req.UserModel({
+      username: cleanUsername,
+      fullName,
+      email: studentEmail,
+      password: tempPassword,
+      mustChangePassword: true,
       recoveryWord: 'admin123',
-      career: req.body.career,
-      aiAllowanceUSD: parseFloat(req.body.initialTokens) || 2.00,
-      subjects: [{ id: 'subj-init', name: 'Materia 1', schedule: 'Semestre 1', domainTags: [], presentations: [] }]
+      universityName: instName,
+      career: pensum ? pensum.careerName : (career || 'Programa Universitario'),
+      careerCode: selectedCareerCode,
+      citationStyle: pensum ? pensum.citationStyle : 'APA7',
+      aiAllowanceUSD: parseFloat(initialTokens) || 5.00,
+      subjects: initialSubjects
     }).save();
-    res.json({ success: true });
+
+    const accessLink = platformUrl || process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+    if (email) {
+      await transporter.sendMail({
+        from: `"AprendePro Académico" <${process.env.SMTP_EMAIL || 'haroldocana@comptech.lat'}>`,
+        to: studentEmail,
+        subject: `🎓 Tus credenciales de acceso - ${instName}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 24px; color: #1e293b; max-width: 600px; margin: auto; border: 1px solid #cbd5e1; border-radius: 12px;">
+            <h2 style="color: #0284c7; margin-top: 0;">¡Bienvenido a AprendePro, ${fullName}!</h2>
+            <p>Hemos verificado tu inscripción para <strong>${instName}</strong>. A continuación encontrarás el enlace directo y tus credenciales de acceso:</p>
+            <div style="background-color: #f1f5f9; padding: 16px; border-radius: 8px; margin: 20px 0;">
+              <p style="margin: 6px 0;"><strong>Enlace de Acceso:</strong> <a href="${accessLink}" style="color: #0284c7;">${accessLink}</a></p>
+              <p style="margin: 6px 0;"><strong>Código de Institución:</strong> ${tenantCode}</p>
+              <p style="margin: 6px 0;"><strong>Usuario:</strong> ${cleanUsername}</p>
+              <p style="margin: 6px 0;"><strong>Contraseña Temporal:</strong> ${tempPassword}</p>
+            </div>
+            <p style="font-size: 13px; color: #475569;">Al ingresar por primera vez, el sistema te solicitará cambiar tu contraseña temporal por una clave personal.</p>
+          </div>
+        `
+      });
+    }
+
+    res.json({ success: true, user: await serializeUser(createdUser, req.DocumentModel) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -670,6 +710,7 @@ app.post('/api/admin/force-reset', async (req, res) => {
   try {
     const t = await req.UserModel.findOne({ username: req.body.targetUsername });
     t.password = req.body.newPassword;
+    t.mustChangePassword = true;
     await t.save();
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -973,7 +1014,6 @@ app.post('/api/audiobook-chapters', async (req, res) => {
     const response = await generateWithFallback(contents, schema);
     const parsed = JSON.parse(response.text);
 
-    // Garantiza limpieza absoluta sin comas ni caracteres especiales para lectura corrida
     const sanitizedAudiobook = {
       id: 'ab-' + Date.now(),
       createdAt: new Date().toLocaleString('es-GT'),
