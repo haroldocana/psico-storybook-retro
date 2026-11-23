@@ -23,14 +23,19 @@
     ::-webkit-scrollbar-thumb { background: #38bdf8; border-radius: 10px; }
     .modal-fade { animation: fadeIn 0.3s ease-in-out; }
     @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    /* Estilos para SVG interactivo tipo Encarta */
+    .encarta-svg-container svg { width: 100%; height: auto; max-height: 440px; border-radius: 1rem; background: #090d16; padding: 10px; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .encarta-svg-container [data-area-id], .encarta-svg-container [data-organ-id], .encarta-svg-container [data-region-id] { cursor: pointer; transition: opacity 0.2s, filter 0.2s; }
+    .encarta-svg-container [data-area-id]:hover, .encarta-svg-container [data-organ-id]:hover, .encarta-svg-container [data-region-id]:hover { filter: drop-shadow(0 0 8px #38bdf8); opacity: 0.85; }
   </style>
 </head>
 <body class="text-slate-100 flex flex-col min-h-screen">
 
+  <!-- PANTALLA DE AUTENTICACIÓN -->
   <div id="authScreen" class="min-h-screen flex items-center justify-center p-4">
     <div class="glass-edu max-w-lg w-full rounded-3xl p-8 shadow-2xl">
       <div class="text-center mb-6">
-        <span class="px-4 py-1.5 bg-cyan-500/20 text-cyan-300 border border-cyan-400 rounded-full text-xs font-black tracking-wider uppercase">🎓 AprendePro</span>
+        <span class="px-4 py-1.5 bg-cyan-500/20 text-cyan-300 border border-cyan-400 rounded-full text-xs font-black tracking-wider uppercase">🎓 AprendePro Universitario</span>
         <h1 class="text-3xl font-black mt-4 bg-gradient-to-r from-cyan-400 via-teal-300 to-indigo-400 bg-clip-text text-transparent">Portal Académico</h1>
       </div>
 
@@ -54,14 +59,38 @@
         <div><label class="text-xs font-bold text-cyan-300 ml-1">Nombre Completo</label><input type="text" id="regName" required placeholder="Harold Ocaña" class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white" /></div>
         <div class="grid grid-cols-2 gap-3">
           <div><label class="text-xs font-bold text-cyan-300 ml-1">Usuario</label><input type="text" id="regUser" required placeholder="haroldocana" class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white" /></div>
-          <div><label class="text-xs font-bold text-cyan-300 ml-1">Carrera</label><input type="text" id="regCareer" required placeholder="Psicología" class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white" /></div>
+          <div>
+            <label class="text-xs font-bold text-cyan-300 ml-1">Carrera (Pensum)</label>
+            <select id="regCareerCode" class="w-full mt-1.5 px-3 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-xs text-white font-bold">
+              <option value="PSIC_CLINICA_GALILEO">Psicología Clínica (ICF Galileo)</option>
+              <option value="MED_CIRUGIA">Medicina y Cirugía</option>
+            </select>
+            <input type="hidden" id="regCareer" value="Licenciatura en Psicología Clínica" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-cyan-300 ml-1">Ciclo Actual</label>
+            <select id="regCycleNumber" class="w-full mt-1.5 px-3 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-xs text-white font-bold">
+              <option value="1">1er Ciclo (1er Año)</option>
+              <option value="2">2do Ciclo (1er Año)</option>
+              <option value="3">3er Ciclo (2do Año)</option>
+              <option value="4">4to Ciclo (2do Año)</option>
+              <option value="5">5to Ciclo (3er Año)</option>
+              <option value="6">6to Ciclo (3er Año)</option>
+              <option value="7">7mo Ciclo (4to Año)</option>
+              <option value="8">8vo Ciclo (4to Año)</option>
+              <option value="9">9no Ciclo (5to Año)</option>
+              <option value="10">10mo Ciclo (5to Año)</option>
+            </select>
+          </div>
+          <div><label class="text-xs font-bold text-rose-300 ml-1">Palabra Clave</label><input type="text" id="regRecovery" required placeholder="Clave recuperación" class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-rose-950/40 border-2 border-rose-500/50 text-sm text-white" /></div>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div><label class="text-xs font-bold text-cyan-300 ml-1">Correo</label><input type="email" id="regEmail" placeholder="correo@email.com" required class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white" /></div>
-          <div><label class="text-xs font-bold text-rose-300 ml-1">Palabra Clave</label><input type="text" id="regRecovery" required placeholder="Clave recuperación" class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-rose-950/40 border-2 border-rose-500/50 text-sm text-white" /></div>
+          <div><label class="text-xs font-bold text-cyan-300 ml-1">Contraseña</label><input type="password" id="regPass" required class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white" /></div>
         </div>
-        <div><label class="text-xs font-bold text-cyan-300 ml-1">Contraseña</label><input type="password" id="regPass" required class="w-full mt-1.5 px-4 py-3 rounded-2xl bg-slate-900 border-2 border-indigo-500/50 text-sm text-white" /></div>
-        <button type="submit" id="btnRegBtn" class="w-full mt-6 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 font-black text-sm shadow-xl hover:brightness-110">Registrar</button>
+        <button type="submit" id="btnRegBtn" class="w-full mt-6 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 font-black text-sm shadow-xl hover:brightness-110">Registrar y Cargar Pensum</button>
       </form>
 
       <form id="tenantForm" onsubmit="handleCreateTenant(event)" class="hidden space-y-4">
@@ -72,92 +101,312 @@
     </div>
   </div>
 
+  <!-- APLICACIÓN PRINCIPAL -->
   <div id="appScreen" class="hidden min-h-screen flex flex-col">
     <header class="glass-edu sticky top-0 z-30 px-6 py-4 flex flex-wrap items-center justify-between gap-4 border-b border-indigo-500/30">
       <div class="flex items-center gap-4">
         <div class="w-12 h-12 rounded-2xl bg-cyan-500/20 border-2 border-cyan-400 flex items-center justify-center text-2xl shadow-lg">🚀</div>
-        <div><h2 id="careerTitleBanner" class="font-black text-lg text-cyan-300 uppercase tracking-wide">AprendePro</h2><p id="userHeaderInfo" class="text-sm text-slate-300 font-medium mt-0.5"></p></div>
+        <div>
+          <h2 id="careerTitleBanner" class="font-black text-lg text-cyan-300 uppercase tracking-wide">AprendePro</h2>
+          <p id="userHeaderInfo" class="text-sm text-slate-300 font-medium mt-0.5"></p>
+        </div>
       </div>
-      <div class="flex items-center gap-4">
+      <div class="flex flex-wrap items-center gap-3">
+        <button onclick="document.getElementById('modalPensumSelector').classList.remove('hidden')" class="px-4 py-2.5 rounded-xl bg-indigo-600/80 hover:bg-indigo-500 text-white border border-indigo-400 text-xs font-black shadow-lg">🎓 Cambiar Carrera / Ciclo</button>
         <button id="btnAdminPanel" onclick="document.getElementById('modalAdminPanel').classList.remove('hidden'); loadAdminUsers();" class="hidden px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white border border-purple-400 text-xs font-black shadow-lg">👑 Panel Master</button>
-        <div class="bg-slate-900/90 border border-indigo-500/40 rounded-2xl px-4 py-2 flex items-center gap-3 shadow"><div class="flex flex-col"><span class="text-[10px] text-slate-400 font-bold uppercase">Saldo IA</span><b id="aiBilling" class="text-emerald-400 text-sm font-black">$0.00</b></div><button onclick="requestMoreTokens()" class="ml-2 px-3 py-1.5 bg-indigo-600/50 rounded-lg text-[10px] text-white font-black">+ Pedir</button></div>
+        <div class="bg-slate-900/90 border border-indigo-500/40 rounded-2xl px-4 py-2 flex items-center gap-3 shadow">
+          <div class="flex flex-col"><span class="text-[10px] text-slate-400 font-bold uppercase">Saldo IA</span><b id="aiBilling" class="text-emerald-400 text-sm font-black">$0.00</b></div>
+          <button onclick="requestMoreTokens()" class="ml-2 px-3 py-1.5 bg-indigo-600/50 rounded-lg text-[10px] text-white font-black">+ Pedir</button>
+        </div>
         <button onclick="document.getElementById('modalChangePass').classList.remove('hidden')" class="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-black">🔑 Clave</button>
         <button onclick="logout()" class="px-5 py-2.5 rounded-xl bg-red-950/80 text-red-300 text-xs font-black">Salir</button>
       </div>
     </header>
 
     <div class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <!-- BARRA LATERAL: MENÚ PRINCIPAL MODULAR -->
       <aside class="lg:col-span-3 space-y-6">
+        <!-- BLOQUE 1: MATERIAS DEL PENSUM -->
         <div class="glass-edu rounded-3xl p-6 border border-indigo-500/30 shadow-xl">
-          <div class="flex items-center justify-between mb-5"><h3 class="font-black text-sm uppercase text-cyan-300">📚 Materias</h3><button onclick="document.getElementById('modalSubject').classList.remove('hidden')" class="px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-black">+ Agregar</button></div>
-          <div id="subjectsList" class="space-y-3"></div>
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-black text-xs uppercase text-cyan-300 tracking-wider">📚 1. Pensum y Materias</h3>
+            <button onclick="document.getElementById('modalSubject').classList.remove('hidden')" class="px-2.5 py-1 bg-indigo-600 text-white rounded-xl text-[11px] font-black">+ Curso</button>
+          </div>
+          <div id="subjectsList" class="space-y-2.5 max-h-64 overflow-y-auto pr-1"></div>
+        </div>
+
+        <!-- BLOQUE 2: MENÚ DE MÓDULOS POR ESPECIALIDAD -->
+        <div class="glass-edu rounded-3xl p-6 border border-indigo-500/30 shadow-xl space-y-4">
+          <h3 class="font-black text-xs uppercase text-teal-300 tracking-wider border-b border-indigo-500/30 pb-2">🧭 2. Módulos de Estudio</h3>
+          
+          <div class="space-y-2">
+            <p class="text-[10px] font-black text-slate-400 uppercase">Enciclopedia Encarta & Ciencias</p>
+            <button onclick="openEncartaBrainModal()" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-sky-950/80 hover:bg-sky-900 border border-sky-500/50 text-xs font-bold text-sky-200 flex items-center gap-2 transition-all">
+              <span>🧠</span> Atlas Cerebro y Neuropsicología
+            </button>
+            <button onclick="openSynapseCascadeModal()" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-fuchsia-950/80 hover:bg-fuchsia-900 border border-fuchsia-500/50 text-xs font-bold text-fuchsia-200 flex items-center gap-2 transition-all">
+              <span>⚡</span> Cascada Sustancias y Sinapsis
+            </button>
+            <button onclick="openHumanBodyModal()" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/50 text-xs font-bold text-emerald-200 flex items-center gap-2 transition-all">
+              <span>🫀</span> Atlas Cuerpo Humano (Medicina)
+            </button>
+          </div>
+
+          <div class="space-y-2 pt-2 border-t border-indigo-500/20">
+            <p class="text-[10px] font-black text-slate-400 uppercase">Práctica Clínica y Humanismo</p>
+            <button onclick="document.getElementById('modalSimulator').classList.remove('hidden')" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-500/50 text-xs font-bold text-rose-200 flex items-center gap-2 transition-all">
+              <span>🛋️</span> Consulta Clínica (ICF / SOAP)
+            </button>
+            <button onclick="document.getElementById('modalPsychometrics').classList.remove('hidden')" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-violet-950/80 hover:bg-violet-900 border border-violet-500/50 text-xs font-bold text-violet-200 flex items-center gap-2 transition-all">
+              <span>📊</span> Lab. Psicometría y Baremos
+            </button>
+            <button onclick="document.getElementById('modalFilosofia').classList.remove('hidden')" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-amber-950/80 hover:bg-amber-900 border border-amber-500/50 text-xs font-bold text-amber-200 flex items-center gap-2 transition-all">
+              <span>🏛️</span> Antropología y Personalismo
+            </button>
+          </div>
         </div>
       </aside>
 
+      <!-- ÁREA CENTRAL DE TRABAJO -->
       <main class="lg:col-span-9 space-y-8">
         <div class="glass-edu rounded-3xl p-8 flex flex-wrap items-center justify-between gap-6 border border-indigo-500/30 shadow-xl">
-          <div><span id="activeSubjMeta" class="text-xs font-black text-cyan-400 uppercase"></span><h2 id="activeSubjTitle" class="text-3xl font-black mt-2 text-white">Selecciona materia</h2></div>
+          <div>
+            <span id="activeSubjMeta" class="text-xs font-black text-cyan-400 uppercase"></span>
+            <h2 id="activeSubjTitle" class="text-3xl font-black mt-2 text-white">Selecciona materia</h2>
+            <p id="philosophicalFrameworkBanner" class="text-xs text-amber-300/90 mt-1 font-medium">Orientación: Humanismo Personalista y Logoterapia (ICF Universidad Galileo)</p>
+          </div>
           <div class="flex flex-wrap items-center gap-4 text-sm">
-            <div class="px-5 py-3 rounded-2xl bg-slate-900 border border-indigo-500/40 flex items-center gap-4 shadow-inner"><span class="font-bold text-slate-300">Progreso:</span><div class="w-32 bg-slate-800 rounded-full h-3.5 overflow-hidden"><div id="progressBar" class="bg-gradient-to-r from-cyan-400 to-emerald-400 h-3.5 rounded-full transition-all duration-700" style="width: 0%"></div></div><span id="progressText" class="font-black text-cyan-400">0%</span></div>
+            <div class="px-5 py-3 rounded-2xl bg-slate-900 border border-indigo-500/40 flex items-center gap-4 shadow-inner">
+              <span class="font-bold text-slate-300">Progreso:</span>
+              <div class="w-32 bg-slate-800 rounded-full h-3.5 overflow-hidden"><div id="progressBar" class="bg-gradient-to-r from-cyan-400 to-emerald-400 h-3.5 rounded-full transition-all duration-700" style="width: 0%"></div></div>
+              <span id="progressText" class="font-black text-cyan-400">0%</span>
+            </div>
             <button onclick="deleteActiveSubject()" class="px-4 py-3 rounded-2xl bg-red-950/80 text-red-300 border border-red-800 font-bold text-xs">🗑️ Borrar Materia</button>
           </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- REPOSITORIO Y ENTRENAMIENTO LOCAL (ML/RAG) -->
           <div class="glass-edu rounded-3xl p-7 space-y-6 flex flex-col justify-between border border-indigo-500/30 shadow-xl">
             <div>
-              <div class="border-b border-indigo-500/30 pb-3 mb-4"><h3 class="font-black text-base text-cyan-300">1️⃣ Repositorio Multi-formato</h3></div>
-              <form onsubmit="handleUploadDoc(event)" class="space-y-4">
-                <input type="text" id="docTitle" placeholder="Título del Material" class="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-indigo-500/40 text-sm text-white" />
-                <input type="url" id="youtubeUrlInput" placeholder="Enlace de YouTube" class="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-red-500/50 text-sm text-white" />
-                <div class="p-5 rounded-2xl bg-slate-900 border-2 border-dashed border-cyan-500/40 text-center"><input type="file" id="docFiles" multiple accept=".pdf,.docx,.txt" class="w-full text-xs text-slate-300" /><div id="selectedFilesPreview" class="text-xs text-cyan-300 mt-2 font-black"></div></div>
-                <button type="submit" id="btnUploadDoc" class="w-full py-4 rounded-2xl bg-cyan-600 font-black text-sm text-white shadow-xl">📥 Guardar Material</button>
+              <div class="border-b border-indigo-500/30 pb-3 mb-4 flex items-center justify-between">
+                <h3 class="font-black text-base text-cyan-300">1️⃣ Repositorio & Retroalimentación</h3>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/40 font-bold">ML / RAG Local</span>
+              </div>
+              <form onsubmit="handleUploadDoc(event)" class="space-y-3">
+                <input type="text" id="docTitle" placeholder="Título del Material (ej. Manual Neuropsicología)" class="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-indigo-500/40 text-sm text-white" />
+                <input type="url" id="youtubeUrlInput" placeholder="Enlace de YouTube de cátedra" class="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-red-500/50 text-sm text-white" />
+                <div class="p-4 rounded-2xl bg-slate-900 border-2 border-dashed border-cyan-500/40 text-center">
+                  <input type="file" id="docFiles" multiple accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" class="w-full text-xs text-slate-300" />
+                  <div id="selectedFilesPreview" class="text-xs text-cyan-300 mt-2 font-black"></div>
+                </div>
+                <label class="flex items-center gap-2 text-xs text-slate-300 px-1 cursor-pointer">
+                  <input type="checkbox" id="isOfficialDocCheck" class="rounded bg-slate-900 border-cyan-500 text-cyan-500" />
+                  <span>Marcar como <b>Documento Oficial de Cátedra</b></span>
+                </label>
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                  <button type="submit" id="btnUploadDoc" class="py-3.5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 font-black text-xs text-white shadow-xl">📥 Guardar Material</button>
+                  <button type="button" onclick="trainLocalKnowledgeBase()" id="btnTrainKB" class="py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-black text-xs text-white shadow-xl border border-indigo-400">🧬 Retroalimentar IA</button>
+                </div>
               </form>
             </div>
-            <div class="pt-5 border-t border-indigo-500/30">
+            <div class="pt-4 border-t border-indigo-500/30">
               <div class="flex items-center justify-between mb-3"><span class="text-sm font-black text-slate-200">Guardados (<span id="savedLibraryBadge" class="text-cyan-400">0</span>)</span></div>
-              <div id="savedDocsList" class="space-y-2.5 max-h-48 overflow-y-auto pr-2"></div>
+              <div id="savedDocsList" class="space-y-2.5 max-h-44 overflow-y-auto pr-2"></div>
             </div>
           </div>
 
+          <!-- CEREBRO IA Y AUDIOLIBROS DE LECTURA CORRIDA -->
           <div class="glass-edu rounded-3xl p-7 space-y-6 flex flex-col justify-between border border-indigo-500/30 shadow-xl">
             <div class="space-y-4">
-              <div class="border-b border-indigo-500/30 pb-3 mb-4"><h3 class="font-black text-base text-teal-300">2️⃣ Cerebro IA AprendePro</h3></div>
+              <div class="border-b border-indigo-500/30 pb-3 mb-4"><h3 class="font-black text-base text-teal-300">2️⃣ Herramientas Cognitivas y Redacción</h3></div>
               <select id="selectDocForAI" class="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-indigo-500/40 text-sm text-white font-bold"></select>
               
-              <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
-                <button onclick="generateMindMap()" class="py-3 px-2 rounded-xl bg-teal-600 font-black text-xs text-white shadow-lg">🧠 Mermaid</button>
-                <button onclick="generateGlossary()" class="py-3 px-2 rounded-xl bg-indigo-600 font-black text-xs text-white shadow-lg">📕 Glosario</button>
-                <button onclick="generateEvoStorybook()" class="py-3 px-2 rounded-xl bg-cyan-600 font-black text-xs text-white shadow-lg">👶 Storybook</button>
-                <button onclick="document.getElementById('modalFilosofia').classList.remove('hidden')" class="py-3 px-2 rounded-xl bg-amber-600 font-black text-xs text-white shadow-lg">🏛️ Tomista</button>
-                <button onclick="generateFlashcards()" class="py-3 px-2 rounded-xl bg-purple-600 font-black text-xs text-white shadow-lg">🃏 Fichas</button>
+              <div class="grid grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
                 <button onclick="document.getElementById('modalTutor').classList.remove('hidden')" class="py-3 px-2 rounded-xl bg-slate-700 font-black text-xs text-cyan-300 border border-cyan-500">👨‍🏫 Tutor RAG</button>
-                <button onclick="document.getElementById('modalAPA').classList.remove('hidden')" class="py-3 px-2 rounded-xl bg-slate-700 font-black text-xs text-emerald-300 border border-emerald-500">📝 APA Tablas</button>
-                <button onclick="document.getElementById('modalResearch').classList.remove('hidden')" class="py-3 px-2 rounded-xl bg-slate-700 font-black text-xs text-amber-300 border border-amber-500">🔬 Investigar</button>
-                <button onclick="document.getElementById('modalSimulator').classList.remove('hidden')" class="col-span-2 py-3 px-2 rounded-xl bg-rose-600 font-black text-xs text-white shadow-lg border-2 border-rose-400">🩺 Simulador Clínico</button>
-                <button onclick="generatePresentation()" class="col-span-2 py-3 px-2 rounded-xl bg-orange-600 font-black text-xs text-white shadow-lg border-2 border-orange-400">📊 Slides + Trivia</button>
+                <button onclick="generateMindMap()" class="py-3 px-2 rounded-xl bg-teal-600 font-black text-xs text-white shadow-lg">🧠 Mapa Mental</button>
+                <button onclick="generateGlossary()" class="py-3 px-2 rounded-xl bg-indigo-600 font-black text-xs text-white shadow-lg">📕 Glosario</button>
+                <button onclick="generateEvoStorybook()" class="py-3 px-2 rounded-xl bg-cyan-600 font-black text-xs text-white shadow-lg">📖 Storybook</button>
+                <button onclick="document.getElementById('modalAPA').classList.remove('hidden')" class="py-3 px-2 rounded-xl bg-slate-700 font-black text-xs text-emerald-300 border border-emerald-500">📝 Ensayo Científico</button>
+                <button onclick="document.getElementById('modalResearch').classList.remove('hidden')" class="py-3 px-2 rounded-xl bg-slate-700 font-black text-xs text-amber-300 border border-amber-500">🔬 Tesis / Monografía</button>
+                <button onclick="generatePresentation()" class="col-span-3 py-3 px-2 rounded-xl bg-orange-600 font-black text-xs text-white shadow-lg border border-orange-400">📊 Generar Presentación + Trivia Evaluativa</button>
               </div>
 
+              <!-- MÓDULO DE AUDIOLIBROS DE LECTURA CORRIDA -->
               <div class="mt-4 p-4 rounded-2xl bg-rose-950/30 border border-rose-500/50 space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-black text-rose-300">🎧 Audiolibro Corrido & Resumen Real</span>
+                  <span class="text-[10px] text-slate-400">Sin comas ni caracteres</span>
+                </div>
                 <select id="audiobookDocSelect" class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-rose-500/50 text-xs text-white font-bold"></select>
-                <button onclick="generateAudiobook()" class="w-full py-3 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 font-black text-xs text-white shadow-lg">🎧 Generar Audiolibro</button>
+                <button onclick="generateFluidAudiobook()" id="btnGenAudiobook" class="w-full py-3 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 font-black text-xs text-white shadow-lg">▶️ Generar Audiolibro y Resumen Ejecutivo</button>
               </div>
             </div>
           </div>
         </div>
 
+        <!-- HISTORIALES GUARDADOS -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="glass-edu rounded-3xl p-7 border border-indigo-500/30 shadow-xl"><p class="text-sm font-black text-slate-200 uppercase mb-4 border-b border-indigo-500/30 pb-3">🗂️ Monografías</p><div id="savedHistoryList" class="space-y-3 max-h-48 overflow-y-auto pr-2"></div></div>
-          <div class="glass-edu rounded-3xl p-7 border border-rose-500/30 shadow-xl"><p class="text-sm font-black text-rose-300 uppercase mb-4 border-b border-rose-500/30 pb-3">🎧 Audiolibros</p><div id="savedAudiobooksList" class="space-y-3 max-h-40 overflow-y-auto pr-2"></div></div>
+          <div class="glass-edu rounded-3xl p-7 border border-rose-500/30 shadow-xl"><p class="text-sm font-black text-rose-300 uppercase mb-4 border-b border-rose-500/30 pb-3">🎧 Audiolibros Corridos</p><div id="savedAudiobooksList" class="space-y-3 max-h-40 overflow-y-auto pr-2"></div></div>
           <div class="glass-edu rounded-3xl p-7 border border-orange-500/30 shadow-xl"><p class="text-sm font-black text-orange-300 uppercase mb-4 border-b border-orange-500/30 pb-3">📊 Presentaciones</p><div id="savedPresentationsList" class="space-y-3 max-h-40 overflow-y-auto pr-2"></div></div>
         </div>
 
+        <!-- VISOR INTERACTIVO MULTIMEDIA (AQUÍ SE RENDERIZAN LOS ATLAS ENCARTA, AUDIOLIBROS Y RESULTADOS) -->
         <div id="viewerArea" class="hidden space-y-6"></div>
       </main>
     </div>
   </div>
 
-  <!-- MODALES DE APOYO -->
+  <!-- ================= MODALES DE MÓDULOS INTERACTIVOS ================= -->
+
+  <!-- 1. SELECTOR DE CARRERA Y CICLO (PENSUM) -->
+  <div id="modalPensumSelector" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4">
+    <div class="glass-edu max-w-md w-full rounded-3xl p-8 space-y-6 border-2 border-indigo-500 modal-fade">
+      <h3 class="font-black text-2xl text-white text-center">🎓 Seleccionar Pensum y Ciclo</h3>
+      <p class="text-xs text-slate-300 text-center">Se cargarán automáticamente las materias oficiales y los laboratorios especializados de la facultad.</p>
+      <div class="space-y-4">
+        <div>
+          <label class="text-xs font-bold text-cyan-300">Carrera Universitaria</label>
+          <select id="selectPensumCareer" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-900 border border-indigo-500 text-white text-sm font-bold">
+            <option value="PSIC_CLINICA_GALILEO">Licenciatura en Psicología Clínica (ICF - U. Galileo)</option>
+            <option value="MED_CIRUGIA">Licenciatura en Medicina y Cirugía</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-cyan-300">Ciclo Académico</label>
+          <select id="selectPensumCycle" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-900 border border-indigo-500 text-white text-sm font-bold">
+            <option value="1">1er Ciclo (Primer Año)</option>
+            <option value="2">2do Ciclo (Primer Año)</option>
+            <option value="3">3er Ciclo (Segundo Año)</option>
+            <option value="4">4to Ciclo (Segundo Año)</option>
+            <option value="5">5to Ciclo (Tercer Año)</option>
+            <option value="6">6to Ciclo (Tercer Año)</option>
+            <option value="7">7mo Ciclo (Cuarto Año)</option>
+            <option value="8">8vo Ciclo (Cuarto Año)</option>
+            <option value="9">9no Ciclo (Quinto Año)</option>
+            <option value="10">10mo Ciclo (Quinto Año)</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex gap-4">
+        <button onclick="document.getElementById('modalPensumSelector').classList.add('hidden')" class="flex-1 py-3 bg-slate-800 text-white rounded-xl font-bold">Cancelar</button>
+        <button onclick="enrollPensumCycle()" id="btnEnrollPensum" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black">Cargar Pensum</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. ATLAS ENCARTA: NEUROLOGÍA Y NEUROPSICOLOGÍA -->
+  <div id="modalEncartaBrain" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4">
+    <div class="glass-edu max-w-lg w-full rounded-3xl p-8 space-y-6 border-2 border-sky-500 modal-fade">
+      <div class="flex justify-between items-center">
+        <h3 class="font-black text-xl text-sky-300">🧠 Atlas Interactivo Neuropsicológico</h3>
+        <button onclick="document.getElementById('modalEncartaBrain').classList.add('hidden')" class="text-white font-black">✕</button>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="text-xs font-bold text-slate-300">Estructura Cerebral o Circuito a Explorar</label>
+          <input type="text" id="encartaBrainTopic" placeholder="Ej. Corteza Prefrontal, Amígdala, Hipocampo, Vía Mesolímbica" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-900 border border-sky-500 text-white text-sm" />
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-300">Modo de Estudio Encarta</label>
+          <select id="encartaBrainMode" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-900 border border-sky-500 text-white text-sm font-bold">
+            <option value="EXPLORE_REGION">Exploración Anatómica, Sináptica y Funcional</option>
+            <option value="LESION_SIMULATOR">Simulador de Lesiones y Síndromes Neuropsicológicos</option>
+            <option value="NEUROPSYCH_TEST_BATTERY">Batería de Evaluación Neuropsicológica (Stroop, Wisconsin, Luria)</option>
+          </select>
+        </div>
+      </div>
+      <button onclick="launchEncartaBrain()" id="btnLaunchBrain" class="w-full py-3.5 bg-sky-600 hover:bg-sky-500 text-white rounded-2xl font-black shadow-lg">Explorar Cerebro Interactivo</button>
+    </div>
+  </div>
+
+  <!-- 3. SIMULADOR DE REACCIONES EN CASCADA POR SUBIDA / BAJADA DE SUSTANCIAS -->
+  <div id="modalSynapseCascade" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4">
+    <div class="glass-edu max-w-xl w-full rounded-3xl p-8 space-y-5 border-2 border-fuchsia-500 modal-fade max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center">
+        <h3 class="font-black text-xl text-fuchsia-300">⚡ Laboratorio de Sustancias y Sinapsis</h3>
+        <button onclick="document.getElementById('modalSynapseCascade').classList.add('hidden')" class="text-white font-black">✕</button>
+      </div>
+      <p class="text-xs text-slate-300">Ajusta la subida o bajada de neurotransmisores/hormonas para observar la reacción sináptica en cadena y su impacto neuropsicológico:</p>
+      
+      <div class="grid grid-cols-2 gap-4 bg-slate-900/90 p-4 rounded-2xl border border-fuchsia-500/30">
+        <div>
+          <label class="text-xs font-bold text-cyan-300 flex justify-between"><span>Dopamina:</span><span id="valDopamina">Normal</span></label>
+          <input type="range" min="-100" max="100" value="0" oninput="document.getElementById('valDopamina').innerText = (this.value > 0 ? '+' : '') + this.value + '%'" id="sliderDopamina" class="w-full accent-cyan-400" />
+        </div>
+        <div>
+          <label class="text-xs font-bold text-emerald-300 flex justify-between"><span>Serotonina:</span><span id="valSerotonina">Normal</span></label>
+          <input type="range" min="-100" max="100" value="0" oninput="document.getElementById('valSerotonina').innerText = (this.value > 0 ? '+' : '') + this.value + '%'" id="sliderSerotonina" class="w-full accent-emerald-400" />
+        </div>
+        <div>
+          <label class="text-xs font-bold text-rose-300 flex justify-between"><span>Cortisol (Eje HPA):</span><span id="valCortisol">Normal</span></label>
+          <input type="range" min="-100" max="100" value="0" oninput="document.getElementById('valCortisol').innerText = (this.value > 0 ? '+' : '') + this.value + '%'" id="sliderCortisol" class="w-full accent-rose-400" />
+        </div>
+        <div>
+          <label class="text-xs font-bold text-amber-300 flex justify-between"><span>GABA (Inhibidor):</span><span id="valGaba">Normal</span></label>
+          <input type="range" min="-100" max="100" value="0" oninput="document.getElementById('valGaba').innerText = (this.value > 0 ? '+' : '') + this.value + '%'" id="sliderGaba" class="w-full accent-amber-400" />
+        </div>
+        <div class="col-span-2">
+          <label class="text-xs font-bold text-purple-300 flex justify-between"><span>Glutamato (Excitatorio):</span><span id="valGlutamato">Normal</span></label>
+          <input type="range" min="-100" max="100" value="0" oninput="document.getElementById('valGlutamato').innerText = (this.value > 0 ? '+' : '') + this.value + '%'" id="sliderGlutamato" class="w-full accent-purple-400" />
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-bold text-slate-300">Sustancia Exógena / Fármaco / Evento Desencadenante</label>
+        <input type="text" id="cascadeTriggerInput" placeholder="Ej. Administración de ISRS, Estrés traumático agudo, Estimulante dopaminérgico" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-900 border border-fuchsia-500 text-white text-sm" />
+      </div>
+
+      <button onclick="launchSynapseCascade()" id="btnLaunchCascade" class="w-full py-3.5 bg-fuchsia-600 hover:bg-fuchsia-500 text-white rounded-2xl font-black shadow-lg">Simular Reacción en Cadena</button>
+    </div>
+  </div>
+
+  <!-- 4. ATLAS INTERACTIVO DEL CUERPO HUMANO (MEDICINA Y BIOLOGÍA) -->
+  <div id="modalHumanBody" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4">
+    <div class="glass-edu max-w-lg w-full rounded-3xl p-8 space-y-6 border-2 border-emerald-500 modal-fade">
+      <div class="flex justify-between items-center">
+        <h3 class="font-black text-xl text-emerald-300">🫀 Atlas Anatómico y Fisiológico</h3>
+        <button onclick="document.getElementById('modalHumanBody').classList.add('hidden')" class="text-white font-black">✕</button>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="text-xs font-bold text-slate-300">Sistema del Cuerpo Humano</label>
+          <select id="bodySystemSelect" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-900 border border-emerald-500 text-white text-sm font-bold">
+            <option value="Sistema Nervioso Central y Autónomo">Sistema Nervioso Central y Autónomo</option>
+            <option value="Sistema Endocrino y Eje Neuroendocrino">Sistema Endocrino y Eje Neuroendocrino</option>
+            <option value="Sistema Cardiovascular y Hemodinámica">Sistema Cardiovascular y Hemodinámica</option>
+            <option value="Sistema Respiratorio e Intercambio Gaseoso">Sistema Respiratorio e Intercambio Gaseoso</option>
+            <option value="Sistema Digestivo y Eje Intestino-Cerebro">Sistema Digestivo y Eje Intestino-Cerebro</option>
+            <option value="Sistema Renal y Equilibrio Hidroelectrolítico">Sistema Renal y Equilibrio Hidroelectrolítico</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-300">Órgano Específico o Correlación Clínica</label>
+          <input type="text" id="bodyOrganInput" placeholder="Ej. Glándula Suprarrenal, Corazón, Vago (X Par Craneal)" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-900 border border-emerald-500 text-white text-sm" />
+        </div>
+      </div>
+      <button onclick="launchHumanBodyAtlas()" id="btnLaunchBody" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black shadow-lg">Abrir Atlas Anatómico-Fisiológico</button>
+    </div>
+  </div>
+
+  <!-- 5. LABORATORIO DE PSICOMETRÍA Y BAREMOS -->
+  <div id="modalPsychometrics" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4">
+    <div class="glass-edu max-w-lg w-full rounded-3xl p-8 space-y-5 border-2 border-violet-500 modal-fade">
+      <div class="flex justify-between items-center">
+        <h3 class="font-black text-xl text-violet-300">📊 Laboratorio Psicométrico</h3>
+        <button onclick="document.getElementById('modalPsychometrics').classList.add('hidden')" class="text-white font-black">✕</button>
+      </div>
+      <div class="space-y-3">
+        <input type="text" id="psychTestName" placeholder="Nombre de la Prueba (ej. WAIS-IV, MMPI-2, Raven, PIL Logoterapia)" class="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-violet-500 text-white text-sm" />
+        <textarea id="psychRawScores" rows="3" placeholder="Puntuaciones directas por escala (ej. Comprensión Verbal: 112, Memoria de Trabajo: 95)" class="w-full p-3 rounded-2xl bg-slate-900 border border-violet-500 text-white text-sm"></textarea>
+        <input type="text" id="psychContext" placeholder="Edad, escolaridad y motivo de evaluación" class="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-violet-500 text-white text-sm" />
+      </div>
+      <button onclick="launchPsychometricsLab()" id="btnLaunchPsychometrics" class="w-full py-3.5 bg-violet-600 hover:bg-violet-500 text-white rounded-2xl font-black shadow-lg">Calcular Baremos e Informe</button>
+    </div>
+  </div>
+
+  <!-- MODALES ORIGINALES DE APOYO -->
   <div id="modalSubject" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4">
     <div class="glass-edu max-w-md w-full rounded-3xl p-8 space-y-6 border-2 border-indigo-500">
       <h3 class="font-black text-2xl text-white text-center">Nueva Materia</h3>
@@ -179,7 +428,7 @@
 
   <div id="modalAPA" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4">
     <div class="glass-edu max-w-md w-full rounded-3xl p-8 space-y-6 border-2 border-emerald-500">
-      <h3 class="font-black text-2xl text-white text-center">Ensayo APA 7ma con Tablas</h3>
+      <h3 class="font-black text-2xl text-white text-center">Ensayo Científico (APA / Vancouver)</h3>
       <input type="text" id="apaTopic" placeholder="Tema del Ensayo" class="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-emerald-500 text-white text-sm" />
       <div class="flex gap-4"><button onclick="document.getElementById('modalAPA').classList.add('hidden')" class="flex-1 py-3 bg-slate-800 text-white rounded-xl">Cancelar</button><button onclick="generateAPATask()" class="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-black" id="btnAPA">Redactar</button></div>
     </div>
@@ -196,8 +445,8 @@
 
   <div id="modalSimulator" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4">
     <div class="glass-edu max-w-2xl w-full rounded-3xl p-8 space-y-6 border-2 border-rose-500 relative">
-      <div class="flex justify-between items-center border-b border-rose-500/30 pb-4"><h3 class="font-black text-xl text-rose-300">🩺 Simulador Paciente Clínico</h3><button onclick="document.getElementById('modalSimulator').classList.add('hidden')" class="text-white font-black text-2xl">✕</button></div>
-      <div id="simulatorChatBox" class="h-72 overflow-y-auto bg-slate-900 p-5 rounded-2xl space-y-4 border border-rose-500/30 text-sm"><div class="p-4 rounded-2xl bg-slate-800 text-slate-300 italic">El paciente se sienta y evita el contacto visual... Empieza.</div></div>
+      <div class="flex justify-between items-center border-b border-rose-500/30 pb-4"><h3 class="font-black text-xl text-rose-300">🛋️ Simulador Consulta Clínica</h3><button onclick="document.getElementById('modalSimulator').classList.add('hidden')" class="text-white font-black text-2xl">✕</button></div>
+      <div id="simulatorChatBox" class="h-72 overflow-y-auto bg-slate-900 p-5 rounded-2xl space-y-4 border border-rose-500/30 text-sm"><div class="p-4 rounded-2xl bg-slate-800 text-slate-300 italic">El paciente entra a consulta... Inicia el diálogo clínico.</div></div>
       <div class="flex gap-3"><input type="text" id="simulatorInput" placeholder="Escribe tu intervención..." class="flex-1 px-5 py-3 rounded-2xl bg-slate-900 border border-rose-500 text-sm text-white" /><button onclick="sendSimulatorMessage()" class="px-6 py-3 bg-rose-600 text-white rounded-2xl font-black">Hablar</button></div>
     </div>
   </div>
@@ -205,8 +454,8 @@
   <div id="modalFilosofia" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4">
     <div class="glass-edu max-w-lg w-full rounded-3xl p-8 space-y-6 border-2 border-amber-500 relative">
       <button onclick="document.getElementById('modalFilosofia').classList.add('hidden')" class="absolute top-4 right-4 text-white font-black">✕</button>
-      <h3 class="font-black text-2xl text-amber-300 text-center">Filtro Tomista</h3>
-      <textarea id="filosofiaInput" rows="4" class="w-full p-4 rounded-xl bg-slate-900 border border-amber-500 text-white text-sm" placeholder="Tema a analizar..."></textarea>
+      <h3 class="font-black text-2xl text-amber-300 text-center">Análisis Personalista y Logoterapéutico</h3>
+      <textarea id="filosofiaInput" rows="4" class="w-full p-4 rounded-xl bg-slate-900 border border-amber-500 text-white text-sm" placeholder="Dilema antropológico, ético o clínico a analizar..."></textarea>
       <button onclick="askRealistPhilosophy()" class="w-full py-3 bg-amber-600 text-white rounded-xl font-black">Analizar</button>
     </div>
   </div>
