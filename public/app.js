@@ -98,28 +98,38 @@ window.handleLogin = async function(e) {
 };
 
 window.changeUserPassword = async function() {
-  const oldP = document.getElementById('changePassOld').value;
-  const newP = document.getElementById('changePassNew').value;
-  if(!oldP || !newP) return alert("Llena ambos campos.");
+  const oldP = document.getElementById('changePassOld').value.trim();
+  const newP = document.getElementById('changePassNew').value.trim();
+
+  if (!oldP || !newP) return alert("Por favor ingresa tu contraseña actual y la nueva.");
+  if (!currentUser || !currentUser.username) return alert("Sesión no detectada. Vuelve a iniciar sesión.");
+
   try {
     const res = await apiFetch('/api/user/change-password', {
       method: 'POST',
-      body: JSON.stringify({ username: currentUser.username, oldPassword: oldP, newPassword: newP })
+      body: JSON.stringify({
+        username: currentUser.username,
+        oldPassword: oldP,
+        newPassword: newP
+      })
     });
     const data = await res.json();
-    if(res.ok) {
-      alert("✅ Contraseña personal actualizada correctamente.");
+
+    if (res.ok) {
+      alert("✅ " + (data.message || "Contraseña personal actualizada correctamente."));
       if (data.user) currentUser = data.user;
       document.getElementById('changePassOld').value = '';
       document.getElementById('changePassNew').value = '';
       document.getElementById('modalChangePass').classList.add('hidden');
     } else {
-      alert(data.error);
+      alert("❌ Error: " + (data.error || "No se pudo actualizar la contraseña."));
     }
-  } catch(e) { alert("Error de red."); }
+  } catch (e) {
+    alert("❌ Error de conexión con el servidor al intentar cambiar la contraseña.");
+  }
 };
 
-window.enterApp = function(user) {
+window.enterApp = async function(user) {
   currentUser = user;
   localStorage.setItem('psico_active_user', user.username);
   const lastSubj = localStorage.getItem(`psico_subj_${user.username}`);
@@ -131,6 +141,7 @@ window.enterApp = function(user) {
   const btnAdmin = document.getElementById('btnAdminPanel');
   if(btnAdmin) { btnAdmin.classList.toggle('hidden', user.role !== 'admin'); }
 
+  await loadAvailablePensums();
   renderDashboard();
 
   // Si el usuario ingresó por primera vez con la contraseña temporal enviada por correo, solicita cambio de clave
@@ -151,8 +162,77 @@ window.logout = function() {
 };
 
 // ==========================================
-// 4. TOKENS, PANEL MASTER Y ENROLAMIENTO DE PENSUM
+// 4. TOKENS, PANEL MASTER Y GESTOR DINÁMICO DE PENSUMS
 // ==========================================
+window.loadAvailablePensums = async function() {
+  try {
+    const res = await apiFetch('/api/pensums');
+    const data = await res.json();
+    if (!res.ok || !data.pensums) return;
+
+    window.loadedPensums = data.pensums;
+    const optionsHtml = data.pensums.map(p => `<option value="${p.careerCode}">${p.careerName} (${p.faculty || 'Oficial'})</option>`).join('');
+
+    const selUser = document.getElementById('selectPensumCareer');
+    const selAdmin = document.getElementById('admCareerCode');
+    if (selUser && optionsHtml) selUser.innerHTML = optionsHtml;
+    if (selAdmin && optionsHtml) selAdmin.innerHTML = optionsHtml;
+  } catch (e) { console.error("Error cargando catálogo de pensums:", e); }
+};
+
+window.adminSaveNewPensum = async function() {
+  const careerCode = document.getElementById('newPensumCode').value.trim();
+  const careerName = document.getElementById('newPensumName').value.trim();
+  const citationStyle = document.getElementById('newPensumCitation').value;
+  const philosophicalFramework = document.getElementById('newPensumFramework').value.trim();
+  const cycleNumber = parseInt(document.getElementById('newPensumCycleNum').value) || 1;
+  const cycleName = document.getElementById('newPensumCycleName').value.trim() || `Ciclo ${cycleNumber}`;
+  const domainTag = document.getElementById('newPensumDomainTag').value;
+  const rawCourses = document.getElementById('newPensumCoursesList').value.trim();
+
+  if (!careerCode || !careerName || !rawCourses) {
+    return alert("Completa Código, Nombre de Carrera y al menos un curso.");
+  }
+
+  const courses = rawCourses.split(',').map((c, idx) => ({
+    courseCode: `${careerCode.substring(0, 3).toUpperCase()}-${cycleNumber}0${idx + 1}`,
+    name: c.trim(),
+    credits: 4,
+    domainTags: [domainTag]
+  })).filter(c => c.name);
+
+  const btn = document.getElementById('btnSavePensum');
+  const orig = btn ? btn.innerHTML : '';
+  if (btn) { btn.innerHTML = '⏳ Guardando...'; btn.disabled = true; }
+
+  try {
+    const res = await apiFetch('/api/admin/save-pensum', {
+      method: 'POST',
+      headers: { 'x-user': currentUser.username },
+      body: JSON.stringify({
+        careerCode,
+        careerName,
+        universityCode: localStorage.getItem('psico_tenant_id'),
+        philosophicalFramework,
+        citationStyle,
+        cycles: [{ cycleNumber, cycleName, courses }]
+      })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      alert(`✅ ${data.message}`);
+      document.getElementById('newPensumCoursesList').value = '';
+      await loadAvailablePensums();
+    } else {
+      alert(data.error);
+    }
+  } catch (e) {
+    alert("Error guardando pensum.");
+  } finally {
+    if (btn) { btn.innerHTML = orig; btn.disabled = false; }
+  }
+};
+
 window.requestMoreTokens = async function() {
   if(!confirm("¿Solicitar recarga de Saldo IA al Administrador?")) return;
   try {
@@ -467,7 +547,6 @@ window.openEncartaBrainModal = function() {
 window.launchEncartaBrain = async function() {
   const topic = document.getElementById('encartaBrainTopic').value.trim();
   const viewMode = document.getElementById('encartaBrainMode').value;
-  const docId = document.getElementById('selectDocForAI').value;
 
   document.getElementById('modalEncartaBrain').classList.add('hidden');
   const v = document.getElementById('viewerArea');
@@ -477,10 +556,10 @@ window.launchEncartaBrain = async function() {
   try {
     const res = await apiFetch('/api/encarta/neuropsychology-atlas', {
       method: 'POST',
-      body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: docId, topic, viewMode })
+      body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, topic, viewMode })
     });
     const data = await res.json();
-    if (!res.ok) { alert(data.error); return closeFullScreenViewer(); }
+    if (!res.ok) { alert(data.error || 'No se pudo cargar el Atlas Cerebral.'); return closeFullScreenViewer(); }
 
     const cards = data.multimediaCards || [];
     window.renderBrainCardDetail = function(idx) {
@@ -562,7 +641,7 @@ window.launchEncartaBrain = async function() {
     if (cards.length > 0) renderBrainCardDetail(0);
     renderDashboard();
   } catch (err) {
-    alert('Error cargando Atlas Cerebral.');
+    alert('Error cargando Atlas Cerebral: ' + err.message);
     closeFullScreenViewer();
   }
 };
@@ -580,7 +659,6 @@ window.launchSynapseCascade = async function() {
     glutamato: document.getElementById('valGlutamato').innerText
   };
   const triggerEvent = document.getElementById('cascadeTriggerInput').value.trim();
-  const docId = document.getElementById('selectDocForAI').value;
 
   document.getElementById('modalSynapseCascade').classList.add('hidden');
   const v = document.getElementById('viewerArea');
@@ -590,7 +668,7 @@ window.launchSynapseCascade = async function() {
   try {
     const res = await apiFetch('/api/encarta/neuro-cascade-lab', {
       method: 'POST',
-      body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: docId, substanceLevels, triggerEvent })
+      body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, substanceLevels, triggerEvent })
     });
     const data = await res.json();
     if (!res.ok) { alert(data.error); return closeFullScreenViewer(); }
