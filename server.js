@@ -107,7 +107,6 @@ const upload = multer({
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 
-// Generador rápido con modelos oficiales vigentes en Google AI Studio
 async function generateWithFallback(contents, responseSchema) {
   const modelsToTry = [
     DEFAULT_GEMINI_MODEL,
@@ -162,10 +161,11 @@ const TenantSchema = new mongoose.Schema({
 });
 const TenantModel = mongoose.model('Tenant', TenantSchema);
 
-// Catálogo Maestro de Pensums Universitarios
+// Catálogo Maestro de Pensums Universitarios vinculado a instituciones
 const CareerPensumSchema = new mongoose.Schema({
   careerCode: { type: String, unique: true },
   careerName: String,
+  universityCode: { type: String, default: 'all', lowercase: true },
   faculty: String,
   philosophicalFramework: String,
   citationStyle: { type: String, default: 'APA7' },
@@ -214,7 +214,6 @@ const UserSchema = new mongoose.Schema({
   subjects: Array
 });
 
-// Base de Conocimiento Acumulativa por Curso (Retroalimentación ML/RAG Local)
 const CourseKnowledgeBaseSchema = new mongoose.Schema({
   username: { type: String, lowercase: true, index: true },
   subjectId: { type: String, index: true },
@@ -245,6 +244,7 @@ async function seedDefaultPensums() {
   const psicGalileo = {
     careerCode: 'PSIC_CLINICA_GALILEO',
     careerName: 'Licenciatura en Psicología Clínica',
+    universityCode: 'all',
     faculty: 'Instituto de Ciencias de la Familia (ICF) - Universidad Galileo',
     philosophicalFramework: 'Humanismo Personalista, Antropología Filosófica y Logoterapia (Viktor Frankl). La persona humana es una unidad bio-psico-espiritual; se evita el reduccionismo conductista anglosajón.',
     citationStyle: 'APA7',
@@ -381,6 +381,7 @@ async function seedDefaultPensums() {
   const medicinaGeneral = {
     careerCode: 'MED_CIRUGIA',
     careerName: 'Licenciatura en Medicina y Cirugía',
+    universityCode: 'all',
     faculty: 'Facultad de Ciencias de la Salud',
     philosophicalFramework: 'Medicina Basada en Evidencia, Correlación Anatomo-Fisiopatológica y Ética Hipocrática.',
     citationStyle: 'VANCOUVER',
@@ -529,16 +530,43 @@ async function getFullDocumentsForSubject(DocumentModelRef, username, subjectId,
 // ================= RUTAS AUTENTICACIÓN, PENSUMS Y ADMIN =================
 app.get('/api/pensums', async (req, res) => {
   try {
-    const pensums = await CareerPensumModel.find({}, {
-      careerCode: 1,
-      careerName: 1,
-      faculty: 1,
-      philosophicalFramework: 1,
-      citationStyle: 1,
-      'cycles.cycleNumber': 1,
-      'cycles.cycleName': 1
+    const tenantId = (req.headers['x-tenant-id'] || '').trim().toLowerCase();
+    const pensums = await CareerPensumModel.find({
+      $or: [{ universityCode: tenantId }, { universityCode: 'all' }, { universityCode: { $exists: false } }]
     }).lean();
     res.json({ pensums });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Guardar / agregar nueva carrera y pensum para cualquier institución desde Panel Master
+app.post('/api/admin/save-pensum', async (req, res) => {
+  try {
+    const adminUser = await req.UserModel.findOne({ username: req.headers['x-user'] });
+    if (!adminUser || adminUser.role !== 'admin') return res.status(403).json({ error: "Acceso denegado." });
+
+    const { careerCode, careerName, universityCode, faculty, philosophicalFramework, citationStyle, cycles } = req.body;
+    if (!careerCode || !careerName || !cycles || !cycles.length) {
+      return res.status(400).json({ error: "Faltan datos obligatorios del pensum (código, nombre o ciclos)." });
+    }
+
+    const cleanCode = careerCode.trim().toUpperCase();
+    const tenantCode = (universityCode || req.headers['x-tenant-id'] || 'all').trim().toLowerCase();
+
+    const saved = await CareerPensumModel.findOneAndUpdate(
+      { careerCode: cleanCode },
+      {
+        careerCode: cleanCode,
+        careerName: careerName.trim(),
+        universityCode: tenantCode,
+        faculty: faculty || req.TenantInfo?.companyName || 'Facultad Universitaria',
+        philosophicalFramework: philosophicalFramework || 'Formación académica integral basada en evidencia.',
+        citationStyle: citationStyle || 'APA7',
+        cycles
+      },
+      { upsert: true, new: true }
+    );
+
+    res.json({ success: true, message: `Pensum "${careerName}" registrado para ${tenantCode.toUpperCase()}.`, pensum: saved });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -549,7 +577,7 @@ app.post('/api/user/enroll-pensum', async (req, res) => {
     const pensum = await CareerPensumModel.findOne({ careerCode });
     if (!pensum) return res.status(404).json({ error: "Pensum no encontrado." });
 
-    const cycle = pensum.cycles.find(c => c.cycleNumber === parseInt(cycleNumber));
+    const cycle = pensum.cycles.find(c => c.cycleNumber === parseInt(cycleNumber)) || pensum.cycles[0];
     if (!cycle) return res.status(404).json({ error: "Ciclo no encontrado." });
 
     user.career = pensum.careerName;
@@ -592,7 +620,6 @@ app.post('/api/auth/login', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Auto-registro público deshabilitado: solo el administrador crea cuentas tras verificar pago
 app.post('/api/auth/register', (req, res) => {
   return res.status(403).json({
     error: "El registro libre está deshabilitado. Tras verificar tu pago, el administrador activará tu cuenta y te enviará tus credenciales por correo."
@@ -606,7 +633,6 @@ app.get('/api/auth/session/:username', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Cambio de contraseña tolerante a espacios y mayúsculas
 app.post('/api/user/change-password', async (req, res) => {
   try {
     const cleanUser = (req.body.username || '').trim().toLowerCase();
@@ -640,7 +666,6 @@ app.get('/api/admin/users', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Creación de usuario post-pago por el administrador con envío automático de enlace y credenciales por correo
 app.post('/api/admin/create-user', async (req, res) => {
   try {
     const adminUser = await req.UserModel.findOne({ username: req.headers['x-user'] });
@@ -1062,7 +1087,7 @@ app.post('/api/audiobook-chapters', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ================= MÓDULOS INTERACTIVOS TIPO ENCARTA =================
+// ================= MÓDULOS INTERACTIVOS TIPO ENCARTA (OPTIMIZADOS SIN TIMEOUT 502) =================
 app.post('/api/encarta/neuro-cascade-lab', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
