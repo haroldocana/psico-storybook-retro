@@ -124,8 +124,8 @@ async function generateWithFallback(contents, responseSchema) {
         config: responseSchema ? {
           responseMimeType: 'application/json',
           responseSchema,
-          temperature: 0.4
-        } : { temperature: 0.4 }
+          temperature: 0.35
+        } : { temperature: 0.35 }
       });
     } catch (err) {
       lastErr = err;
@@ -538,7 +538,6 @@ app.get('/api/pensums', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Guardar / agregar nueva carrera y pensum para cualquier institución desde Panel Master
 app.post('/api/admin/save-pensum', async (req, res) => {
   try {
     const adminUser = await req.UserModel.findOne({ username: req.headers['x-user'] });
@@ -1312,7 +1311,244 @@ app.post('/api/agents/psychometrics-lab', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ================= ENDPOINTS BASE EXISTENTES (TUTOR, APA/VANCOUVER, TESIS, CLÍNICA, MAPAS) =================
+// ================= MAPAS CONCEPTUALES DINÁMICOS CON ILUSTRACIONES Y CITAS VERIFICABLES =================
+app.post('/api/generate-mindmap', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.15);
+
+    const { subjectId, documentId } = req.body;
+    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, subjectId, documentId || 'ALL');
+    const kb = await req.KnowledgeModel.findOne({ username: user.username, subjectId }).lean();
+
+    if (!docs.length && (!kb || !kb.learnedConcepts.length)) {
+      return res.status(400).json({ error: "Sube documentos oficiales o apuntes y retroalimenta la materia primero." });
+    }
+
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        mapTitle: { type: Type.STRING },
+        centralThesis: { type: Type.STRING },
+        mermaidCode: {
+          type: Type.STRING,
+          description: "Código Mermaid.js (graph TD) limpio, sin backticks, con estilos de color por jerarquía."
+        },
+        visualDiagramSvg: {
+          type: Type.STRING,
+          description: "Diagrama conceptual vectorial SVG (<svg viewBox='0 0 700 320'>) con nodos ilustrados, flechas causales y etiquetas claras."
+        },
+        interactiveNodes: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              nodeId: { type: Type.STRING },
+              conceptName: { type: Type.STRING },
+              objectiveDefinition: { type: Type.STRING, description: "Definición estrictamente extraída de los documentos." },
+              causalConnection: { type: Type.STRING, description: "Cómo se relaciona este nodo con el resto del sistema." },
+              exactSourceCitation: { type: Type.STRING, description: "Título del documento, sección o página exacta donde se fundamenta." }
+            },
+            required: ["nodeId", "conceptName", "objectiveDefinition", "causalConnection", "exactSourceCitation"]
+          }
+        }
+      },
+      required: ["mapTitle", "centralThesis", "mermaidCode", "visualDiagramSvg", "interactiveNodes"]
+    };
+
+    const learnedContext = kb && kb.learnedConcepts.length
+      ? JSON.stringify(kb.learnedConcepts.slice(-20))
+      : "Usar exclusivamente los documentos adjuntos.";
+
+    const prompt = `
+      Actúa como Analista Pedagógico Universitario (estándar Harvard Bok Center - Codificación Dual y Aprendizaje Basado en Evidencia).
+      REGLA DE PRECISIÓN EXTREMA: No inventes conceptos externos. Extrae la estructura conceptual ÚNICAMENTE de los documentos oficiales/estudiantiles adjuntos y de la memoria entrenada: ${learnedContext}.
+      Genera:
+      1. Un gráfico Mermaid (graph TD) limpio y jerárquico.
+      2. Un diagrama visual ilustrado en SVG (<svg viewBox='0 0 700 320'>) que represente visualmente la arquitectura del tema.
+      3. Fichas detalladas en 'interactiveNodes' con la cita exacta del documento fuente para cada concepto.
+    `;
+
+    const contents = [prompt];
+    docs.forEach(doc => {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+      else if (doc.textContent) contents.push(`Documento (${doc.title}): ${doc.textContent}`);
+    });
+
+    const response = await generateWithFallback(contents, schema);
+    const parsed = JSON.parse(response.text);
+    parsed.mermaidCode = parsed.mermaidCode.replace(/```mermaid/g, '').replace(/```/g, '').trim();
+
+    await user.save();
+    res.json(parsed);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ================= STORYBOOK Y LÍNEA DE TIEMPO BASADOS EN EVIDENCIA REAL =================
+app.post('/api/generate-evolutionary-storybook', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.20);
+
+    const { subjectId, documentId } = req.body;
+    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, subjectId, documentId || 'ALL');
+    const kb = await req.KnowledgeModel.findOne({ username: user.username, subjectId }).lean();
+
+    if (!docs.length && (!kb || !kb.learnedConcepts.length)) {
+      return res.status(400).json({ error: "Sube documentos a la materia para construir el Storybook y la Línea de Tiempo verídicos." });
+    }
+
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        title: { type: Type.STRING },
+        summary: { type: Type.STRING },
+        scenes: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              sceneNumber: { type: Type.INTEGER },
+              characterName: { type: Type.STRING },
+              academicConcept: { type: Type.STRING },
+              sceneIllustrationSvg: {
+                type: Type.STRING,
+                description: "Ilustración vectorial educativa en SVG (<svg viewBox='0 0 400 200'>) que representa gráficamente el proceso o caso de esta escena."
+              },
+              storyDialogue: { type: Type.STRING },
+              verbatimSourceEvidence: { type: Type.STRING, description: "Cita o referencia exacta del documento universitario/estudiantil que respalda esta escena." }
+            },
+            required: ["sceneNumber", "characterName", "academicConcept", "sceneIllustrationSvg", "storyDialogue", "verbatimSourceEvidence"]
+          }
+        },
+        timeline: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              step: { type: Type.INTEGER },
+              chronologicalMarker: { type: Type.STRING, description: "Fecha, etapa evolutiva, fase fisiológica o secuencia lógica exacta del documento." },
+              title: { type: Type.STRING },
+              description: { type: Type.STRING },
+              sourceReference: { type: Type.STRING }
+            },
+            required: ["step", "chronologicalMarker", "title", "description", "sourceReference"]
+          }
+        },
+        quiz: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              bloomLevel: { type: Type.STRING, description: "Nivel de Taxonomía de Bloom: Análisis, Evaluación o Aplicación Clínica" },
+              question: { type: Type.STRING },
+              options: { type: Type.ARRAY, items: { type: Type.STRING } },
+              correctIndex: { type: Type.INTEGER },
+              heroExplanation: { type: Type.STRING }
+            },
+            required: ["bloomLevel", "question", "options", "correctIndex", "heroExplanation"]
+          }
+        }
+      },
+      required: ["title", "summary", "scenes", "timeline", "quiz"]
+    };
+
+    const learnedContext = kb && kb.learnedConcepts.length
+      ? JSON.stringify(kb.learnedConcepts.slice(-20))
+      : "Basarse en documentos adjuntos.";
+
+    const prompt = `
+      Actúa como Diseñador Instruccional Universitario de Élite.
+      Transforma el contenido verídico de los documentos adjuntos y de la memoria entrenada (${learnedContext}) en:
+      1. Un Storybook académico ilustrado (con un SVG didáctico en cada escena) donde cada diálogo enseñe un concepto real respaldado por una cita textual o referencia en 'verbatimSourceEvidence'.
+      2. Una Línea de Tiempo cronológica/causal rigurosa ('timeline') con marcadores temporales o secuenciales exactos.
+      3. Preguntas de Recuperación Activa (Active Recall) clasificadas según la Taxonomía de Bloom.
+      PROHIBIDO inventar hechos fuera de la literatura proporcionada.
+    `;
+
+    const contents = [prompt];
+    docs.forEach(doc => {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+      else if (doc.textContent) contents.push(`Documento (${doc.title}): ${doc.textContent}`);
+    });
+
+    const response = await generateWithFallback(contents, schema);
+    const newStorybook = { id: 'sb-' + Date.now(), ...JSON.parse(response.text) };
+    const subj = user.subjects.find(s => s.id === subjectId);
+    subj.storybooks = subj.storybooks || [];
+    subj.storybooks.push(newStorybook);
+    user.markModified('subjects');
+    await user.save();
+
+    res.json({ storybook: newStorybook, user: await serializeUser(user, req.DocumentModel) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ================= SUITE DE ESTUDIO CIENTÍFICO (MÉTODO HARVARD: ACTIVE RECALL, FEYNMAN Y CORNELL) =================
+app.post('/api/pedagogy/harvard-study-suite', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.15);
+
+    const { subjectId, documentId } = req.body;
+    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, subjectId, documentId || 'ALL');
+    const kb = await req.KnowledgeModel.findOne({ username: user.username, subjectId }).lean();
+
+    if (!docs.length && (!kb || !kb.learnedConcepts.length)) {
+      return res.status(400).json({ error: "Sube documentos a la materia para generar la guía de estudio científico." });
+    }
+
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        cornellNotes: {
+          type: Type.OBJECT,
+          properties: {
+            cueQuestions: { type: Type.ARRAY, items: { type: Type.STRING } },
+            detailedNotes: { type: Type.ARRAY, items: { type: Type.STRING } },
+            synthesisSummary: { type: Type.STRING }
+          }
+        },
+        activeRecallFlashcards: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              frontQuestion: { type: Type.STRING },
+              backAnswerWithCitation: { type: Type.STRING },
+              difficultyTag: { type: Type.STRING }
+            }
+          }
+        },
+        feynmanSimplification: { type: Type.STRING },
+        criticalThinkingSocraticQuestions: { type: Type.ARRAY, items: { type: Type.STRING } }
+      },
+      required: ["cornellNotes", "activeRecallFlashcards", "feynmanSimplification", "criticalThinkingSocraticQuestions"]
+    };
+
+    const learnedContext = kb && kb.learnedConcepts.length ? JSON.stringify(kb.learnedConcepts.slice(-20)) : "";
+    const prompt = `
+      Actúa como Especialista en Ciencia del Aprendizaje (Harvard Bok Center).
+      Basándote ÚNICAMENTE en los documentos oficiales y apuntes del estudiante adjuntos (y memoria entrenada: ${learnedContext}), construye una Suite de Estudio de Alto Rendimiento:
+      1. Notas Método Cornell (preguntas disparadoras, notas con citas de fuente y síntesis).
+      2. Tarjetas de Recuperación Activa (Active Recall / Spaced Repetition) con respuesta fundamentada.
+      3. Técnica Feynman aplicada al tema más complejo del archivo.
+      4. Preguntas socráticas de pensamiento crítico universitario.
+    `;
+
+    const contents = [prompt];
+    docs.forEach(doc => {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+      else if (doc.textContent) contents.push(`Documento (${doc.title}): ${doc.textContent}`);
+    });
+
+    const response = await generateWithFallback(contents, schema);
+    await user.save();
+    res.json(JSON.parse(response.text));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ================= ENDPOINTS BASE EXISTENTES (TUTOR, APA/VANCOUVER, TESIS, CLÍNICA, GLOSARIO) =================
 app.post('/api/tutor-rag', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
@@ -1451,72 +1687,6 @@ app.post('/api/philosophy-realism', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/generate-evolutionary-storybook', async (req, res) => {
-  try {
-    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
-    await consumeTokens(user, 0.20);
-    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
-    const contents = [`Transforma textos académicos en narrativa cronológica estilo novela gráfica.`];
-    docs.forEach(doc => {
-      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
-    });
-    const schema = {
-      type: Type.OBJECT,
-      properties: {
-        title: { type: Type.STRING },
-        summary: { type: Type.STRING },
-        scenes: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              sceneNumber: { type: Type.INTEGER },
-              characterName: { type: Type.STRING },
-              academicConcept: { type: Type.STRING },
-              storyDialogue: { type: Type.STRING }
-            },
-            required: ["sceneNumber", "characterName", "academicConcept", "storyDialogue"]
-          }
-        },
-        timeline: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              step: { type: Type.INTEGER },
-              title: { type: Type.STRING },
-              description: { type: Type.STRING }
-            },
-            required: ["step", "title", "description"]
-          }
-        },
-        quiz: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              question: { type: Type.STRING },
-              options: { type: Type.ARRAY, items: { type: Type.STRING } },
-              correctIndex: { type: Type.INTEGER },
-              heroExplanation: { type: Type.STRING }
-            },
-            required: ["question", "options", "correctIndex", "heroExplanation"]
-          }
-        }
-      },
-      required: ["title", "summary", "scenes", "timeline", "quiz"]
-    };
-    const response = await generateWithFallback(contents, schema);
-    const newStorybook = { id: 'sb-' + Date.now(), ...JSON.parse(response.text) };
-    const subj = user.subjects.find(s => s.id === req.body.subjectId);
-    subj.storybooks = subj.storybooks || [];
-    subj.storybooks.push(newStorybook);
-    user.markModified('subjects');
-    await user.save();
-    res.json({ storybook: newStorybook, user: await serializeUser(user, req.DocumentModel) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
 app.post('/api/generate-glossary', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
@@ -1547,21 +1717,6 @@ app.post('/api/generate-glossary', async (req, res) => {
     const response = await generateWithFallback(contents, schema);
     await user.save();
     res.json({ glossary: JSON.parse(response.text) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.post('/api/generate-mindmap', async (req, res) => {
-  try {
-    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
-    await consumeTokens(user, 0.15);
-    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
-    const contents = [`Devuelve ÚNICAMENTE código Mermaid.js (graph TD) limpio. Sin backticks.`];
-    docs.forEach(doc => {
-      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
-    });
-    const response = await generateWithFallback(contents, null);
-    await user.save();
-    res.json({ mermaidCode: response.text.replace(/```mermaid/g, '').replace(/```/g, '').trim() });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
