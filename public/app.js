@@ -34,84 +34,41 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ==========================================
-// 2. FUNCIÓN DE VOZ SINTÉTICA (TTS)
+// 2. FUNCIÓN DE VOZ SINTÉTICA FLUIDA (TTS SIN COMAS NI CARACTERES)
 // ==========================================
 function cleanTextForAudio(text) {
   if (!text) return "";
   return text
-    .replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '')
-    .replace(/[*#_\[\]`~]/g, '')
-    .replace(/\n+/g, '. ')
-    .replace(/\s{2,}/g, ' ')
+    .replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, ' ')
+    .replace(/[,;:()[\]{}"'«»“”‘’*#_~^|<>/\\+=@$%&!?¡¿.`]/g, ' ')
+    .replace(/[\r\n•▪◦●\-–—]+/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim();
 }
 
-window.speakText = function(text) {
+window.speakText = function(text, rate = 1.0) {
   if (!('speechSynthesis' in window)) return alert('Tu navegador no soporta síntesis de voz.');
   window.speechSynthesis.cancel();
   const cleanedText = cleanTextForAudio(text);
   const utterance = new SpeechSynthesisUtterance(cleanedText);
   utterance.lang = 'es-ES';
+  utterance.rate = rate;
   window.speechSynthesis.speak(utterance);
 };
 
 // ==========================================
-// 3. AUTENTICACIÓN Y GESTIÓN DE INSTITUCIÓN
+// 3. AUTENTICACIÓN Y CAMBIO DE CLAVE POST-PAGO
 // ==========================================
-window.switchAuthTab = function(tab) {
-  document.getElementById('authError').classList.add('hidden');
-  document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
-  document.getElementById('registerForm').classList.toggle('hidden', tab !== 'register');
-  document.getElementById('tenantForm').classList.toggle('hidden', tab !== 'tenant');
-  
-  document.getElementById('tabLogin').className = tab === 'login' 
-    ? 'flex-1 py-3 rounded-xl text-[10px] font-black bg-indigo-600 text-white shadow transition-all' 
-    : 'flex-1 py-3 rounded-xl text-[10px] font-black text-slate-400 hover:text-white transition-all';
-    
-  document.getElementById('tabRegister').className = tab === 'register' 
-    ? 'flex-1 py-3 rounded-xl text-[10px] font-black bg-emerald-600 text-white shadow transition-all' 
-    : 'flex-1 py-3 rounded-xl text-[10px] font-black text-slate-400 hover:text-white transition-all';
-
-  document.getElementById('tabTenant').className = tab === 'tenant' 
-    ? 'flex-1 py-3 rounded-xl text-[10px] font-black bg-amber-600 text-white shadow transition-all' 
-    : 'flex-1 py-3 rounded-xl text-[10px] font-black text-slate-400 hover:text-white transition-all';
-};
-
 window.showAuthError = function(msg) { 
   const el = document.getElementById('authError'); 
+  if (!el) return;
   el.textContent = msg; 
   el.classList.remove('hidden'); 
 };
 
-window.handleCreateTenant = async function(e) {
-  e.preventDefault();
-  const tenantId = document.getElementById('newTenantId').value.trim().toLowerCase();
-  if (!tenantId) return showAuthError("Escribe un código.");
-  
-  const btn = document.getElementById('btnCreateTenant');
-  const originalText = btn.innerHTML; btn.innerHTML = '⏳ Creando...'; btn.disabled = true;
-
-  try {
-    const res = await fetch('/dev/crear-institucion', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ codigo_institucion: tenantId })
-    });
-    const data = await res.json();
-    if (!res.ok) { showAuthError(data.error); btn.innerHTML = originalText; btn.disabled = false; return; }
-
-    alert(`✅ Institución "${tenantId}" creada. Usuario maestro: master / master123`);
-    document.getElementById('loginTenant').value = tenantId;
-    document.getElementById('loginId').value = 'master';
-    document.getElementById('loginPass').value = 'master123';
-    switchAuthTab('login');
-  } catch (err) { showAuthError('Error de red.'); }
-  finally { btn.innerHTML = originalText; btn.disabled = false; }
-};
-
 window.handleLogin = async function(e) {
   e.preventDefault();
-  const tenantId = document.getElementById('loginTenant').value.trim();
+  const tenantId = document.getElementById('loginTenant').value.trim().toLowerCase();
   const loginId = document.getElementById('loginId').value.trim();
   const loginPass = document.getElementById('loginPass').value;
 
@@ -122,59 +79,22 @@ window.handleLogin = async function(e) {
 
   try {
     localStorage.setItem('psico_tenant_id', tenantId);
-    const res = await apiFetch('/api/auth/login', { method: 'POST', body: JSON.stringify({ identifier: loginId, password: loginPass }) });
-    let data; try { data = await res.json(); } catch(err) { throw new Error(); }
-    if (!res.ok) {
-      localStorage.removeItem('psico_tenant_id'); showAuthError(data.error || "Credenciales incorrectas.");
-      btn.innerHTML = originalText; btn.disabled = false; return;
-    }
-    btn.innerHTML = originalText; btn.disabled = false; enterApp(data.user);
-  } catch (e) { showAuthError('Error de red.'); btn.innerHTML = originalText; btn.disabled = false; }
-};
-
-window.handleRegister = async function(e) {
-  e.preventDefault();
-  const tenantId = document.getElementById('regTenant').value.trim();
-  const regName = document.getElementById('regName').value.trim();
-  const regUser = document.getElementById('regUser').value.trim();
-  const regCareer = document.getElementById('regCareer').value.trim();
-  const regEmail = document.getElementById('regEmail').value.trim();
-  const regPass = document.getElementById('regPass').value;
-  const regRecovery = document.getElementById('regRecovery').value.trim();
-
-  if (!tenantId || !regName || !regUser || !regCareer || !regEmail || !regPass) return showAuthError("Campos obligatorios.");
-
-  const btn = document.getElementById('btnRegBtn');
-  const originalText = btn.innerHTML; btn.innerHTML = '⏳ Creando...'; btn.disabled = true;
-
-  try {
-    localStorage.setItem('psico_tenant_id', tenantId);
-    const res = await apiFetch('/api/auth/register', {
-      method: 'POST', body: JSON.stringify({ fullName: regName, username: regUser, career: regCareer, email: regEmail, password: regPass, recoveryWord: regRecovery })
+    const res = await apiFetch('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ identifier: loginId, password: loginPass })
     });
     let data; try { data = await res.json(); } catch(err) { throw new Error(); }
     if (!res.ok) {
-      localStorage.removeItem('psico_tenant_id'); showAuthError(data.error || "Institución inactiva o no encontrada. Créala primero.");
+      localStorage.removeItem('psico_tenant_id');
+      showAuthError(data.error || "Credenciales incorrectas.");
       btn.innerHTML = originalText; btn.disabled = false; return;
     }
-    btn.innerHTML = originalText; btn.disabled = false; enterApp(data.user);
-  } catch (e) { showAuthError('Error al registrar.'); btn.innerHTML = originalText; btn.disabled = false; }
-};
-
-window.recoverPassword = async function() {
-  const t = document.getElementById('resetTenant').value.trim();
-  const u = document.getElementById('resetUsername').value.trim();
-  const w = document.getElementById('resetWord').value.trim();
-  const p = document.getElementById('resetNewPass').value;
-  if(!t || !u || !w || !p) return alert("Llena todos los campos.");
-  
-  localStorage.setItem('psico_tenant_id', t);
-  try {
-    const res = await apiFetch('/api/auth/reset-password', { method: 'POST', body: JSON.stringify({username: u, recoveryWord: w, newPassword: p}) });
-    const data = await res.json();
-    if(res.ok) { alert(data.message); document.getElementById('modalForgotPass').classList.add('hidden'); } 
-    else { alert(data.error); }
-  } catch(e) { alert("Error al recuperar."); }
+    btn.innerHTML = originalText; btn.disabled = false;
+    enterApp(data.user);
+  } catch (e) {
+    showAuthError('Error de red al conectar con la institución.');
+    btn.innerHTML = originalText; btn.disabled = false;
+  }
 };
 
 window.changeUserPassword = async function() {
@@ -182,10 +102,20 @@ window.changeUserPassword = async function() {
   const newP = document.getElementById('changePassNew').value;
   if(!oldP || !newP) return alert("Llena ambos campos.");
   try {
-    const res = await apiFetch('/api/user/change-password', { method: 'POST', body: JSON.stringify({ username: currentUser.username, oldPassword: oldP, newPassword: newP }) });
+    const res = await apiFetch('/api/user/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ username: currentUser.username, oldPassword: oldP, newPassword: newP })
+    });
     const data = await res.json();
-    if(res.ok) { alert("Contraseña actualizada."); document.getElementById('modalChangePass').classList.add('hidden'); } 
-    else { alert(data.error); }
+    if(res.ok) {
+      alert("✅ Contraseña personal actualizada correctamente.");
+      if (data.user) currentUser = data.user;
+      document.getElementById('changePassOld').value = '';
+      document.getElementById('changePassNew').value = '';
+      document.getElementById('modalChangePass').classList.add('hidden');
+    } else {
+      alert(data.error);
+    }
   } catch(e) { alert("Error de red."); }
 };
 
@@ -200,10 +130,20 @@ window.enterApp = function(user) {
   
   const btnAdmin = document.getElementById('btnAdminPanel');
   if(btnAdmin) { btnAdmin.classList.toggle('hidden', user.role !== 'admin'); }
+
   renderDashboard();
+
+  // Si el usuario ingresó por primera vez con la contraseña temporal enviada por correo, solicita cambio de clave
+  if (user.mustChangePassword && user.role !== 'admin') {
+    setTimeout(() => {
+      alert("🔐 Bienvenido. Por seguridad, cambia tu contraseña temporal por una clave personal.");
+      document.getElementById('modalChangePass').classList.remove('hidden');
+    }, 400);
+  }
 };
 
 window.logout = function() { 
+  window.speechSynthesis.cancel();
   currentUser = null; 
   localStorage.removeItem('psico_active_user'); 
   localStorage.removeItem('psico_tenant_id');
@@ -211,10 +151,10 @@ window.logout = function() {
 };
 
 // ==========================================
-// 4. TOKENS Y PANEL ADMIN
+// 4. TOKENS, PANEL MASTER Y ENROLAMIENTO DE PENSUM
 // ==========================================
 window.requestMoreTokens = async function() {
-  if(!confirm("¿Solicitar más Saldo al Master?")) return;
+  if(!confirm("¿Solicitar recarga de Saldo IA al Administrador?")) return;
   try {
     const res = await apiFetch('/api/user/request-tokens', { method:'POST', body: JSON.stringify({username: currentUser.username}) });
     if(res.ok) { alert("✅ Solicitud enviada."); currentUser.pendingTokenRequest = true; renderDashboard(); }
@@ -233,30 +173,61 @@ window.loadAdminUsers = async function() {
       const reqBadge = u.pendingTokenRequest ? `<span class="px-2 py-0.5 bg-rose-500 text-white text-[10px] rounded-full font-black animate-pulse ml-2">Pide Saldo</span>` : '';
       return `
       <tr class="hover:bg-slate-800 transition border-b border-slate-800">
-        <td class="px-6 py-4 font-bold text-white">${u.username} <br> <span class="text-xs text-slate-400">${u.email}</span> ${reqBadge}</td>
-        <td class="px-6 py-4">${u.career}</td>
-        <td class="px-6 py-4 font-black ${remaining < 1 ? 'text-red-400' : 'text-emerald-400'}">$${remaining}</td>
-        <td class="px-6 py-4 flex gap-2">
-          <button onclick="adminAddTokens('${u.username}')" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-white text-xs font-black">+ $5</button>
-          <button onclick="adminResetPass('${u.username}')" class="px-3 py-2 bg-rose-600 hover:bg-rose-500 rounded-lg text-white text-xs font-black">Reset</button>
+        <td class="px-4 py-3 font-bold text-white">${u.username} <br><span class="text-[11px] text-cyan-400">${u.universityName || ''}</span><br><span class="text-[10px] text-slate-400">${u.email}</span> ${reqBadge}</td>
+        <td class="px-4 py-3">${u.career}</td>
+        <td class="px-4 py-3 font-black ${remaining < 1 ? 'text-red-400' : 'text-emerald-400'}">$${remaining}</td>
+        <td class="px-4 py-3 flex gap-2">
+          <button onclick="adminAddTokens('${u.username}')" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-white text-[11px] font-black">+ $5</button>
+          <button onclick="adminResetPass('${u.username}')" class="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-500 rounded-lg text-white text-[11px] font-black">Reset</button>
         </td>
       </tr>`;
     }).join('');
   } catch(e) { console.error(e); }
 };
 
-window.adminCreateUser = async function(e) {
-  e.preventDefault();
-  const n = document.getElementById('adminNewName').value.trim();
-  const u = document.getElementById('adminNewUser').value.trim();
-  const p = document.getElementById('adminNewPass').value;
-  const c = document.getElementById('adminNewCareer').value.trim();
-  const t = document.getElementById('adminNewTokens').value;
+window.adminCreateUserAndEmail = async function() {
+  const universityName = document.getElementById('admUniversityName').value.trim();
+  const fullName = document.getElementById('admFullName').value.trim();
+  const email = document.getElementById('admEmail').value.trim();
+  const username = document.getElementById('admUsername').value.trim();
+  const password = document.getElementById('admTempPass').value.trim();
+  const careerCode = document.getElementById('admCareerCode').value;
+  const cycleNumber = document.getElementById('admCycleNumber').value;
+  const initialTokens = document.getElementById('admInitialTokens').value;
+  const platformUrl = document.getElementById('admPlatformUrl').value.trim() || window.location.origin;
+
+  if (!fullName || !email || !username || !password) {
+    return alert("Completa Nombre, Correo, Usuario y Contraseña temporal.");
+  }
+
+  const btn = document.getElementById('btnAdminCreateUser');
+  const orig = btn.innerHTML; btn.innerHTML = '⏳ Creando y enviando correo...'; btn.disabled = true;
+
   try {
-    const res = await apiFetch('/api/admin/create-user', { method: 'POST', headers: {'x-user': currentUser.username}, body: JSON.stringify({ fullName: n, username: u, password: p, career: c, initialTokens: t }) });
-    if(res.ok) { alert('Creado.'); document.getElementById('adminCreateUserForm').reset(); loadAdminUsers(); } 
-    else { alert((await res.json()).error); }
-  } catch(err) { alert('Error.'); }
+    const res = await apiFetch('/api/admin/create-user', {
+      method: 'POST',
+      headers: { 'x-user': currentUser.username },
+      body: JSON.stringify({
+        universityName, fullName, email, username, password,
+        careerCode, cycleNumber, initialTokens, platformUrl
+      })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      alert(`✅ Usuario "${username}" creado y credenciales enviadas a ${email}.`);
+      document.getElementById('admFullName').value = '';
+      document.getElementById('admEmail').value = '';
+      document.getElementById('admUsername').value = '';
+      document.getElementById('admTempPass').value = '';
+      loadAdminUsers();
+    } else {
+      alert(data.error || "Error al crear usuario.");
+    }
+  } catch (err) {
+    alert("Error de conexión.");
+  } finally {
+    btn.innerHTML = orig; btn.disabled = false;
+  }
 };
 
 window.adminAddTokens = async function(username) {
@@ -267,20 +238,51 @@ window.adminAddTokens = async function(username) {
 };
 
 window.adminResetPass = async function(username) {
-  const newP = prompt(`Nueva contraseña para ${username}:`);
+  const newP = prompt(`Nueva contraseña temporal para ${username}:`);
   if(!newP) return;
   try {
     await apiFetch('/api/admin/force-reset', { method:'POST', headers:{'x-user': currentUser.username}, body: JSON.stringify({targetUsername: username, newPassword: newP}) });
-    alert(`Actualizada.`);
+    alert(`Contraseña temporal actualizada.`);
   } catch(e) { alert("Error."); }
+};
+
+window.enrollPensumCycle = async function() {
+  const careerCode = document.getElementById('selectPensumCareer').value;
+  const cycleNumber = document.getElementById('selectPensumCycle').value;
+  const btn = document.getElementById('btnEnrollPensum');
+  const orig = btn.innerHTML; btn.innerHTML = '⏳ Cargando Pensum...'; btn.disabled = true;
+
+  try {
+    const res = await apiFetch('/api/user/enroll-pensum', {
+      method: 'POST',
+      body: JSON.stringify({ username: currentUser.username, careerCode, cycleNumber })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      currentUser = data.user;
+      activeSubjectId = currentUser.subjects[0]?.id || null;
+      if (data.philosophicalFramework && document.getElementById('philosophicalFrameworkBanner')) {
+        document.getElementById('philosophicalFrameworkBanner').textContent = `Enfoque: ${data.philosophicalFramework}`;
+      }
+      document.getElementById('modalPensumSelector').classList.add('hidden');
+      renderDashboard();
+      alert("✅ Materias oficiales del pensum cargadas correctamente.");
+    } else {
+      alert(data.error);
+    }
+  } catch (e) {
+    alert("Error al cargar pensum.");
+  } finally {
+    btn.innerHTML = orig; btn.disabled = false;
+  }
 };
 
 // ==========================================
 // 5. RENDERIZADO DEL DASHBOARD
 // ==========================================
 window.renderDashboard = function() {
-  document.getElementById('careerTitleBanner').textContent = `Entorno: ${currentUser.career || 'Universitario'}`;
-  document.getElementById('userHeaderInfo').innerHTML = `👤 <b>${currentUser.fullName}</b> | Inst: ${localStorage.getItem('psico_tenant_id')}`;
+  document.getElementById('careerTitleBanner').textContent = `${currentUser.universityName || 'AprendePro'} · ${currentUser.career || 'Universitario'}`;
+  document.getElementById('userHeaderInfo').innerHTML = `👤 <b>${currentUser.fullName}</b> | Código Inst: <b>${localStorage.getItem('psico_tenant_id')}</b>`;
   
   const balance = (currentUser.aiAllowanceUSD - currentUser.aiConsumptionUSD).toFixed(2);
   const billingEl = document.getElementById('aiBilling');
@@ -291,9 +293,12 @@ window.renderDashboard = function() {
 
   const list = document.getElementById('subjectsList');
   list.innerHTML = currentUser.subjects.map(s => `
-    <button onclick="selectSubject('${s.id}')" class="w-full text-left p-4 rounded-2xl border-2 transition-all ${s.id === activeSubjectId ? 'bg-cyan-950/80 border-cyan-400 shadow-lg text-white transform scale-[1.02]' : 'bg-slate-900/70 border-indigo-500/30 text-slate-300 hover:border-indigo-400'}">
-      <div class="font-black text-sm">${s.name}</div>
-      <div class="text-xs text-cyan-300/80 mt-1 font-bold">${s.schedule || ''}</div>
+    <button onclick="selectSubject('${s.id}')" class="w-full text-left p-3.5 rounded-2xl border-2 transition-all ${s.id === activeSubjectId ? 'bg-cyan-950/80 border-cyan-400 shadow-lg text-white transform scale-[1.01]' : 'bg-slate-900/70 border-indigo-500/30 text-slate-300 hover:border-indigo-400'}">
+      <div class="flex justify-between items-center">
+        <span class="font-black text-xs">${s.name}</span>
+        ${s.credits ? `<span class="text-[10px] px-2 py-0.5 rounded bg-indigo-950 text-cyan-300 font-bold">${s.credits} cr</span>` : ''}
+      </div>
+      <div class="text-[11px] text-cyan-300/80 mt-1 font-bold">${s.schedule || ''}</div>
     </button>
   `).join('');
 
@@ -314,17 +319,16 @@ window.renderDashboard = function() {
   document.getElementById('savedDocsList').innerHTML = docs.length === 0 
     ? `<p class="text-xs text-slate-500 italic p-3 border border-dashed border-slate-700 rounded-xl text-center">Repositorio vacío.</p>` 
     : docs.map(d => `
-      <div class="flex items-center justify-between px-4 py-3 rounded-xl bg-slate-900 border border-indigo-500/30 text-sm gap-3 shadow-sm hover:border-indigo-400 transition">
-        <div class="truncate text-slate-200 font-bold flex-1">📄 ${d.title}</div>
-        <div class="flex gap-2">
-          <button onclick="openImmersiveBook('${d.id}')" class="text-cyan-400 font-black hover:text-cyan-300 bg-cyan-950/50 px-3 py-1 rounded-lg transition">📖 Leer 3D</button>
-          <button onclick="deleteSavedDoc('${d.id}')" class="text-red-400 font-black hover:text-red-300 bg-red-950/50 px-2 py-1 rounded-lg">🗑️</button>
+      <div class="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-900 border border-indigo-500/30 text-xs gap-2 shadow-sm hover:border-indigo-400 transition">
+        <div class="truncate text-slate-200 font-bold flex-1">
+          ${d.isOfficialCurriculum ? '🏛️' : '📄'} ${d.title}
         </div>
+        <button onclick="deleteSavedDoc('${d.id}')" class="text-red-400 font-black hover:text-red-300 bg-red-950/50 px-2 py-1 rounded-lg">🗑️</button>
       </div>
     `).join('');
 
-  document.getElementById('selectDocForAI').innerHTML = `<option value="ALL">📚 USAR TODOS (${docs.length})</option>` + docs.map(d => `<option value="${d.id}">📄 ${d.title}</option>`).join('');
-  document.getElementById('audiobookDocSelect').innerHTML = `<option value="">-- Elige Libro --</option>` + docs.map(d => `<option value="${d.id}">📖 ${d.title}</option>`).join('');
+  document.getElementById('selectDocForAI').innerHTML = `<option value="ALL">📚 USAR TODOS LOS DOCUMENTOS (${docs.length})</option>` + docs.map(d => `<option value="${d.id}">📄 ${d.title}</option>`).join('');
+  document.getElementById('audiobookDocSelect').innerHTML = `<option value="ALL">📚 TODOS LOS DOCUMENTOS DE LA MATERIA (${docs.length})</option>` + docs.map(d => `<option value="${d.id}">📖 ${d.title}</option>`).join('');
 
   document.getElementById('savedHistoryList').innerHTML = (subj.storybooks || []).slice().reverse().map(sb => `
     <div class="p-3.5 rounded-xl bg-slate-900 border border-indigo-500/30 flex justify-between items-center text-sm shadow-sm hover:border-cyan-500 transition">
@@ -350,7 +354,13 @@ window.renderDashboard = function() {
   }
 };
 
-window.selectSubject = function(id) { activeSubjectId = id; localStorage.setItem(`psico_subj_${currentUser.username}`, id); document.getElementById('viewerArea').classList.add('hidden'); renderDashboard(); };
+window.selectSubject = function(id) {
+  activeSubjectId = id;
+  localStorage.setItem(`psico_subj_${currentUser.username}`, id);
+  document.getElementById('viewerArea').classList.add('hidden');
+  renderDashboard();
+};
+
 window.createNewSubject = async function() {
   const name = document.getElementById('newSubjName').value.trim();
   if (!name) return alert("Nombre obligatorio.");
@@ -360,6 +370,7 @@ window.createNewSubject = async function() {
     if (res.ok) { currentUser = data.user; activeSubjectId = data.newSubjectId; document.getElementById('modalSubject').classList.add('hidden'); renderDashboard(); }
   } catch(e) { alert("Error."); }
 };
+
 window.deleteActiveSubject = async function() {
   if (!activeSubjectId || !confirm('¿Borrar materia y documentos?')) return;
   try {
@@ -370,31 +381,68 @@ window.deleteActiveSubject = async function() {
 };
 
 // ==========================================
-// 6. GESTIÓN DE ARCHIVOS Y DOCUMENTOS
+// 6. GESTIÓN DE ARCHIVOS Y RETROALIMENTACIÓN LOCAL (ML/RAG)
 // ==========================================
 window.handleUploadDoc = async function(e) {
   e.preventDefault();
   const btn = document.getElementById('btnUploadDoc');
   const originalText = btn.innerHTML; btn.innerHTML = '⏳ Subiendo...'; btn.disabled = true;
   const fd = new FormData();
-  fd.append('username', currentUser.username); fd.append('subjectId', activeSubjectId);
-  fd.append('docTitle', document.getElementById('docTitle').value); fd.append('youtubeUrl', document.getElementById('youtubeUrlInput').value);
+  fd.append('username', currentUser.username);
+  fd.append('subjectId', activeSubjectId);
+  fd.append('docTitle', document.getElementById('docTitle').value);
+  fd.append('youtubeUrl', document.getElementById('youtubeUrlInput').value);
+  fd.append('isOfficialCurriculum', document.getElementById('isOfficialDocCheck')?.checked || false);
   const files = document.getElementById('docFiles').files;
   for (let i = 0; i < files.length; i++) { fd.append('documents', files[i]); }
   try {
     const res = await apiFetch('/api/documents', { method: 'POST', body: fd });
     const data = await res.json();
-    if (res.ok) { currentUser = data.user; document.getElementById('docTitle').value = ''; document.getElementById('docFiles').value = ''; document.getElementById('selectedFilesPreview').textContent = ''; document.getElementById('youtubeUrlInput').value = ''; renderDashboard(); alert('¡Material guardado!'); } 
-    else { alert(data.error); }
-  } catch (err) { alert('Error.'); } finally { btn.innerHTML = originalText; btn.disabled = false; }
+    if (res.ok) {
+      currentUser = data.user;
+      document.getElementById('docTitle').value = '';
+      document.getElementById('docFiles').value = '';
+      document.getElementById('selectedFilesPreview').textContent = '';
+      document.getElementById('youtubeUrlInput').value = '';
+      renderDashboard();
+      alert('✅ Material guardado. Puedes pulsar "🧬 Retroalimentar IA" para entrenar los simuladores con este archivo.');
+    } else { alert(data.error); }
+  } catch (err) { alert('Error al subir.'); } finally { btn.innerHTML = originalText; btn.disabled = false; }
 };
+
+window.trainLocalKnowledgeBase = async function() {
+  const docId = document.getElementById('selectDocForAI').value;
+  const isOfficial = document.getElementById('isOfficialDocCheck')?.checked || false;
+  const btn = document.getElementById('btnTrainKB');
+  const orig = btn.innerHTML; btn.innerHTML = '⏳ Entrenando...'; btn.disabled = true;
+
+  try {
+    const res = await apiFetch('/api/knowledge/train-from-documents', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: currentUser.username,
+        subjectId: activeSubjectId,
+        documentId: docId,
+        isOfficialCurriculum: isOfficial
+      })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      alert(`🧬 ${data.message}`);
+      renderDashboard();
+    } else {
+      alert(data.error);
+    }
+  } catch (e) {
+    alert("Error retroalimentando la base de conocimiento.");
+  } finally {
+    btn.innerHTML = orig; btn.disabled = false;
+  }
+};
+
 window.deleteSavedDoc = async function(id) {
   if (!confirm('¿Borrar documento?')) return;
   try { const res = await apiFetch(`/api/documents/${id}`, { method: 'DELETE', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId }) }); if (res.ok) { currentUser = (await res.json()).user; renderDashboard(); } } catch(e) {}
-};
-window.clearAllSubjectDocs = async function() {
-  if (!confirm('¿Vaciar repositorio?')) return;
-  try { const res = await apiFetch(`/api/subjects/${activeSubjectId}/documents`, { method: 'DELETE', body: JSON.stringify({ username: currentUser.username }) }); if (res.ok) { currentUser = (await res.json()).user; renderDashboard(); } } catch(e) {}
 };
 window.deleteSavedStorybook = async function(sbId) {
   if (!confirm('¿Borrar monografía?')) return;
@@ -410,7 +458,297 @@ window.deleteSavedPresentation = async function(id) {
 };
 
 // ==========================================
-// 7. EXPORTACIÓN APA OFICIAL A WORD
+// 7. MÓDULOS INTERACTIVOS TIPO ENCARTA (CEREBRO, SUSTANCIAS, CUERPO HUMANO, PSICOMETRÍA)
+// ==========================================
+window.openEncartaBrainModal = function() {
+  document.getElementById('modalEncartaBrain').classList.remove('hidden');
+};
+
+window.launchEncartaBrain = async function() {
+  const topic = document.getElementById('encartaBrainTopic').value.trim();
+  const viewMode = document.getElementById('encartaBrainMode').value;
+  const docId = document.getElementById('selectDocForAI').value;
+
+  document.getElementById('modalEncartaBrain').classList.add('hidden');
+  const v = document.getElementById('viewerArea');
+  v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
+  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">🧠</span><p class="text-sky-300 font-black text-2xl uppercase mt-4">Cargando Atlas Interactivo Neuropsicológico...</p></div>`;
+
+  try {
+    const res = await apiFetch('/api/encarta/neuropsychology-atlas', {
+      method: 'POST',
+      body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: docId, topic, viewMode })
+    });
+    const data = await res.json();
+    if (!res.ok) { alert(data.error); return closeFullScreenViewer(); }
+
+    const cards = data.multimediaCards || [];
+    window.renderBrainCardDetail = function(idx) {
+      const c = cards[idx];
+      if (!c) return;
+      document.getElementById('brainDetailPanel').innerHTML = `
+        <div class="space-y-4">
+          <div class="border-b border-sky-500/30 pb-3">
+            <span class="text-[10px] font-black uppercase px-2.5 py-1 rounded bg-sky-950 text-sky-300 border border-sky-500/40">Área Seleccionada</span>
+            <h3 class="text-2xl font-black text-white mt-2">${c.title}</h3>
+          </div>
+          <div class="p-4 rounded-2xl bg-slate-900 border border-slate-700 space-y-2">
+            <h4 class="text-xs font-black text-cyan-300 uppercase">🔬 Neuroanatomía y Circuitos</h4>
+            <p class="text-xs text-slate-200 leading-relaxed">${c.neuroanatomy}</p>
+            <p class="text-xs text-sky-200/90 leading-relaxed"><b>Comunicación Inter-Área:</b> ${c.interAreaCommunication}</p>
+          </div>
+          <div class="p-4 rounded-2xl bg-fuchsia-950/30 border border-fuchsia-500/40 space-y-2">
+            <h4 class="text-xs font-black text-fuchsia-300 uppercase">⚡ Dinámica de Dopamina y Sinapsis</h4>
+            <p class="text-xs text-slate-200 leading-relaxed">${c.dopamineAndSynapseFunction}</p>
+          </div>
+          <div class="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/40 space-y-2">
+            <h4 class="text-xs font-black text-emerald-300 uppercase">🧩 Función Neuropsicológica y Trastornos</h4>
+            <p class="text-xs text-slate-200 leading-relaxed">${c.neuropsychologyFunction}</p>
+            <p class="text-xs text-rose-300 leading-relaxed"><b>Consecuencias de Lesión:</b> ${c.lesionConsequences}</p>
+          </div>
+          <div class="p-4 rounded-2xl bg-amber-950/30 border border-amber-500/40">
+            <h4 class="text-xs font-black text-amber-300 uppercase mb-2">📋 Pruebas de Evaluación Neuropsicológica</h4>
+            <div class="flex flex-wrap gap-2">${(c.evaluationTests || []).map(t => `<span class="px-2.5 py-1 rounded-lg bg-slate-900 text-amber-200 text-xs font-bold border border-amber-500/30">${t}</span>`).join('')}</div>
+          </div>
+          <div class="pt-2">
+            <p class="text-[11px] font-black text-slate-400 uppercase mb-2">🔗 Explorar Temas Relacionados (Encarta):</p>
+            <div class="flex flex-wrap gap-2">${(c.relatedTopics || []).map(rt => `<button onclick="document.getElementById('encartaBrainTopic').value='${rt.replace(/'/g, '')}'; launchEncartaBrain();" class="px-3 py-1.5 rounded-xl bg-sky-900/60 hover:bg-sky-700 text-sky-200 text-xs font-bold transition">${rt} ➔</button>`).join('')}</div>
+          </div>
+        </div>
+      `;
+    };
+
+    const q = data.selfAssessmentChallenge;
+    v.innerHTML = `
+      <div class="max-w-7xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-sky-500 relative shadow-2xl">
+        <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-2.5 rounded-2xl bg-slate-800 text-white font-bold">✕ Cerrar</button>
+        <div class="border-b border-sky-500/30 pb-4">
+          <span class="text-xs font-black text-sky-400 uppercase">Enciclopedia Interactiva de Neurología y Neuropsicología</span>
+          <h2 class="text-3xl font-black text-white mt-1">🧠 ${data.articleTitle}</h2>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-6 space-y-4">
+            <div class="encarta-svg-container" id="brainSvgWrapper">${data.interactiveBrainSvg}</div>
+            <div class="flex flex-wrap gap-2">
+              ${cards.map((c, idx) => `<button onclick="renderBrainCardDetail(${idx})" class="px-3 py-2 rounded-xl bg-sky-950 hover:bg-sky-800 border border-sky-500/50 text-xs font-black text-sky-200">${c.title}</button>`).join('')}
+            </div>
+            ${q ? `
+              <div class="p-5 rounded-2xl bg-slate-900 border border-amber-500/40 space-y-3">
+                <h4 class="text-xs font-black text-amber-300 uppercase">🎯 Reto Clínico de Autoevaluación</h4>
+                <p class="text-xs text-slate-200 font-bold">${q.clinicalCaseQuestion}</p>
+                <div class="space-y-2">
+                  ${(q.options || []).map((opt, idx) => `<button onclick="alert('${idx === q.correctIndex ? '✅ ¡Correcto!' : '❌ Revisa el circuito.'}\\n\\n${(q.detailedExplanation || '').replace(/'/g, '')}')" class="w-full text-left p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-900 text-xs text-slate-200 font-medium">${opt}</button>`).join('')}
+                </div>
+              </div>` : ''}
+          </div>
+          <div class="lg:col-span-6 bg-slate-950/90 p-6 rounded-3xl border border-sky-500/30 max-h-[75vh] overflow-y-auto" id="brainDetailPanel"></div>
+        </div>
+      </div>
+    `;
+
+    // Conecta clics dentro del SVG directamente a las tarjetas
+    const svgWrapper = document.getElementById('brainSvgWrapper');
+    if (svgWrapper) {
+      svgWrapper.addEventListener('click', (e) => {
+        const target = e.target.closest('[data-area-id], [data-region-id]');
+        if (target) {
+          const areaId = target.getAttribute('data-area-id') || target.getAttribute('data-region-id');
+          const foundIdx = cards.findIndex(c => c.areaId === areaId);
+          if (foundIdx !== -1) renderBrainCardDetail(foundIdx);
+        }
+      });
+    }
+    if (cards.length > 0) renderBrainCardDetail(0);
+    renderDashboard();
+  } catch (err) {
+    alert('Error cargando Atlas Cerebral.');
+    closeFullScreenViewer();
+  }
+};
+
+window.openSynapseCascadeModal = function() {
+  document.getElementById('modalSynapseCascade').classList.remove('hidden');
+};
+
+window.launchSynapseCascade = async function() {
+  const substanceLevels = {
+    dopamina: document.getElementById('valDopamina').innerText,
+    serotonina: document.getElementById('valSerotonina').innerText,
+    cortisol: document.getElementById('valCortisol').innerText,
+    gaba: document.getElementById('valGaba').innerText,
+    glutamato: document.getElementById('valGlutamato').innerText
+  };
+  const triggerEvent = document.getElementById('cascadeTriggerInput').value.trim();
+  const docId = document.getElementById('selectDocForAI').value;
+
+  document.getElementById('modalSynapseCascade').classList.add('hidden');
+  const v = document.getElementById('viewerArea');
+  v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
+  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">⚡</span><p class="text-fuchsia-300 font-black text-2xl uppercase mt-4">Simulando Reacción Sináptica en Cadena...</p></div>`;
+
+  try {
+    const res = await apiFetch('/api/encarta/neuro-cascade-lab', {
+      method: 'POST',
+      body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: docId, substanceLevels, triggerEvent })
+    });
+    const data = await res.json();
+    if (!res.ok) { alert(data.error); return closeFullScreenViewer(); }
+
+    v.innerHTML = `
+      <div class="max-w-7xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-fuchsia-500 relative shadow-2xl">
+        <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-2.5 rounded-2xl bg-slate-800 text-white font-bold">✕ Cerrar</button>
+        <div class="border-b border-fuchsia-500/30 pb-4">
+          <span class="text-xs font-black text-fuchsia-400 uppercase">Laboratorio Psicofisiológico de Neurotransmisores</span>
+          <h2 class="text-3xl font-black text-white mt-1">⚡ Reacción en Cascada: ${data.clinicalSyndromeAlert?.syndromeName || 'Dinámica Sináptica'}</h2>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-6 space-y-4">
+            <div class="encarta-svg-container">${data.interactiveReactionSvg}</div>
+            <div class="p-5 rounded-2xl bg-amber-950/30 border border-amber-500/40 space-y-2">
+              <h4 class="text-xs font-black text-amber-300 uppercase">🏛️ Integración Antropológica y Terapéutica (ICF)</h4>
+              <p class="text-xs text-slate-200 leading-relaxed">${data.humanistAndTherapeuticApproach}</p>
+            </div>
+          </div>
+
+          <div class="lg:col-span-6 space-y-4 max-h-[75vh] overflow-y-auto pr-2">
+            <div class="p-4 rounded-2xl bg-slate-900 border border-fuchsia-500/40">
+              <h4 class="text-xs font-black text-fuchsia-300 uppercase mb-3">⏱️ Cascada Fisiológica Paso a Paso</h4>
+              <div class="space-y-3">
+                ${(data.physiologicalCascade || []).map(st => `
+                  <div class="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                    <div class="flex justify-between text-[11px] font-black text-cyan-300">
+                      <span>Fase ${st.stageNumber}</span>
+                      <span>${st.timeWindow}</span>
+                    </div>
+                    <p class="text-xs text-slate-200 mt-1">${st.biologicalReaction}</p>
+                    <p class="text-[11px] text-fuchsia-300 mt-1">Circuitos: ${(st.affectedBrainCircuits || []).join(', ')}</p>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-sky-950/40 border border-sky-500/40 space-y-2">
+              <h4 class="text-xs font-black text-sky-300 uppercase">🧠 Impacto Neuropsicológico y Somático</h4>
+              <p class="text-xs text-slate-200"><b>Cognición:</b> ${data.neuropsychologicalEffects?.cognitiveImpact}</p>
+              <p class="text-xs text-slate-200"><b>Afectividad y Conducta:</b> ${data.neuropsychologicalEffects?.emotionalAndBehavioralImpact}</p>
+              <p class="text-xs text-rose-300"><b>Signos Somáticos:</b> ${(data.neuropsychologicalEffects?.somaticSymptoms || []).join(', ')}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    renderDashboard();
+  } catch (err) {
+    alert('Error en simulación sináptica.');
+    closeFullScreenViewer();
+  }
+};
+
+window.openHumanBodyModal = function() {
+  document.getElementById('modalHumanBody').classList.remove('hidden');
+};
+
+window.launchHumanBodyAtlas = async function() {
+  const bodySystem = document.getElementById('bodySystemSelect').value;
+  const specificOrgan = document.getElementById('bodyOrganInput').value.trim();
+  const subj = currentUser.subjects.find(s => s.id === activeSubjectId);
+
+  document.getElementById('modalHumanBody').classList.add('hidden');
+  const v = document.getElementById('viewerArea');
+  v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
+  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">🫀</span><p class="text-emerald-300 font-black text-2xl uppercase mt-4">Construyendo Atlas Anatómico y Fisiológico...</p></div>`;
+
+  try {
+    const res = await apiFetch('/api/interactive/human-body-explorer', {
+      method: 'POST',
+      body: JSON.stringify({ username: currentUser.username, bodySystem, specificOrgan, courseName: subj?.name })
+    });
+    const data = await res.json();
+    if (!res.ok) { alert(data.error); return closeFullScreenViewer(); }
+
+    const organs = data.anatomicalStructures || [];
+    window.renderOrganDetail = function(idx) {
+      const o = organs[idx];
+      if (!o) return;
+      document.getElementById('organDetailPanel').innerHTML = `
+        <div class="space-y-4">
+          <h3 class="text-2xl font-black text-emerald-300 border-b border-emerald-500/30 pb-3">${o.organName}</h3>
+          <div class="p-4 rounded-2xl bg-slate-900 border border-slate-700"><h4 class="text-xs font-black text-cyan-300 uppercase mb-1">🔬 Anatomía Macro y Microscópica</h4><p class="text-xs text-slate-200 leading-relaxed">${o.macroAndMicroAnatomy}</p></div>
+          <div class="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/40"><h4 class="text-xs font-black text-emerald-300 uppercase mb-1">⚙️ Fisiología Normal</h4><p class="text-xs text-slate-200 leading-relaxed">${o.normalPhysiology}</p></div>
+          <div class="p-4 rounded-2xl bg-rose-950/30 border border-rose-500/40"><h4 class="text-xs font-black text-rose-300 uppercase mb-1">🩺 Fisiopatología</h4><p class="text-xs text-slate-200 leading-relaxed">${o.pathophysiology}</p></div>
+          <div class="p-4 rounded-2xl bg-amber-950/30 border border-amber-500/40"><h4 class="text-xs font-black text-amber-300 uppercase mb-1">🔗 Correlación Neuroendocrina / Sistémica</h4><p class="text-xs text-slate-200 leading-relaxed">${o.psychosomaticOrSystemicLink}</p></div>
+        </div>
+      `;
+    };
+
+    v.innerHTML = `
+      <div class="max-w-7xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-emerald-500 relative shadow-2xl">
+        <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-2.5 rounded-2xl bg-slate-800 text-white font-bold">✕ Cerrar</button>
+        <h2 class="text-3xl font-black text-emerald-300 border-b border-emerald-500/30 pb-4">🫀 ${bodySystem}</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-5 space-y-4">
+            <div class="encarta-svg-container" id="bodySvgWrapper">${data.interactiveBodySvg}</div>
+            <div class="flex flex-wrap gap-2">
+              ${organs.map((o, idx) => `<button onclick="renderOrganDetail(${idx})" class="px-3 py-2 rounded-xl bg-emerald-950 hover:bg-emerald-800 border border-emerald-500/50 text-xs font-black text-emerald-200">${o.organName}</button>`).join('')}
+            </div>
+          </div>
+          <div class="lg:col-span-7 bg-slate-950/90 p-6 rounded-3xl border border-emerald-500/30 max-h-[75vh] overflow-y-auto" id="organDetailPanel"></div>
+        </div>
+      </div>
+    `;
+    if (organs.length > 0) renderOrganDetail(0);
+    renderDashboard();
+  } catch (err) {
+    alert('Error cargando Atlas Anatómico.');
+    closeFullScreenViewer();
+  }
+};
+
+window.launchPsychometricsLab = async function() {
+  const testName = document.getElementById('psychTestName').value.trim();
+  const rawScores = document.getElementById('psychRawScores').value.trim();
+  const clinicalContext = document.getElementById('psychContext').value.trim();
+  if (!testName || !rawScores) return alert("Ingresa el nombre de la prueba y las puntuaciones.");
+
+  document.getElementById('modalPsychometrics').classList.add('hidden');
+  const v = document.getElementById('viewerArea');
+  v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
+  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">📊</span><p class="text-violet-300 font-black text-2xl uppercase mt-4">Calculando Baremos e Informe Psicométrico...</p></div>`;
+
+  try {
+    const res = await apiFetch('/api/agents/psychometrics-lab', {
+      method: 'POST',
+      body: JSON.stringify({ username: currentUser.username, testName, rawScores, clinicalContext })
+    });
+    const data = await res.json();
+    if (!res.ok) { alert(data.error); return closeFullScreenViewer(); }
+
+    v.innerHTML = `
+      <div class="max-w-5xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-violet-500 relative shadow-2xl">
+        <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-2.5 rounded-2xl bg-slate-800 text-white font-bold">✕ Cerrar</button>
+        <h2 class="text-3xl font-black text-violet-300 border-b border-violet-500/30 pb-4">📊 Informe Psicométrico: ${testName}</h2>
+        <div class="overflow-x-auto bg-slate-900 rounded-2xl border border-violet-500/40">
+          <table class="w-full text-left text-xs text-slate-200">
+            <thead class="bg-slate-950 text-violet-300 uppercase"><tr><th class="p-3">Subescala</th><th class="p-3">PD</th><th class="p-3">Punt. Z</th><th class="p-3">Punt. T</th><th class="p-3">Percentil</th><th class="p-3">Rango Clínico</th></tr></thead>
+            <tbody class="divide-y divide-slate-800">
+              ${(data.calculations || []).map(c => `<tr><td class="p-3 font-bold">${c.subscale}</td><td class="p-3">${c.rawScore}</td><td class="p-3">${c.zScore}</td><td class="p-3">${c.tScore}</td><td class="p-3">${c.percentile}%</td><td class="p-3 text-cyan-300 font-bold">${c.clinicalRange}</td></tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div class="p-6 rounded-2xl bg-slate-900 border border-slate-700 text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">${data.integratedClinicalReport}</div>
+      </div>
+    `;
+    renderDashboard();
+  } catch (err) {
+    alert('Error en laboratorio psicométrico.');
+    closeFullScreenViewer();
+  }
+};
+
+// ==========================================
+// 8. EXPORTACIÓN APA / VANCOUVER OFICIAL A WORD
 // ==========================================
 window.exportToWord = function(title, contentHtml) {
   const htmlContent = `
@@ -441,7 +779,7 @@ window.closeFullScreenViewer = function() {
 };
 
 // ==========================================
-// 8. CEREBRO DE IA (FASE 6: RAG, APA, INVESTIGACIÓN, SIMULADOR)
+// 9. CEREBRO DE IA (RAG, APA/VANCOUVER, INVESTIGACIÓN, SIMULADOR)
 // ==========================================
 window.askTutor = async function() {
   const query = document.getElementById('tutorInput').value.trim();
@@ -461,13 +799,14 @@ window.askTutor = async function() {
 window.generateAPATask = async function() {
   const topic = document.getElementById('apaTopic').value.trim();
   if (!topic) return alert("Escribe el tema.");
-  const btn = document.getElementById('btnAPA'); btn.innerText = "Redactando APA..."; btn.disabled = true;
+  const btn = document.getElementById('btnAPA'); btn.innerText = "Redactando..."; btn.disabled = true;
   try {
     const res = await apiFetch('/api/generate-apa-advanced', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, topic }) });
     const data = await res.json();
     if (res.ok) {
       document.getElementById('modalAPA').classList.add('hidden');
-      exportToWord(`Ensayo_APA_${topic.substring(0,10)}`, data.apaDocument); renderDashboard();
+      exportToWord(`Ensayo_${currentUser.citationStyle || 'APA7'}_${topic.substring(0,10)}`, data.apaDocument);
+      renderDashboard();
     } else alert(data.error);
   } catch (e) { alert("Error al generar."); }
   finally { btn.innerText = "Redactar"; btn.disabled = false; }
@@ -490,7 +829,7 @@ window.startUnlimitedResearch = async function() {
     if (!res.ok) throw new Error(data.error);
     
     const chapters = data.outline;
-    let fullDocumentHTML = `<div style="text-align:center;"><h1>Tesis: ${topic}</h1><br><p>Agente IA Anti-Plagio</p></div><br><hr><br>`;
+    let fullDocumentHTML = `<div style="text-align:center;"><h1>Tesis: ${topic}</h1><br><p>${currentUser.universityName || 'Universidad'} - ${currentUser.career}</p></div><br><hr><br>`;
     let previousSummary = "";
 
     for (let i = 0; i < chapters.length; i++) {
@@ -508,7 +847,7 @@ window.startUnlimitedResearch = async function() {
   } catch (e) { alert("Error: " + e.message); } 
   finally {
     btn.classList.remove('hidden'); document.getElementById('researchProgress').classList.add('hidden');
-    barEl.style.width = "0%"; btn.innerText = "Iniciar Agente";
+    barEl.style.width = "0%"; btn.innerText = "Iniciar";
   }
 };
 
@@ -519,8 +858,8 @@ window.sendSimulatorMessage = async function() {
   const box = document.getElementById('simulatorChatBox'); 
   const docId = document.getElementById('selectDocForAI').value;
   
-  box.innerHTML += `<div class="p-4 rounded-2xl bg-slate-800 text-right text-slate-200 font-medium ml-12 shadow-sm border border-slate-700"><b>Psicólogo:</b> ${msg}</div>`;
-  input.value = ''; clinicalSimulatorHistory += `\nPsicólogo: ${msg}`;
+  box.innerHTML += `<div class="p-4 rounded-2xl bg-slate-800 text-right text-slate-200 font-medium ml-12 shadow-sm border border-slate-700"><b>Estudiante:</b> ${msg}</div>`;
+  input.value = ''; clinicalSimulatorHistory += `\nEstudiante: ${msg}`;
   try {
     const res = await apiFetch('/api/clinical-simulator', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: docId, message: msg, history: clinicalSimulatorHistory }) });
     const data = await res.json();
@@ -533,18 +872,18 @@ window.sendSimulatorMessage = async function() {
 };
 
 // ==========================================
-// 9. FASE 4 Y 5: VISUALES, MERMAID Y SLIDES
+// 10. VISUALES, MERMAID, SLIDES Y AUDIOLIBROS DE LECTURA CORRIDA
 // ==========================================
 window.askRealistPhilosophy = async function() {
   const query = document.getElementById('filosofiaInput').value.trim();
   if (!query) return alert("Ingresa un tema.");
   const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
   document.getElementById('modalFilosofia').classList.add('hidden');
-  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">🏛️</span><p class="text-amber-300 font-black text-2xl uppercase mt-4">Analizando bajo Tomismo...</p></div>`;
+  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">🏛️</span><p class="text-amber-300 font-black text-2xl uppercase mt-4">Analizando bajo Antropología Personalista...</p></div>`;
   try {
     const res = await apiFetch('/api/philosophy-realism', { method: 'POST', body: JSON.stringify({ username: currentUser.username, query }) });
     const data = await res.json();
-    v.innerHTML = `<div class="max-w-5xl mx-auto glass-edu rounded-3xl p-10 space-y-6 border-2 border-amber-500 mt-10 relative shadow-2xl"><button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-slate-800 text-white font-bold">✕ Cerrar</button><h2 class="text-3xl font-black text-amber-300 border-b border-amber-500/30 pb-4">Síntesis Filosófica</h2><div class="bg-slate-900 p-8 rounded-2xl text-slate-100 whitespace-pre-wrap">${data.answer}</div></div>`;
+    v.innerHTML = `<div class="max-w-5xl mx-auto glass-edu rounded-3xl p-10 space-y-6 border-2 border-amber-500 mt-10 relative shadow-2xl"><button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-slate-800 text-white font-bold">✕ Cerrar</button><h2 class="text-3xl font-black text-amber-300 border-b border-amber-500/30 pb-4">🏛️ Síntesis Personalista y Logoterapéutica</h2><div class="bg-slate-900 p-8 rounded-2xl text-slate-100 leading-relaxed">${data.answer}</div></div>`;
   } catch (err) { alert('Error.'); closeFullScreenViewer(); }
 };
 
@@ -563,13 +902,39 @@ window.generateGlossary = async function() {
 window.generateMindMap = async function() {
   const docId = document.getElementById('selectDocForAI').value;
   const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
-  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">🧠</span><p class="text-teal-300 font-black text-2xl uppercase mt-4">Construyendo Mapa Mermaid...</p></div>`;
+  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">🧠</span><p class="text-teal-300 font-black text-2xl uppercase mt-4">Construyendo Mapa Conceptual...</p></div>`;
   try {
     const res = await apiFetch('/api/generate-mindmap', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: docId }) });
     const data = await res.json();
     v.innerHTML = `<div class="max-w-6xl mx-auto glass-edu rounded-3xl p-10 border-2 border-teal-500 mt-10 relative"><button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-slate-800 text-white font-bold z-50">✕ Cerrar</button><h2 class="text-3xl font-black text-teal-300 mb-8 border-b border-teal-500/30 pb-4">🧠 Mapa Conceptual</h2><div class="bg-slate-900 p-4 rounded-xl overflow-auto flex justify-center"><div class="mermaid">${data.mermaidCode}</div></div></div>`;
     setTimeout(() => { mermaid.init(undefined, document.querySelectorAll('.mermaid')); }, 100);
   } catch (err) { alert('Error.'); closeFullScreenViewer(); }
+};
+
+window.generateEvoStorybook = async function() {
+  const docId = document.getElementById('selectDocForAI').value;
+  const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
+  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">📖</span><p class="text-cyan-300 font-black text-2xl uppercase mt-4">Creando Monografía Ilustrada...</p></div>`;
+  try {
+    const res = await apiFetch('/api/generate-evolutionary-storybook', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: docId }) });
+    const data = await res.json();
+    if (res.ok) { currentUser = data.user; renderDashboard(); openStorybook(data.storybook); }
+    else { alert(data.error); closeFullScreenViewer(); }
+  } catch (err) { alert('Error.'); closeFullScreenViewer(); }
+};
+
+window.openStorybook = function(sb) {
+  const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
+  v.innerHTML = `
+    <div class="max-w-5xl mx-auto glass-edu rounded-3xl p-10 space-y-6 border-2 border-cyan-500 mt-6 relative">
+      <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-slate-800 text-white font-bold">✕ Cerrar</button>
+      <h2 class="text-3xl font-black text-cyan-300">📖 ${sb.title}</h2>
+      <p class="text-sm text-slate-300 bg-slate-900 p-4 rounded-2xl">${sb.summary}</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        ${(sb.scenes || []).map(sc => `<div class="cartoon-card p-5 space-y-2"><span class="text-xs font-black text-cyan-400">Escena ${sc.sceneNumber} · ${sc.characterName}</span><h4 class="font-black text-white">${sc.academicConcept}</h4><p class="text-xs text-slate-300">${sc.storyDialogue}</p></div>`).join('')}
+      </div>
+    </div>
+  `;
 };
 
 window.generatePresentation = async function() {
@@ -614,34 +979,123 @@ window.openPresentation = function(pres) {
   renderSlide();
 };
 
-window.generateAudiobook = async function() {
-  const selectedDocId = document.getElementById('audiobookDocSelect').value;
-  if(!selectedDocId) return alert('Elige libro.');
+// ==========================================
+// 11. AUDIOLIBROS DE LECTURA CORRIDA Y RESÚMENES REALES
+// ==========================================
+window.generateFluidAudiobook = async function() {
+  const selectedDocId = document.getElementById('audiobookDocSelect').value || 'ALL';
   const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
-  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">🎧</span><p class="text-rose-400 font-black text-2xl uppercase mt-4">Extrayendo Audiolibro...</p></div>`;
+  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">🎧</span><p class="text-rose-400 font-black text-2xl uppercase mt-4">Procesando Documentos y Generando Narración Corrida...</p></div>`;
   try {
-    const res = await apiFetch('/api/audiobook-chapters', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: selectedDocId }) });
+    const res = await apiFetch('/api/audiobook-chapters', {
+      method: 'POST',
+      body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: selectedDocId })
+    });
     const data = await res.json();
-    currentUser = data.user; renderDashboard(); openSavedAudiobook(data.audiobook);
-  } catch (err) { alert('Error.'); closeFullScreenViewer(); }
+    if (!res.ok) { alert(data.error); return closeFullScreenViewer(); }
+    currentUser = data.user;
+    renderDashboard();
+    openSavedAudiobook(data.audiobook);
+  } catch (err) {
+    alert('Error al generar el audiolibro.');
+    closeFullScreenViewer();
+  }
 };
 
 window.openSavedAudiobook = function(ab) {
   const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
-  window.currentAudiobookSummary = ab.bookSummary || ''; window.currentAudiobookTitle = ab.audiobookTitle || 'Libro';
+  window.currentAudiobookSummary = ab.bookSummary || '';
+  window.currentAudiobookTitle = ab.audiobookTitle || 'Audiolibro';
   let currentChapterIdx = 0;
-  function playCurrentChapter() {
+  let currentRate = 1.0;
+
+  function playTextFluidly(textToRead, autoAdvance = false) {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
-    const rawText = `${ab.chapters[currentChapterIdx].chapterTitle}. ${ab.chapters[currentChapterIdx].chapterContent}`;
-    const utterance = new SpeechSynthesisUtterance(cleanTextForAudio(rawText));
+    const utterance = new SpeechSynthesisUtterance(cleanTextForAudio(textToRead));
     utterance.lang = 'es-ES';
-    utterance.onend = () => { if (currentChapterIdx < ab.chapters.length - 1) { currentChapterIdx++; renderAudiobookUI(); playCurrentChapter(); } };
+    utterance.rate = currentRate;
+    if (autoAdvance) {
+      utterance.onend = () => {
+        if (currentChapterIdx < ab.chapters.length - 1) {
+          currentChapterIdx++;
+          renderAudiobookUI();
+          playCurrentChapter();
+        }
+      };
+    }
     window.speechSynthesis.speak(utterance);
   }
-  window.jumpToChapter = (idx) => { currentChapterIdx = idx; renderAudiobookUI(); playCurrentChapter(); };
-  function renderAudiobookUI() {
-    v.innerHTML = `<div class="max-w-6xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-rose-500 relative shadow-2xl mt-4"><button onclick="closeFullScreenViewer(); window.speechSynthesis.cancel();" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-red-950 text-red-300 font-bold z-10">✕ Cerrar</button><h2 class="text-3xl font-black text-rose-300">${ab.audiobookTitle}</h2><div class="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4"><div class="space-y-3 max-h-[500px] overflow-y-auto pr-3">${ab.chapters.map((ch, idx) => `<button onclick="jumpToChapter(${idx})" class="w-full text-left p-4 rounded-xl text-sm font-bold ${idx === currentChapterIdx ? 'bg-rose-900 text-white' : 'bg-slate-900 text-slate-400'}">${ch.chapterTitle}</button>`).join('')}</div><div class="lg:col-span-2 bg-slate-900 p-8 rounded-3xl max-h-[500px] overflow-y-auto text-slate-200 whitespace-pre-wrap">${ab.chapters[currentChapterIdx].chapterContent}</div></div></div>`;
+
+  function playCurrentChapter() {
+    const ch = ab.chapters[currentChapterIdx];
+    playTextFluidly(`${ch.chapterTitle} ${ch.chapterContent}`, true);
   }
-  renderAudiobookUI(); playCurrentChapter();
+
+  window.playAudiobookSummary = () => playTextFluidly(ab.bookSummary || ab.executiveSummaryReadable, false);
+  window.setAudiobookRate = (r) => { currentRate = r; playCurrentChapter(); };
+  window.jumpToChapter = (idx) => { currentChapterIdx = idx; renderAudiobookUI(); playCurrentChapter(); };
+  window.downloadAudiobookSummaryWord = () => {
+    const html = `<h1>${ab.audiobookTitle}</h1><h2>Resumen Ejecutivo Académico</h2><p>${ab.executiveSummaryReadable || ab.bookSummary}</p>` +
+      ab.chapters.map(c => `<h3>${c.chapterTitle}</h3><p>${c.chapterSummary || ''}</p>`).join('');
+    exportToWord(`Resumen_${ab.audiobookTitle.substring(0, 15)}`, html);
+  };
+
+  function renderAudiobookUI() {
+    const activeCh = ab.chapters[currentChapterIdx];
+    v.innerHTML = `
+      <div class="max-w-6xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-rose-500 relative shadow-2xl mt-2">
+        <button onclick="closeFullScreenViewer(); window.speechSynthesis.cancel();" class="absolute top-6 right-6 px-5 py-2.5 rounded-2xl bg-red-950 text-red-300 font-bold z-10">✕ Cerrar</button>
+        
+        <div class="border-b border-rose-500/30 pb-4">
+          <span class="text-xs font-black text-rose-400 uppercase">Audiolibro de Estudio Corrido (Sin comas ni caracteres)</span>
+          <h2 class="text-3xl font-black text-white mt-1">🎧 ${ab.audiobookTitle}</h2>
+        </div>
+
+        <!-- RESUMEN EJECUTIVO REAL DEL MATERIAL SUBIDO -->
+        <div class="p-5 rounded-2xl bg-slate-900/90 border border-rose-500/40 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-sm font-black text-rose-300 uppercase">📑 Resumen Ejecutivo Real del Documento</h3>
+            <div class="flex gap-2">
+              <button onclick="playAudiobookSummary()" class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black">▶️ Escuchar Resumen Corrido</button>
+              <button onclick="downloadAudiobookSummaryWord()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black">📥 Descargar Resumen (.doc)</button>
+            </div>
+          </div>
+          <p class="text-xs text-slate-200 leading-relaxed">${ab.executiveSummaryReadable || ab.bookSummary}</p>
+          ${(ab.keyTakeaways && ab.keyTakeaways.length) ? `<div class="flex flex-wrap gap-2 pt-1">${ab.keyTakeaways.map(k => `<span class="px-2.5 py-1 rounded-lg bg-rose-950/60 border border-rose-500/30 text-[11px] text-rose-200">✓ ${k}</span>`).join('')}</div>` : ''}
+        </div>
+
+        <!-- CONTROLES DE REPRODUCCIÓN CONTINUA -->
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+          <div class="flex gap-2">
+            <button onclick="window.speechSynthesis.pause()" class="px-4 py-2 rounded-xl bg-slate-800 text-white text-xs font-black">⏸ Pausar</button>
+            <button onclick="window.speechSynthesis.resume()" class="px-4 py-2 rounded-xl bg-slate-800 text-white text-xs font-black">▶️ Reanudar</button>
+            <button onclick="window.speechSynthesis.cancel()" class="px-4 py-2 rounded-xl bg-red-950 text-red-300 text-xs font-black">⏹ Detener</button>
+          </div>
+          <div class="flex items-center gap-2 text-xs">
+            <span class="text-slate-400 font-bold">Velocidad:</span>
+            ${[0.9, 1.0, 1.25, 1.5].map(r => `<button onclick="setAudiobookRate(${r})" class="px-2.5 py-1 rounded-lg font-black ${currentRate === r ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-300'}">${r}x</button>`).join('')}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="space-y-2.5 max-h-[380px] overflow-y-auto pr-2">
+            ${ab.chapters.map((ch, idx) => `
+              <button onclick="jumpToChapter(${idx})" class="w-full text-left p-3.5 rounded-xl text-xs font-bold transition ${idx === currentChapterIdx ? 'bg-rose-900 border border-rose-400 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white'}">
+                <div class="font-black">${idx + 1}. ${ch.chapterTitle}</div>
+                ${ch.chapterSummary ? `<div class="text-[11px] opacity-80 mt-1 line-clamp-2">${ch.chapterSummary}</div>` : ''}
+              </button>
+            `).join('')}
+          </div>
+          <div class="lg:col-span-2 bg-slate-900 p-6 rounded-3xl max-h-[380px] overflow-y-auto space-y-3 border border-slate-800">
+            <h4 class="text-lg font-black text-rose-300">${activeCh.chapterTitle}</h4>
+            <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">${activeCh.chapterContent}</p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderAudiobookUI();
+  playCurrentChapter();
 };
