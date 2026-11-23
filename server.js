@@ -105,17 +105,22 @@ const upload = multer({
 });
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
 
+// Generador rápido con Gemini 3 Flash por defecto y respaldo estable
 async function generateWithFallback(contents, responseSchema) {
-  const modelsToTry = [DEFAULT_GEMINI_MODEL, 'gemini-2.5-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'];
+  const modelsToTry = [DEFAULT_GEMINI_MODEL, 'gemini-3-flash-preview', 'gemini-2.5-flash', 'gemini-1.5-flash'];
   let lastErr = null;
   for (const modelName of modelsToTry) {
     try {
       return await ai.models.generateContent({
         model: modelName,
         contents,
-        config: responseSchema ? { responseMimeType: 'application/json', responseSchema } : {}
+        config: responseSchema ? {
+          responseMimeType: 'application/json',
+          responseSchema,
+          temperature: 0.4
+        } : { temperature: 0.4 }
       });
     } catch (err) {
       lastErr = err;
@@ -570,10 +575,13 @@ app.post('/api/user/enroll-pensum', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
   try {
+    const id = (req.body.identifier || '').trim().toLowerCase();
     const user = await req.UserModel.findOne({
-      $or: [{ username: req.body.identifier.toLowerCase() }, { email: req.body.identifier.toLowerCase() }]
+      $or: [{ username: id }, { email: id }]
     });
-    if (!user || user.password !== req.body.password) return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
+    if (!user || (user.password || '').trim() !== (req.body.password || '').trim()) {
+      return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
+    }
     res.json({ user: await serializeUser(user, req.DocumentModel) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -592,16 +600,26 @@ app.get('/api/auth/session/:username', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Cambio de contraseña tolerante a espacios y mayúsculas
 app.post('/api/user/change-password', async (req, res) => {
   try {
-    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
-    if (!user || user.password !== req.body.oldPassword) {
+    const cleanUser = (req.body.username || '').trim().toLowerCase();
+    const oldPass = (req.body.oldPassword || '').trim();
+    const newPass = (req.body.newPassword || '').trim();
+
+    const user = await req.UserModel.findOne({
+      $or: [{ username: cleanUser }, { fullName: new RegExp(`^${cleanUser}$`, 'i') }]
+    });
+
+    if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
+    if ((user.password || '').trim() !== oldPass) {
       return res.status(401).json({ error: "La contraseña actual es incorrecta." });
     }
-    if (!req.body.newPassword || req.body.newPassword.length < 6) {
-      return res.status(400).json({ error: "La nueva contraseña debe tener al menos 6 caracteres." });
+    if (newPass.length < 4) {
+      return res.status(400).json({ error: "La nueva contraseña debe tener al menos 4 caracteres." });
     }
-    user.password = req.body.newPassword;
+
+    user.password = newPass;
     user.mustChangePassword = false;
     await user.save();
     res.json({ success: true, message: "Contraseña actualizada correctamente.", user: await serializeUser(user, req.DocumentModel) });
@@ -652,7 +670,7 @@ app.post('/api/admin/create-user', async (req, res) => {
     })) : [{ id: 'subj-init', name: 'Materia 1', schedule: 'Semestre 1', domainTags: [], presentations: [] }];
 
     const cleanUsername = username.trim().toLowerCase();
-    const tempPassword = password || crypto.randomBytes(4).toString('hex');
+    const tempPassword = (password || crypto.randomBytes(4).toString('hex')).trim();
     const studentEmail = (email || `${cleanUsername}@edu.com`).trim().toLowerCase();
 
     const createdUser = await new req.UserModel({
@@ -709,7 +727,7 @@ app.post('/api/admin/add-tokens', async (req, res) => {
 app.post('/api/admin/force-reset', async (req, res) => {
   try {
     const t = await req.UserModel.findOne({ username: req.body.targetUsername });
-    t.password = req.body.newPassword;
+    t.password = (req.body.newPassword || '').trim();
     t.mustChangePassword = true;
     await t.save();
     res.json({ success: true });
@@ -1038,22 +1056,24 @@ app.post('/api/audiobook-chapters', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ================= MÓDULOS INTERACTIVOS TIPO ENCARTA (NEUROLOGÍA, NEUROPSICOLOGÍA Y SUSTANCIAS) =================
+// ================= MÓDULOS INTERACTIVOS TIPO ENCARTA (OPTIMIZADOS CON GEMINI 3 FLASH) =================
 app.post('/api/encarta/neuro-cascade-lab', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
     await consumeTokens(user, 0.15);
 
-    const { substanceLevels, triggerEvent, subjectId, documentId } = req.body;
+    const { substanceLevels, triggerEvent, subjectId } = req.body;
     const kb = await req.KnowledgeModel.findOne({ username: user.username, subjectId }).lean();
-    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, subjectId, documentId || 'ALL');
+    const learnedContext = kb && kb.neurochemicalRules.length
+      ? JSON.stringify(kb.neurochemicalRules.slice(-10))
+      : "Fisiología sináptica y neuroquímica estándar.";
 
     const schema = {
       type: Type.OBJECT,
       properties: {
         interactiveReactionSvg: {
           type: Type.STRING,
-          description: "Diagrama SVG interactivo (<svg viewBox='0 0 800 450'>) mostrando la neurona presináptica, vesículas liberando moléculas, receptores activados/saturados y el circuito cerebral afectado."
+          description: "SVG compacto (<svg viewBox='0 0 600 320'>) mostrando terminal presináptica, vesículas de neurotransmisores, hendidura sináptica y receptores postsinápticos."
         },
         physiologicalCascade: {
           type: Type.ARRAY,
@@ -1088,25 +1108,21 @@ app.post('/api/encarta/neuro-cascade-lab', async (req, res) => {
       required: ["interactiveReactionSvg", "physiologicalCascade", "neuropsychologicalEffects", "clinicalSyndromeAlert", "humanistAndTherapeuticApproach"]
     };
 
-    const learnedContext = kb ? JSON.stringify(kb.neurochemicalRules.slice(-15)) : "Base estándar.";
-
     const prompt = `
-      Actúa como un Simulador Interactivo de Neuropsicología y Psicofisiología tipo Encarta (Universidad Galileo ICF - enfoque humanista).
-      Niveles de sustancias configurados: ${JSON.stringify(substanceLevels)}.
-      Evento o sustancia desencadenante: "${triggerEvent || 'Variación endógena'}".
-      Conocimiento retroalimentado de los documentos del estudiante y oficiales: ${learnedContext}.
-      Explica qué reacciones en cadena ocurren cuando suben o bajan estas sustancias a nivel sináptico (vesículas, receptores, recaptación), circuitos cerebrales (mesolímbico, mesocortical, nigroestriado, eje HPA) y funciones neuropsicológicas, integrando la perspectiva personalista-humanista.
+      Simulador Interactivo de Neuropsicología y Psicofisiología tipo Encarta (ICF Universidad Galileo - enfoque humanista).
+      Niveles configurados: ${JSON.stringify(substanceLevels)}.
+      Desencadenante: "${triggerEvent || 'Variación endógena'}".
+      Reglas aprendidas del curso: ${learnedContext}.
+      Explica la cascada sináptica, circuitos afectados, impacto neuropsicológico e integración humanista-terapéutica de forma concisa y científica.
     `;
 
-    const contents = [prompt];
-    docs.forEach(doc => {
-      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
-    });
-
-    const response = await generateWithFallback(contents, schema);
+    const response = await generateWithFallback([prompt], schema);
     await user.save();
     res.json(JSON.parse(response.text));
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    console.error("Error Cascada Sináptica:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post('/api/encarta/neuropsychology-atlas', async (req, res) => {
@@ -1114,9 +1130,11 @@ app.post('/api/encarta/neuropsychology-atlas', async (req, res) => {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
     await consumeTokens(user, 0.15);
 
-    const { topic, viewMode, subjectId, documentId } = req.body;
+    const { topic, viewMode, subjectId } = req.body;
     const kb = await req.KnowledgeModel.findOne({ username: user.username, subjectId }).lean();
-    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, subjectId, documentId || 'ALL');
+    const learnedContext = kb && kb.learnedConcepts.length
+      ? JSON.stringify(kb.learnedConcepts.slice(-10))
+      : "Conocimiento universitario estándar de Neurología y Neuropsicología.";
 
     const schema = {
       type: Type.OBJECT,
@@ -1124,7 +1142,7 @@ app.post('/api/encarta/neuropsychology-atlas', async (req, res) => {
         articleTitle: { type: Type.STRING },
         interactiveBrainSvg: {
           type: Type.STRING,
-          description: "SVG interactivo (<svg viewBox='0 0 800 500'>) del cerebro con áreas marcadas con data-area-id para hacer clic en el frontend."
+          description: "SVG compacto (<svg viewBox='0 0 600 360'>) con 4 regiones cerebrales estilizadas (paths/circles con colores distintos) y atributos data-area-id='area_1', 'area_2', 'area_3', 'area_4' más etiquetas <text>."
         },
         multimediaCards: {
           type: Type.ARRAY,
@@ -1140,7 +1158,8 @@ app.post('/api/encarta/neuropsychology-atlas', async (req, res) => {
               lesionConsequences: { type: Type.STRING },
               evaluationTests: { type: Type.ARRAY, items: { type: Type.STRING } },
               relatedTopics: { type: Type.ARRAY, items: { type: Type.STRING } }
-            }
+            },
+            required: ["areaId", "title", "neuroanatomy", "interAreaCommunication", "dopamineAndSynapseFunction", "neuropsychologyFunction", "lesionConsequences", "evaluationTests", "relatedTopics"]
           }
         },
         selfAssessmentChallenge: {
@@ -1150,31 +1169,28 @@ app.post('/api/encarta/neuropsychology-atlas', async (req, res) => {
             options: { type: Type.ARRAY, items: { type: Type.STRING } },
             correctIndex: { type: Type.INTEGER },
             detailedExplanation: { type: Type.STRING }
-          }
+          },
+          required: ["clinicalCaseQuestion", "options", "correctIndex", "detailedExplanation"]
         }
       },
       required: ["articleTitle", "interactiveBrainSvg", "multimediaCards", "selfAssessmentChallenge"]
     };
 
-    const learnedContext = kb ? JSON.stringify(kb.learnedConcepts.slice(-20)) : "Base estándar.";
-
     const prompt = `
-      Crea una ficha enciclopédica interactiva estilo Microsoft Encarta sobre Neurología y Neuropsicología (Universidad Galileo ICF).
+      Crea una ficha enciclopédica interactiva estilo Encarta sobre Neurología y Neuropsicología (Universidad Galileo ICF, enfoque humanista-personalista).
       Tema: "${topic || 'Corteza Prefrontal, Sistema Límbico, Vías Dopaminérgicas y Funciones Ejecutivas'}".
       Modo: "${viewMode || 'EXPLORE_REGION'}".
-      Memoria acumulada de los documentos subidos: ${learnedContext}.
-      Genera un mapa SVG clicable del cerebro y desglosa cada estructura: neuroanatomía, comunicación entre áreas, función de dopamina/sinapsis, función neuropsicológica, trastornos por lesión y pruebas de evaluación.
+      Contexto aprendido del curso: ${learnedContext}.
+      Genera exactamente 4 estructuras en multimediaCards con areaId 'area_1', 'area_2', 'area_3', 'area_4' que coincidan con los atributos data-area-id del SVG. Sé conciso, preciso y académico.
     `;
 
-    const contents = [prompt];
-    docs.forEach(doc => {
-      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
-    });
-
-    const response = await generateWithFallback(contents, schema);
+    const response = await generateWithFallback([prompt], schema);
     await user.save();
     res.json(JSON.parse(response.text));
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    console.error("Error Atlas Cerebral:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post('/api/interactive/human-body-explorer', async (req, res) => {
@@ -1188,7 +1204,7 @@ app.post('/api/interactive/human-body-explorer', async (req, res) => {
       properties: {
         interactiveBodySvg: {
           type: Type.STRING,
-          description: "SVG anatómico (<svg viewBox='0 0 600 800'>) del sistema del cuerpo humano con órganos marcados con data-organ-id."
+          description: "SVG anatómico compacto (<svg viewBox='0 0 500 600'>) del sistema del cuerpo humano con 4 órganos marcados con data-organ-id='org_1', 'org_2', 'org_3', 'org_4'."
         },
         anatomicalStructures: {
           type: Type.ARRAY,
@@ -1214,7 +1230,7 @@ app.post('/api/interactive/human-body-explorer', async (req, res) => {
       Sistema: "${bodySystem || 'Sistema Nervioso Autónomo, Endocrino y Cardiovascular'}".
       Órgano: "${specificOrgan || 'Vista integral del sistema'}".
       Correlación: "${clinicalCorrelation || 'Fisiología normal y fisiopatología'}".
-      Genera el diagrama SVG interactivo y las fichas anatómicas y fisiológicas detalladas.
+      Genera el diagrama SVG interactivo con 4 estructuras clave y sus fichas anatómicas y fisiológicas concisas.
     `;
 
     const response = await generateWithFallback([prompt], schema);
