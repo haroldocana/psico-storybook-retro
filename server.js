@@ -105,11 +105,17 @@ const upload = multer({
 });
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
+const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 
-// Generador rápido con Gemini 3 Flash por defecto y respaldo estable
+// Generador rápido con modelos oficiales vigentes en Google AI Studio
 async function generateWithFallback(contents, responseSchema) {
-  const modelsToTry = [DEFAULT_GEMINI_MODEL, 'gemini-3-flash-preview', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+  const modelsToTry = [
+    DEFAULT_GEMINI_MODEL,
+    'gemini-3.8-flash',
+    'gemini-4-hydrogen',
+    'gemini-3.6-flash',
+    'gemini-3.5-flash-lite'
+  ];
   let lastErr = null;
   for (const modelName of modelsToTry) {
     try {
@@ -1056,7 +1062,7 @@ app.post('/api/audiobook-chapters', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ================= MÓDULOS INTERACTIVOS TIPO ENCARTA (OPTIMIZADOS CON GEMINI 3 FLASH) =================
+// ================= MÓDULOS INTERACTIVOS TIPO ENCARTA =================
 app.post('/api/encarta/neuro-cascade-lab', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
