@@ -16,10 +16,10 @@ const app = express();
 
 // ================= CONFIGURACIÓN DE CORREO =================
 const transporter = nodemailer.createTransport({
-  service: 'gmail', 
+  service: 'gmail',
   auth: {
     user: process.env.SMTP_EMAIL || 'haroldocana@comptech.lat',
-    pass: process.env.SMTP_PASSWORD || 'oudccygvhvazuzwg' 
+    pass: process.env.SMTP_PASSWORD || 'oudccygvhvazuzwg'
   }
 });
 
@@ -40,7 +40,7 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
     const dbName = `tenant_${session.customer.toLowerCase().replace('cus_', '')}`;
     const customerEmail = session.customer_details.email;
     const institutionName = session.custom_fields?.[0]?.text?.value || "Nueva Institución";
-    
+
     try {
       const expirationDate = new Date();
       expirationDate.setFullYear(expirationDate.getFullYear() + 1);
@@ -66,7 +66,7 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
         aiAllowanceUSD: 50.00,
         subjects: []
       });
-      
+
       await transporter.sendMail({
         from: '"AprendePro SaaS" <haroldocana@comptech.lat>',
         to: customerEmail,
@@ -97,53 +97,331 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Límite de 50MB por archivo para soportar documentos
-const upload = multer({ 
-  storage: multer.memoryStorage(), 
-  limits: { fileSize: 50 * 1024 * 1024 } 
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 }
 });
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-// Modelo estándar y estable actual
-const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
 async function generateWithFallback(contents, responseSchema) {
-  // Lista actualizada con modelos oficiales compatibles
-  const modelsToTry = [DEFAULT_GEMINI_MODEL, 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.5-flash'];
+  const modelsToTry = [DEFAULT_GEMINI_MODEL, 'gemini-2.5-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'];
   let lastErr = null;
   for (const modelName of modelsToTry) {
     try {
       return await ai.models.generateContent({
-        model: modelName, contents,
+        model: modelName,
+        contents,
         config: responseSchema ? { responseMimeType: 'application/json', responseSchema } : {}
       });
-    } catch (err) { lastErr = err; }
+    } catch (err) {
+      lastErr = err;
+    }
   }
   throw lastErr;
 }
 
-// ================= ESQUEMAS =================
-const TenantSchema = new mongoose.Schema({ companyName: String, dbName: { type: String, unique: true }, stripeCustomerId: String, subscriptionStatus: { type: String, default: 'active' }, licenseExpiresAt: Date, createdAt: { type: Date, default: Date.now } });
+// ================= UTILIDAD DE LIMPIEZA PARA AUDIOLIBROS DE LECTURA CORRIDA =================
+function sanitizeForFluidTTS(rawText) {
+  if (!rawText) return "";
+  return rawText
+    // Elimina encabezados de control y paginación
+    .replace(/\b(CONFIDENCIAL|DRAFT|BORRADOR|PÁGINA|PÁG)\b\.?\s*\d*/gi, ' ')
+    // Elimina citas bibliográficas entre paréntesis o corchetes (ej. (Frankl, 1946) o [1, 2])
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/\([^)]*\d{4}[^)]*\)/g, ' ')
+    // Elimina URLs y correos
+    .replace(/https?:\/\/[^\s]+/g, ' ')
+    .replace(/[\w.-]+@[\w.-]+\.\w+/g, ' ')
+    // Convierte saltos de línea y viñetas en espacios fluidos
+    .replace(/[\r\n•▪◦●\-–—]+/g, ' ')
+    // Elimina signos de puntuación y caracteres especiales (incluyendo comas, punto y coma, paréntesis, símbolos) para lectura corrida
+    .replace(/[,;:()[\]{}"'«»“”‘’*#_~^|<>/\\+=@$%&!?¡¿]/g, ' ')
+    // Conserva puntos finales solo como espacio suave para que el motor TTS no haga cortes bruscos ni lea caracteres
+    .replace(/\./g, ' ')
+    // Normaliza múltiples espacios en uno solo
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// ================= ESQUEMAS MAESTROS Y DE TENANT =================
+const TenantSchema = new mongoose.Schema({
+  companyName: String,
+  dbName: { type: String, unique: true },
+  stripeCustomerId: String,
+  subscriptionStatus: { type: String, default: 'active' },
+  licenseExpiresAt: Date,
+  createdAt: { type: Date, default: Date.now }
+});
 const TenantModel = mongoose.model('Tenant', TenantSchema);
 
-const DocumentSchema = new mongoose.Schema({ docId: { type: String, unique: true, index: true }, username: { type: String, lowercase: true, index: true }, subjectId: { type: String, index: true }, title: String, fileName: String, mimeType: String, base64Data: String, textContent: String, uploadedAt: String });
-const UserSchema = new mongoose.Schema({ username: { type: String, unique: true, lowercase: true }, fullName: String, email: { type: String, lowercase: true }, password: String, recoveryWord: String, career: String, role: { type: String, default: 'student' }, aiAllowanceUSD: { type: Number, default: 2.00 }, aiConsumptionUSD: { type: Number, default: 0 }, pendingTokenRequest: { type: Boolean, default: false }, storybooksCreated: { type: Number, default: 0 }, subjects: Array });
+// Catálogo Maestro de Pensums Universitarios
+const CareerPensumSchema = new mongoose.Schema({
+  careerCode: { type: String, unique: true },
+  careerName: String,
+  faculty: String,
+  philosophicalFramework: String,
+  citationStyle: { type: String, default: 'APA7' },
+  cycles: [{
+    cycleNumber: Number,
+    cycleName: String,
+    courses: [{
+      courseCode: String,
+      name: String,
+      credits: Number,
+      domainTags: [String]
+    }]
+  }]
+});
+const CareerPensumModel = mongoose.model('CareerPensum', CareerPensumSchema);
+
+const DocumentSchema = new mongoose.Schema({
+  docId: { type: String, unique: true, index: true },
+  username: { type: String, lowercase: true, index: true },
+  subjectId: { type: String, index: true },
+  title: String,
+  fileName: String,
+  mimeType: String,
+  base64Data: String,
+  textContent: String,
+  isOfficialCurriculum: { type: Boolean, default: false },
+  uploadedAt: String
+});
+
+const UserSchema = new mongoose.Schema({
+  username: { type: String, unique: true, lowercase: true },
+  fullName: String,
+  email: { type: String, lowercase: true },
+  password: String,
+  recoveryWord: String,
+  career: String,
+  careerCode: { type: String, default: 'PSIC_CLINICA_GALILEO' },
+  citationStyle: { type: String, default: 'APA7' },
+  role: { type: String, default: 'student' },
+  aiAllowanceUSD: { type: Number, default: 2.00 },
+  aiConsumptionUSD: { type: Number, default: 0 },
+  pendingTokenRequest: { type: Boolean, default: false },
+  storybooksCreated: { type: Number, default: 0 },
+  subjects: Array
+});
+
+// Base de Conocimiento Acumulativa por Curso (Retroalimentación ML/RAG Local)
+const CourseKnowledgeBaseSchema = new mongoose.Schema({
+  username: { type: String, lowercase: true, index: true },
+  subjectId: { type: String, index: true },
+  careerCode: String,
+  learnedConcepts: [{
+    concept: String,
+    category: String,
+    summary: String,
+    sourceDocTitle: String,
+    isOfficialCurriculum: { type: Boolean, default: false },
+    updatedAt: { type: Date, default: Date.now }
+  }],
+  neurochemicalRules: [{
+    substance: String,
+    condition: String,
+    cascadeReaction: String,
+    neuropsychologicalImpact: String,
+    sourceDocTitle: String
+  }]
+});
+
+function getKnowledgeModel(tenantDb) {
+  return tenantDb.model('CourseKnowledgeBase', CourseKnowledgeBaseSchema);
+}
+
+// ================= SEMILLA DE PENSUMS (PSICOLOGÍA CLÍNICA ICF GALILEO Y MEDICINA) =================
+async function seedDefaultPensums() {
+  const psicGalileo = {
+    careerCode: 'PSIC_CLINICA_GALILEO',
+    careerName: 'Licenciatura en Psicología Clínica',
+    faculty: 'Instituto de Ciencias de la Familia (ICF) - Universidad Galileo',
+    philosophicalFramework: 'Humanismo Personalista, Antropología Filosófica y Logoterapia (Viktor Frankl). La persona humana es una unidad bio-psico-espiritual; se evita el reduccionismo conductista anglosajón.',
+    citationStyle: 'APA7',
+    cycles: [
+      {
+        cycleNumber: 1, cycleName: '1er Ciclo (Primer Año)',
+        courses: [
+          { courseCode: 'PSI-101', name: 'Antropología', credits: 3, domainTags: ['HUMANISM_PHILOSOPHY'] },
+          { courseCode: 'PSI-102', name: 'Escuelas Psicológicas I', credits: 3, domainTags: ['THEORY'] },
+          { courseCode: 'PSI-103', name: 'Psicología Evolutiva I', credits: 3, domainTags: ['DEVELOPMENT'] },
+          { courseCode: 'PSI-104', name: 'Filosofía I', credits: 3, domainTags: ['HUMANISM_PHILOSOPHY'] },
+          { courseCode: 'PSI-105', name: 'Informática I', credits: 3, domainTags: ['TECH'] },
+          { courseCode: 'PSI-106', name: 'Neuroanatomía', credits: 4, domainTags: ['INTERACTIVE_NEURO_ATLAS', 'BIOLOGY'] },
+          { courseCode: 'PSI-107', name: 'Psicología General', credits: 3, domainTags: ['THEORY'] }
+        ]
+      },
+      {
+        cycleNumber: 2, cycleName: '2do Ciclo (Primer Año)',
+        courses: [
+          { courseCode: 'PSI-201', name: 'Escuelas Psicológicas II', credits: 3, domainTags: ['THEORY'] },
+          { courseCode: 'PSI-202', name: 'Psicología Evolutiva II', credits: 3, domainTags: ['DEVELOPMENT'] },
+          { courseCode: 'PSI-203', name: 'Técnicas de Investigación', credits: 3, domainTags: ['RESEARCH'] },
+          { courseCode: 'PSI-204', name: 'Filosofía II', credits: 3, domainTags: ['HUMANISM_PHILOSOPHY'] },
+          { courseCode: 'PSI-205', name: 'Informática II', credits: 3, domainTags: ['TECH'] },
+          { courseCode: 'PSI-206', name: 'Sociología', credits: 3, domainTags: ['HUMANISM_PHILOSOPHY'] },
+          { courseCode: 'PSI-207', name: 'Neurociencia Cognitiva', credits: 4, domainTags: ['INTERACTIVE_NEURO_ATLAS', 'SYNAPSE_LAB'] }
+        ]
+      },
+      {
+        cycleNumber: 3, cycleName: '3er Ciclo (Segundo Año)',
+        courses: [
+          { courseCode: 'PSI-301', name: 'Desarrollo de la Personalidad I', credits: 3, domainTags: ['HUMANISM_PHILOSOPHY', 'THEORY'] },
+          { courseCode: 'PSI-302', name: 'Estadística Aplicada a la Psicología I', credits: 4, domainTags: ['PSYCHOMETRICS_LAB'] },
+          { courseCode: 'PSI-303', name: 'Informática III', credits: 3, domainTags: ['TECH'] },
+          { courseCode: 'PSI-304', name: 'Neuroendocrinología', credits: 4, domainTags: ['INTERACTIVE_NEURO_ATLAS', 'SYNAPSE_LAB'] },
+          { courseCode: 'PSI-305', name: 'Psicología del Lenguaje', credits: 4, domainTags: ['INTERACTIVE_NEURO_ATLAS'] },
+          { courseCode: 'PSI-306', name: 'Personalismo I', credits: 3, domainTags: ['HUMANISM_PHILOSOPHY'] },
+          { courseCode: 'PSI-307', name: 'Teoría del Conocimiento', credits: 3, domainTags: ['HUMANISM_PHILOSOPHY'] }
+        ]
+      },
+      {
+        cycleNumber: 4, cycleName: '4to Ciclo (Segundo Año)',
+        courses: [
+          { courseCode: 'PSI-401', name: 'Desarrollo de la Personalidad II', credits: 3, domainTags: ['HUMANISM_PHILOSOPHY', 'THEORY'] },
+          { courseCode: 'PSI-402', name: 'Estadística Aplicada a la Psicología II', credits: 3, domainTags: ['PSYCHOMETRICS_LAB'] },
+          { courseCode: 'PSI-403', name: 'Filosofía de la Ciencia', credits: 3, domainTags: ['HUMANISM_PHILOSOPHY', 'RESEARCH'] },
+          { courseCode: 'PSI-404', name: 'Informática IV', credits: 3, domainTags: ['TECH'] },
+          { courseCode: 'PSI-405', name: 'Laboratorio IMRF en Neurociencia Cognitiva', credits: 4, domainTags: ['INTERACTIVE_NEURO_ATLAS', 'SYNAPSE_LAB'] },
+          { courseCode: 'PSI-406', name: 'Psicología del Aprendizaje', credits: 4, domainTags: ['THEORY'] },
+          { courseCode: 'PSI-407', name: 'Personalismo II', credits: 3, domainTags: ['HUMANISM_PHILOSOPHY'] }
+        ]
+      },
+      {
+        cycleNumber: 5, cycleName: '5to Ciclo (Tercer Año)',
+        courses: [
+          { courseCode: 'PSI-501', name: 'Informática V', credits: 3, domainTags: ['TECH'] },
+          { courseCode: 'PSI-502', name: 'Evaluación Psicológica', credits: 3, domainTags: ['CLINICAL_HUMANIST_SIM', 'PSYCHOMETRICS_LAB'] },
+          { courseCode: 'PSI-503', name: 'Práctica Clínica Supervisada I', credits: 4, domainTags: ['CLINICAL_HUMANIST_SIM'] },
+          { courseCode: 'PSI-504', name: 'Psicopatología en Adultos I', credits: 4, domainTags: ['CLINICAL_HUMANIST_SIM', 'INTERACTIVE_NEURO_ATLAS'] },
+          { courseCode: 'PSI-505', name: 'Psicometría I', credits: 4, domainTags: ['PSYCHOMETRICS_LAB'] },
+          { courseCode: 'PSI-506', name: 'Psicoterapia I', credits: 3, domainTags: ['CLINICAL_HUMANIST_SIM'] },
+          { courseCode: 'PSI-507', name: 'Terapia Sistémica', credits: 3, domainTags: ['CLINICAL_HUMANIST_SIM'] },
+          { courseCode: 'PSI-508', name: 'Ética Profesional', credits: 3, domainTags: ['HUMANISM_PHILOSOPHY'] }
+        ]
+      },
+      {
+        cycleNumber: 6, cycleName: '6to Ciclo (Tercer Año)',
+        courses: [
+          { courseCode: 'PSI-601', name: 'Axiología', credits: 3, domainTags: ['HUMANISM_PHILOSOPHY'] },
+          { courseCode: 'PSI-602', name: 'Informática VI', credits: 3, domainTags: ['TECH'] },
+          { courseCode: 'PSI-603', name: 'Seminario Logoterapéutico', credits: 3, domainTags: ['CLINICAL_HUMANIST_SIM', 'HUMANISM_PHILOSOPHY'] },
+          { courseCode: 'PSI-604', name: 'Técnicas de Modificación de Conductas', credits: 3, domainTags: ['CLINICAL_HUMANIST_SIM'] },
+          { courseCode: 'PSI-605', name: 'Práctica Clínica Supervisada II', credits: 4, domainTags: ['CLINICAL_HUMANIST_SIM'] },
+          { courseCode: 'PSI-606', name: 'Psicopatología en Adultos II', credits: 4, domainTags: ['CLINICAL_HUMANIST_SIM', 'INTERACTIVE_NEURO_ATLAS'] },
+          { courseCode: 'PSI-607', name: 'Psicometría II', credits: 4, domainTags: ['PSYCHOMETRICS_LAB'] },
+          { courseCode: 'PSI-608', name: 'Psicoterapia II', credits: 3, domainTags: ['CLINICAL_HUMANIST_SIM'] }
+        ]
+      },
+      {
+        cycleNumber: 7, cycleName: '7mo Ciclo (Cuarto Año)',
+        courses: [
+          { courseCode: 'PSI-701', name: 'Informática VII', credits: 3, domainTags: ['TECH'] },
+          { courseCode: 'PSI-702', name: 'Psicopatología III', credits: 3, domainTags: ['CLINICAL_HUMANIST_SIM'] },
+          { courseCode: 'PSI-703', name: 'Terapia Cognitiva I', credits: 3, domainTags: ['CLINICAL_HUMANIST_SIM'] },
+          { courseCode: 'PSI-704', name: 'Práctica Clínica Supervisada III', credits: 4, domainTags: ['CLINICAL_HUMANIST_SIM'] },
+          { courseCode: 'PSI-705', name: 'Psicología de la Educación', credits: 3, domainTags: ['THEORY'] },
+          { courseCode: 'PSI-706', name: 'Psicopatología Infanto-Juvenil', credits: 4, domainTags: ['CLINICAL_HUMANIST_SIM'] },
+          { courseCode: 'PSI-707', name: 'Psicofarmacología I', credits: 4, domainTags: ['SYNAPSE_LAB', 'INTERACTIVE_NEURO_ATLAS'] },
+          { courseCode: 'PSI-708', name: 'Psicoterapia en Adicciones', credits: 4, domainTags: ['CLINICAL_HUMANIST_SIM', 'SYNAPSE_LAB'] }
+        ]
+      },
+      {
+        cycleNumber: 8, cycleName: '8vo Ciclo (Cuarto Año)',
+        courses: [
+          { courseCode: 'PSI-801', name: 'Informática VIII', credits: 3, domainTags: ['TECH'] },
+          { courseCode: 'PSI-802', name: 'Laboratorio Vivencial', credits: 4, domainTags: ['CLINICAL_HUMANIST_SIM'] },
+          { courseCode: 'PSI-803', name: 'Terapia Cognitiva II', credits: 3, domainTags: ['CLINICAL_HUMANIST_SIM'] },
+          { courseCode: 'PSI-804', name: 'Seminario de Psicopatología', credits: 4, domainTags: ['CLINICAL_HUMANIST_SIM'] },
+          { courseCode: 'PSI-805', name: 'Terapia Basada en la Persona', credits: 4, domainTags: ['CLINICAL_HUMANIST_SIM', 'HUMANISM_PHILOSOPHY'] },
+          { courseCode: 'PSI-806', name: 'Psicología Social', credits: 3, domainTags: ['HUMANISM_PHILOSOPHY'] },
+          { courseCode: 'PSI-807', name: 'Práctica Clínica Supervisada IV', credits: 4, domainTags: ['CLINICAL_HUMANIST_SIM'] },
+          { courseCode: 'PSI-808', name: 'Psicofarmacología II', credits: 4, domainTags: ['SYNAPSE_LAB', 'INTERACTIVE_NEURO_ATLAS'] }
+        ]
+      },
+      {
+        cycleNumber: 9, cycleName: '9no Ciclo (Quinto Año)',
+        courses: [
+          { courseCode: 'PSI-901', name: 'Seminario de Tesis I', credits: 3, domainTags: ['RESEARCH'] },
+          { courseCode: 'PSI-902', name: 'Psicología de Grupo', credits: 3, domainTags: ['CLINICAL_HUMANIST_SIM'] },
+          { courseCode: 'PSI-903', name: 'Trastornos de la Sexualidad', credits: 3, domainTags: ['CLINICAL_HUMANIST_SIM'] },
+          { courseCode: 'PSI-904', name: 'Genética y Embriología', credits: 4, domainTags: ['INTERACTIVE_BODY_ATLAS'] },
+          { courseCode: 'PSI-905', name: 'Laboratorio Emergencias y Hospitalización', credits: 4, domainTags: ['CLINICAL_HUMANIST_SIM'] },
+          { courseCode: 'PSI-906', name: 'Informática IX', credits: 3, domainTags: ['TECH'] },
+          { courseCode: 'PSI-907', name: 'Práctica Clínica Supervisada V', credits: 4, domainTags: ['CLINICAL_HUMANIST_SIM'] },
+          { courseCode: 'PSI-908', name: 'Logoterapia', credits: 3, domainTags: ['CLINICAL_HUMANIST_SIM', 'HUMANISM_PHILOSOPHY'] }
+        ]
+      },
+      {
+        cycleNumber: 10, cycleName: '10mo Ciclo (Quinto Año)',
+        courses: [
+          { courseCode: 'PSI-1001', name: 'Bioética', credits: 3, domainTags: ['HUMANISM_PHILOSOPHY'] },
+          { courseCode: 'PSI-1002', name: 'Seminario de Tesis II', credits: 3, domainTags: ['RESEARCH'] },
+          { courseCode: 'PSI-1003', name: 'Terapia en Disfunciones Sexuales', credits: 3, domainTags: ['CLINICAL_HUMANIST_SIM'] },
+          { courseCode: 'PSI-1004', name: 'Psicología de la Religión', credits: 3, domainTags: ['HUMANISM_PHILOSOPHY'] },
+          { courseCode: 'PSI-1005', name: 'Psicología Social del Conflicto', credits: 3, domainTags: ['HUMANISM_PHILOSOPHY'] },
+          { courseCode: 'PSI-1006', name: 'Informática X', credits: 3, domainTags: ['TECH'] },
+          { courseCode: 'PSI-1007', name: 'Práctica Clínica Supervisada VI', credits: 4, domainTags: ['CLINICAL_HUMANIST_SIM'] },
+          { courseCode: 'PSI-1008', name: 'Psicología de las Organizaciones', credits: 3, domainTags: ['THEORY'] }
+        ]
+      }
+    ]
+  };
+
+  const medicinaGeneral = {
+    careerCode: 'MED_CIRUGIA',
+    careerName: 'Licenciatura en Medicina y Cirugía',
+    faculty: 'Facultad de Ciencias de la Salud',
+    philosophicalFramework: 'Medicina Basada en Evidencia, Correlación Anatomo-Fisiopatológica y Ética Hipocrática.',
+    citationStyle: 'VANCOUVER',
+    cycles: [
+      {
+        cycleNumber: 1, cycleName: '1er Ciclo (Ciencias Básicas)',
+        courses: [
+          { courseCode: 'MED-101', name: 'Anatomía Humana I', credits: 5, domainTags: ['INTERACTIVE_BODY_ATLAS'] },
+          { courseCode: 'MED-102', name: 'Histología y Embriología', credits: 4, domainTags: ['INTERACTIVE_BODY_ATLAS'] },
+          { courseCode: 'MED-103', name: 'Bioquímica Médica', credits: 4, domainTags: ['SYNAPSE_LAB'] }
+        ]
+      },
+      {
+        cycleNumber: 2, cycleName: '2do Ciclo (Fisiología y Neuro)',
+        courses: [
+          { courseCode: 'MED-201', name: 'Fisiología Humana', credits: 5, domainTags: ['INTERACTIVE_BODY_ATLAS', 'SYNAPSE_LAB'] },
+          { courseCode: 'MED-202', name: 'Neuroanatomía Funcional', credits: 4, domainTags: ['INTERACTIVE_NEURO_ATLAS', 'SYNAPSE_LAB'] }
+        ]
+      },
+      {
+        cycleNumber: 3, cycleName: '3er Ciclo (Clínica y Farmacología)',
+        courses: [
+          { courseCode: 'MED-301', name: 'Semiología y Propedéutica Clínica', credits: 5, domainTags: ['MEDICAL_SOAP_SIM', 'INTERACTIVE_BODY_ATLAS'] },
+          { courseCode: 'MED-302', name: 'Farmacología Clínica', credits: 4, domainTags: ['SYNAPSE_LAB'] }
+        ]
+      }
+    ]
+  };
+
+  await CareerPensumModel.findOneAndUpdate({ careerCode: 'PSIC_CLINICA_GALILEO' }, psicGalileo, { upsert: true });
+  await CareerPensumModel.findOneAndUpdate({ careerCode: 'MED_CIRUGIA' }, medicinaGeneral, { upsert: true });
+}
 
 const MONGO_URI = (process.env.MONGO_URI || '').trim();
 async function connectDB() {
   if (!MONGO_URI) throw new Error("MONGO_URI no configurada.");
   if (mongoose.connection.readyState === 1) return;
   await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 5000 });
+  await seedDefaultPensums();
 }
 connectDB().catch(() => console.log("Reintentando conexión..."));
 
-// DEV TENANT
+// ================= DEV TENANT =================
 app.post('/dev/crear-institucion', async (req, res) => {
   try {
     if (mongoose.connection.readyState !== 1) await connectDB();
     const { codigo_institucion } = req.body;
-    if (!codigo_institucion) return res.status(400).json({error: "Falta codigo_institucion"});
-    
+    if (!codigo_institucion) return res.status(400).json({ error: "Falta codigo_institucion" });
+
     await TenantModel.findOneAndUpdate(
       { dbName: codigo_institucion.toLowerCase() },
       { companyName: "Institución Dev", dbName: codigo_institucion.toLowerCase(), stripeCustomerId: "dev_123", subscriptionStatus: 'active' },
@@ -157,105 +435,332 @@ app.post('/dev/crear-institucion', async (req, res) => {
       { upsert: true }
     );
     res.json({ success: true, message: `Institución ${codigo_institucion} creada.` });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// MIDDLEWARE MULTI-TENANT
+// ================= MIDDLEWARE MULTI-TENANT =================
 app.use('/api', async (req, res, next) => {
   try {
     if (mongoose.connection.readyState !== 1) await connectDB();
     const tenantId = req.headers['x-tenant-id'];
     if (!tenantId) return res.status(400).json({ error: "Falta el código de institución." });
-    
+
     const tenant = await TenantModel.findOne({ dbName: tenantId.trim().toLowerCase() });
     if (!tenant || tenant.subscriptionStatus !== 'active') return res.status(403).json({ error: "Institución inactiva o no encontrada." });
 
     const tenantDb = mongoose.connection.useDb(tenant.dbName, { useCache: true });
     req.UserModel = tenantDb.model('User', UserSchema);
     req.DocumentModel = tenantDb.model('Document', DocumentSchema);
+    req.KnowledgeModel = getKnowledgeModel(tenantDb);
     next();
   } catch (error) { return res.status(500).json({ error: "Sin conexión a BD Tenant." }); }
 });
 
 async function serializeUser(user, DocumentModelRef) {
-  const obj = user.toObject(); delete obj.password;
+  const obj = user.toObject();
+  delete obj.password;
   const savedDocs = await DocumentModelRef.find({ username: obj.username }, { base64Data: 0, textContent: 0 }).lean();
   obj.subjects = (obj.subjects || []).map(s => {
     const embeddedDocs = (s.documents || []).map(d => ({ id: d.id, title: d.title, fileName: d.fileName }));
-    const collectionDocs = savedDocs.filter(cd => cd.subjectId === s.id).map(cd => ({ id: cd.docId, title: cd.title, fileName: cd.fileName }));
+    const collectionDocs = savedDocs.filter(cd => cd.subjectId === s.id).map(cd => ({
+      id: cd.docId,
+      title: cd.title,
+      fileName: cd.fileName,
+      isOfficialCurriculum: cd.isOfficialCurriculum || false
+    }));
     const map = new Map();
     [...embeddedDocs, ...collectionDocs].forEach(item => map.set(item.id, item));
-    return { ...s, documents: Array.from(map.values()), storybooks: s.storybooks || [], audiobooks: s.audiobooks || [], presentations: s.presentations || [] };
+    return {
+      ...s,
+      documents: Array.from(map.values()),
+      storybooks: s.storybooks || [],
+      audiobooks: s.audiobooks || [],
+      presentations: s.presentations || []
+    };
   });
   return obj;
 }
 
 async function consumeTokens(user, costUSD) {
-  if (user.role === 'admin') return true; 
+  if (user.role === 'admin') return true;
   const remaining = user.aiAllowanceUSD - user.aiConsumptionUSD;
   if (remaining <= 0) throw new Error("Saldo de Tokens agotado.");
-  user.aiConsumptionUSD += costUSD; return true;
+  user.aiConsumptionUSD += costUSD;
+  return true;
 }
 
 async function getFullDocumentsForSubject(DocumentModelRef, username, subjectId, documentId) {
   const docs = await DocumentModelRef.find({ username, subjectId }).lean();
-  if (documentId === 'ALL') return docs;
+  if (!documentId || documentId === 'ALL') return docs;
   return docs.filter(d => d.docId === documentId);
 }
 
-// ================= RUTAS AUTENTICACIÓN Y ADMIN =================
-app.post('/api/auth/login', async (req, res) => { try { const user = await req.UserModel.findOne({ $or: [{ username: req.body.identifier.toLowerCase() }, { email: req.body.identifier.toLowerCase() }] }); if (!user || user.password !== req.body.password) return res.status(401).json({ error: "Incorrecto." }); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
-app.post('/api/auth/register', async (req, res) => { try { const newUser = new req.UserModel({ username: req.body.username.toLowerCase(), fullName: req.body.fullName, email: req.body.email.toLowerCase(), password: req.body.password, recoveryWord: req.body.recoveryWord, career: req.body.career, subjects: [{ id: 'subj-init', name: 'Mi Primera Materia', schedule: 'Semestre 1', documents: [], storybooks: [], audiobooks: [], presentations: [] }] }); await newUser.save(); res.json({ user: await serializeUser(newUser, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
-app.get('/api/auth/session/:username', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.params.username.toLowerCase() }); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
-app.post('/api/auth/reset-password', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); if (!user || user.recoveryWord !== req.body.recoveryWord) return res.status(401).json({ error: "Datos incorrectos." }); user.password = req.body.newPassword; await user.save(); res.json({ success: true, message: "Contraseña actualizada." }); } catch (err) { res.status(500).json({ error: err.message }); } });
-app.post('/api/user/change-password', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); if (!user || user.password !== req.body.oldPassword) return res.status(401).json({ error: "Actual incorrecta." }); user.password = req.body.newPassword; await user.save(); res.json({ success: true }); } catch (err) { res.status(500).json({ error: err.message }); } });
+// ================= RUTAS AUTENTICACIÓN, PENSUMS Y ADMIN =================
+app.get('/api/pensums', async (req, res) => {
+  try {
+    const pensums = await CareerPensumModel.find({}, {
+      careerCode: 1,
+      careerName: 1,
+      faculty: 1,
+      philosophicalFramework: 1,
+      citationStyle: 1,
+      'cycles.cycleNumber': 1,
+      'cycles.cycleName': 1
+    }).lean();
+    res.json({ pensums });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
 
-app.get('/api/admin/users', async (req, res) => { try { const u = await req.UserModel.findOne({ username: req.headers['x-user'] }); if (!u || u.role !== 'admin') return res.status(403).json({ error: "Acceso denegado." }); res.json(await req.UserModel.find({ role: { $ne: 'admin' } }, { password: 0, recoveryWord: 0 })); } catch (err) { res.status(500).json({ error: err.message }); } });
-app.post('/api/admin/create-user', async (req, res) => { try { const u = await req.UserModel.findOne({ username: req.headers['x-user'] }); if (!u || u.role !== 'admin') return res.status(403).json({ error: "Acceso denegado." }); await new req.UserModel({ username: req.body.username.toLowerCase(), fullName: req.body.fullName, email: `${req.body.username.toLowerCase()}@edu.com`, password: req.body.password, recoveryWord: 'admin123', career: req.body.career, aiAllowanceUSD: parseFloat(req.body.initialTokens) || 2.00, subjects: [{ id: 'subj-init', name: 'Materia 1', schedule: 'Semestre 1', presentations: [] }] }).save(); res.json({ success: true }); } catch (err) { res.status(500).json({ error: err.message }); } });
-app.post('/api/admin/add-tokens', async (req, res) => { try { const t = await req.UserModel.findOne({ username: req.body.targetUsername }); t.aiAllowanceUSD += parseFloat(req.body.amount); t.pendingTokenRequest = false; await t.save(); res.json({ success: true }); } catch (err) { res.status(500).json({ error: err.message }); } });
-app.post('/api/admin/force-reset', async (req, res) => { try { const t = await req.UserModel.findOne({ username: req.body.targetUsername }); t.password = req.body.newPassword; await t.save(); res.json({ success: true }); } catch (err) { res.status(500).json({ error: err.message }); } });
-app.post('/api/user/request-tokens', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username }); user.pendingTokenRequest = true; await user.save(); res.json({ success: true, user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
+app.post('/api/user/enroll-pensum', async (req, res) => {
+  try {
+    const { username, careerCode, cycleNumber } = req.body;
+    const user = await req.UserModel.findOne({ username: username.toLowerCase() });
+    const pensum = await CareerPensumModel.findOne({ careerCode });
+    if (!pensum) return res.status(404).json({ error: "Pensum no encontrado." });
+
+    const cycle = pensum.cycles.find(c => c.cycleNumber === parseInt(cycleNumber));
+    if (!cycle) return res.status(404).json({ error: "Ciclo no encontrado." });
+
+    user.career = pensum.careerName;
+    user.careerCode = pensum.careerCode;
+    user.citationStyle = pensum.citationStyle;
+
+    user.subjects = cycle.courses.map(c => ({
+      id: `${c.courseCode}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      courseCode: c.courseCode,
+      name: c.name,
+      credits: c.credits,
+      schedule: cycle.cycleName,
+      domainTags: c.domainTags,
+      documents: [],
+      storybooks: [],
+      audiobooks: [],
+      presentations: []
+    }));
+
+    user.markModified('subjects');
+    await user.save();
+    res.json({
+      success: true,
+      philosophicalFramework: pensum.philosophicalFramework,
+      user: await serializeUser(user, req.DocumentModel)
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({
+      $or: [{ username: req.body.identifier.toLowerCase() }, { email: req.body.identifier.toLowerCase() }]
+    });
+    if (!user || user.password !== req.body.password) return res.status(401).json({ error: "Incorrecto." });
+    res.json({ user: await serializeUser(user, req.DocumentModel) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const selectedCareerCode = req.body.careerCode || 'PSIC_CLINICA_GALILEO';
+    const selectedCycle = parseInt(req.body.cycleNumber) || 1;
+    const pensum = await CareerPensumModel.findOne({ careerCode: selectedCareerCode });
+
+    let initialSubjects = [{
+      id: 'subj-init',
+      name: 'Mi Primera Materia',
+      schedule: 'Semestre 1',
+      domainTags: ['CLINICAL_HUMANIST_SIM', 'INTERACTIVE_NEURO_ATLAS', 'SYNAPSE_LAB'],
+      documents: [], storybooks: [], audiobooks: [], presentations: []
+    }];
+
+    if (pensum) {
+      const cycle = pensum.cycles.find(c => c.cycleNumber === selectedCycle) || pensum.cycles[0];
+      if (cycle) {
+        initialSubjects = cycle.courses.map(c => ({
+          id: `${c.courseCode}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          courseCode: c.courseCode,
+          name: c.name,
+          credits: c.credits,
+          schedule: cycle.cycleName,
+          domainTags: c.domainTags,
+          documents: [], storybooks: [], audiobooks: [], presentations: []
+        }));
+      }
+    }
+
+    const newUser = new req.UserModel({
+      username: req.body.username.toLowerCase(),
+      fullName: req.body.fullName,
+      email: req.body.email.toLowerCase(),
+      password: req.body.password,
+      recoveryWord: req.body.recoveryWord,
+      career: pensum ? pensum.careerName : (req.body.career || 'Licenciatura en Psicología Clínica'),
+      careerCode: selectedCareerCode,
+      citationStyle: pensum ? pensum.citationStyle : 'APA7',
+      subjects: initialSubjects
+    });
+    await newUser.save();
+    res.json({ user: await serializeUser(newUser, req.DocumentModel) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/auth/session/:username', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.params.username.toLowerCase() });
+    res.json({ user: await serializeUser(user, req.DocumentModel) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    if (!user || user.recoveryWord !== req.body.recoveryWord) return res.status(401).json({ error: "Datos incorrectos." });
+    user.password = req.body.newPassword;
+    await user.save();
+    res.json({ success: true, message: "Contraseña actualizada." });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/user/change-password', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    if (!user || user.password !== req.body.oldPassword) return res.status(401).json({ error: "Actual incorrecta." });
+    user.password = req.body.newPassword;
+    await user.save();
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/admin/users', async (req, res) => {
+  try {
+    const u = await req.UserModel.findOne({ username: req.headers['x-user'] });
+    if (!u || u.role !== 'admin') return res.status(403).json({ error: "Acceso denegado." });
+    res.json(await req.UserModel.find({ role: { $ne: 'admin' } }, { password: 0, recoveryWord: 0 }));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/admin/create-user', async (req, res) => {
+  try {
+    const u = await req.UserModel.findOne({ username: req.headers['x-user'] });
+    if (!u || u.role !== 'admin') return res.status(403).json({ error: "Acceso denegado." });
+    await new req.UserModel({
+      username: req.body.username.toLowerCase(),
+      fullName: req.body.fullName,
+      email: `${req.body.username.toLowerCase()}@edu.com`,
+      password: req.body.password,
+      recoveryWord: 'admin123',
+      career: req.body.career,
+      aiAllowanceUSD: parseFloat(req.body.initialTokens) || 2.00,
+      subjects: [{ id: 'subj-init', name: 'Materia 1', schedule: 'Semestre 1', domainTags: [], presentations: [] }]
+    }).save();
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/admin/add-tokens', async (req, res) => {
+  try {
+    const t = await req.UserModel.findOne({ username: req.body.targetUsername });
+    t.aiAllowanceUSD += parseFloat(req.body.amount);
+    t.pendingTokenRequest = false;
+    await t.save();
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/admin/force-reset', async (req, res) => {
+  try {
+    const t = await req.UserModel.findOne({ username: req.body.targetUsername });
+    t.password = req.body.newPassword;
+    await t.save();
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/user/request-tokens', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username });
+    user.pendingTokenRequest = true;
+    await user.save();
+    res.json({ success: true, user: await serializeUser(user, req.DocumentModel) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
 
 // ================= MATERIAS Y DOCUMENTOS =================
-app.post('/api/subjects', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); const newSubj = { id: 'subj-' + Date.now(), name: req.body.name, schedule: req.body.schedule, documents: [], storybooks: [], audiobooks: [], presentations: [] }; user.subjects.push(newSubj); user.markModified('subjects'); await user.save(); res.json({ user: await serializeUser(user, req.DocumentModel), newSubjectId: newSubj.id }); } catch (err) { res.status(500).json({ error: err.message }); } });
-app.delete('/api/subjects/:subjectId', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); await req.DocumentModel.deleteMany({ username: user.username, subjectId: req.params.subjectId }); user.subjects = user.subjects.filter(s => s.id !== req.params.subjectId); user.markModified('subjects'); await user.save(); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
+app.post('/api/subjects', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    const newSubj = {
+      id: 'subj-' + Date.now(),
+      name: req.body.name,
+      schedule: req.body.schedule,
+      domainTags: req.body.domainTags || ['CLINICAL_HUMANIST_SIM', 'INTERACTIVE_NEURO_ATLAS', 'SYNAPSE_LAB'],
+      documents: [], storybooks: [], audiobooks: [], presentations: []
+    };
+    user.subjects.push(newSubj);
+    user.markModified('subjects');
+    await user.save();
+    res.json({ user: await serializeUser(user, req.DocumentModel), newSubjectId: newSubj.id });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete('/api/subjects/:subjectId', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await req.DocumentModel.deleteMany({ username: user.username, subjectId: req.params.subjectId });
+    user.subjects = user.subjects.filter(s => s.id !== req.params.subjectId);
+    user.markModified('subjects');
+    await user.save();
+    res.json({ user: await serializeUser(user, req.DocumentModel) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
 
 app.post('/api/documents', upload.any(), async (req, res) => {
   try {
-    const { username, subjectId, docTitle, youtubeUrl } = req.body;
+    const { username, subjectId, docTitle, youtubeUrl, isOfficialCurriculum } = req.body;
     const user = await req.UserModel.findOne({ username: username.toLowerCase() });
     const dateStr = new Date().toLocaleDateString('es-GT');
-    
+
     if (youtubeUrl && youtubeUrl.includes('youtu')) {
       let transcriptText = "";
       try {
         const transcript = await YoutubeTranscript.fetchTranscript(youtubeUrl);
         transcriptText = transcript.map(t => t.text).join(' ');
       } catch (e) {
-        const ytRes = await generateWithFallback([`Genera un resumen analítico completo para: ${youtubeUrl}`], null);
+        const ytRes = await generateWithFallback([`Genera un análisis académico detallado y estructurado para: ${youtubeUrl}`], null);
         transcriptText = ytRes.text;
       }
       await new req.DocumentModel({
-        docId: `doc-yt-${Date.now()}`, username: user.username, subjectId,
-        title: docTitle || `Transcripción YouTube`, fileName: 'YouTube.txt', mimeType: 'text/plain',
-        base64Data: null, textContent: transcriptText, uploadedAt: dateStr
+        docId: `doc-yt-${Date.now()}`,
+        username: user.username,
+        subjectId,
+        title: docTitle || `Transcripción YouTube`,
+        fileName: 'YouTube.txt',
+        mimeType: 'text/plain',
+        base64Data: Buffer.from(transcriptText, 'utf-8').toString('base64'),
+        textContent: transcriptText,
+        isOfficialCurriculum: isOfficialCurriculum === 'true' || isOfficialCurriculum === true,
+        uploadedAt: dateStr
       }).save();
     }
 
     if (req.files && req.files.length > 0) {
       for (let file of req.files) {
-        // Control de límite estricto de 15MB para evitar el error de rango/offset en MongoDB
         if (file.buffer.length > 15 * 1024 * 1024) {
-          return res.status(400).json({ 
-            error: `El archivo "${file.originalname}" pesa más de 15MB. Divídelo en partes para subirlo correctamente.` 
+          return res.status(400).json({
+            error: `El archivo "${file.originalname}" pesa más de 15MB. Divídelo en partes para subirlo correctamente.`
           });
         }
 
         await new req.DocumentModel({
-          docId: `doc-${Date.now()}-${Math.random()}`, username: user.username, subjectId,
+          docId: `doc-${Date.now()}-${Math.random()}`,
+          username: user.username,
+          subjectId,
           title: docTitle ? `${docTitle} (${file.originalname})` : file.originalname,
-          fileName: file.originalname, mimeType: file.mimetype,
-          base64Data: file.buffer.toString("base64"), textContent: 'Texto extraído de archivo.', uploadedAt: dateStr
+          fileName: file.originalname,
+          mimeType: file.mimetype,
+          base64Data: file.buffer.toString("base64"),
+          textContent: file.mimetype === 'text/plain' ? file.buffer.toString('utf-8') : 'Documento multimodal indexado.',
+          isOfficialCurriculum: isOfficialCurriculum === 'true' || isOfficialCurriculum === true,
+          uploadedAt: dateStr
         }).save();
       }
     }
@@ -263,32 +768,477 @@ app.post('/api/documents', upload.any(), async (req, res) => {
   } catch (err) { res.status(500).json({ error: "Error al procesar el archivo. Es probable que sea demasiado pesado." }); }
 });
 
-app.delete('/api/documents/:docId', async (req, res) => { try { await req.DocumentModel.deleteOne({ docId: req.params.docId, username: req.body.username.toLowerCase() }); const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
-app.delete('/api/audiobooks/:abId', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); const subj = user.subjects.find(s => s.id === req.body.subjectId); subj.audiobooks = subj.audiobooks.filter(ab => ab.id !== req.params.abId); user.markModified('subjects'); await user.save(); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
-app.delete('/api/storybooks/:sbId', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); const subj = user.subjects.find(s => s.id === req.body.subjectId); subj.storybooks = subj.storybooks.filter(sb => sb.id !== req.params.sbId); user.markModified('subjects'); await user.save(); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
-app.delete('/api/presentations/:presId', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); const subj = user.subjects.find(s => s.id === req.body.subjectId); subj.presentations = subj.presentations.filter(p => p.id !== req.params.presId); user.markModified('subjects'); await user.save(); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
-app.delete('/api/subjects/:subjectId/documents', async (req, res) => { try { const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() }); await req.DocumentModel.deleteMany({ username: user.username, subjectId: req.params.subjectId }); res.json({ user: await serializeUser(user, req.DocumentModel) }); } catch (err) { res.status(500).json({ error: err.message }); } });
+app.delete('/api/documents/:docId', async (req, res) => {
+  try {
+    await req.DocumentModel.deleteOne({ docId: req.params.docId, username: req.body.username.toLowerCase() });
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    res.json({ user: await serializeUser(user, req.DocumentModel) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
 
-// ================= ENDPOINTS IA (FASES 2 A 6) =================
+app.delete('/api/audiobooks/:abId', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    const subj = user.subjects.find(s => s.id === req.body.subjectId);
+    subj.audiobooks = subj.audiobooks.filter(ab => ab.id !== req.params.abId);
+    user.markModified('subjects');
+    await user.save();
+    res.json({ user: await serializeUser(user, req.DocumentModel) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete('/api/storybooks/:sbId', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    const subj = user.subjects.find(s => s.id === req.body.subjectId);
+    subj.storybooks = subj.storybooks.filter(sb => sb.id !== req.params.sbId);
+    user.markModified('subjects');
+    await user.save();
+    res.json({ user: await serializeUser(user, req.DocumentModel) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete('/api/presentations/:presId', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    const subj = user.subjects.find(s => s.id === req.body.subjectId);
+    subj.presentations = subj.presentations.filter(p => p.id !== req.params.presId);
+    user.markModified('subjects');
+    await user.save();
+    res.json({ user: await serializeUser(user, req.DocumentModel) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete('/api/subjects/:subjectId/documents', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await req.DocumentModel.deleteMany({ username: user.username, subjectId: req.params.subjectId });
+    res.json({ user: await serializeUser(user, req.DocumentModel) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ================= RETROALIMENTACIÓN DE CONOCIMIENTO LOCAL (ML/RAG ACUMULATIVO) =================
+app.post('/api/knowledge/train-from-documents', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.10);
+
+    const { subjectId, documentId, isOfficialCurriculum } = req.body;
+    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, subjectId, documentId || 'ALL');
+    if (!docs.length) return res.status(400).json({ error: "No hay documentos en esta materia para retroalimentar." });
+
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        extractedConcepts: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              concept: { type: Type.STRING },
+              category: { type: Type.STRING },
+              summary: { type: Type.STRING }
+            },
+            required: ["concept", "category", "summary"]
+          }
+        },
+        extractedNeurochemicalReactions: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              substance: { type: Type.STRING },
+              condition: { type: Type.STRING },
+              cascadeReaction: { type: Type.STRING },
+              neuropsychologicalImpact: { type: Type.STRING }
+            },
+            required: ["substance", "condition", "cascadeReaction", "neuropsychologicalImpact"]
+          }
+        }
+      },
+      required: ["extractedConcepts", "extractedNeurochemicalReactions"]
+    };
+
+    const prompt = `
+      Analiza los documentos académicos adjuntos (pueden ser PDF, imágenes, textos o transcripciones) y extrae:
+      1. Conceptos fundamentales de neurología, neuropsicología, fisiología o psicología clínica humanista-personalista.
+      2. Reacciones fisiológicas y neuroquímicas ante variaciones (subida/bajada) de neurotransmisores, hormonas o fármacos.
+      Esto retroalimentará la memoria de aprendizaje local de la materia.
+    `;
+
+    const contents = [prompt];
+    docs.forEach(doc => {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+      else if (doc.textContent) contents.push(`Documento (${doc.title}): ${doc.textContent}`);
+    });
+
+    const response = await generateWithFallback(contents, schema);
+    const parsed = JSON.parse(response.text);
+
+    const docTitles = docs.map(d => d.title).join(', ');
+    let kb = await req.KnowledgeModel.findOne({ username: user.username, subjectId });
+    if (!kb) {
+      kb = new req.KnowledgeModel({
+        username: user.username,
+        subjectId,
+        careerCode: user.careerCode,
+        learnedConcepts: [],
+        neurochemicalRules: []
+      });
+    }
+
+    parsed.extractedConcepts.forEach(c => {
+      kb.learnedConcepts.push({ ...c, sourceDocTitle: docTitles, isOfficialCurriculum: !!isOfficialCurriculum });
+    });
+    parsed.extractedNeurochemicalReactions.forEach(r => {
+      kb.neurochemicalRules.push({ ...r, sourceDocTitle: docTitles });
+    });
+
+    await kb.save();
+    await user.save();
+
+    res.json({
+      success: true,
+      message: `Conocimiento local retroalimentado con ${parsed.extractedConcepts.length} conceptos y ${parsed.extractedNeurochemicalReactions.length} reglas neuroquímicas.`,
+      knowledgeBase: kb
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ================= AUDIOLIBROS DE LECTURA CORRIDA Y RESÚMENES REALES =================
 app.post('/api/tts-clean', async (req, res) => {
   try {
     const { rawText } = req.body;
-    if (!rawText) return res.json({ cleanedText: "" });
-    const cleanedText = rawText.replace(/\b(CONFIDENCIAL|DRAFT)\b/gmi, '').replace(/(?:\bPágina\s+\d+\b|^\s*-\s*\d+\s*-\s*$|\b\d+\/\d+\b)/gmi, '').replace(/\[\d+(-\d+)?\]|\([A-Za-z]+,\s*\d{4}\)/g, '').replace(/https?:\/\/[^\s]+/g, ' enlace omitido ').replace(/[*_~^|<>{}\\]/g, '').replace(/\n+/g, '. ').replace(/\s{2,}/g, ' ').trim();
+    const cleanedText = sanitizeForFluidTTS(rawText);
     res.json({ cleanedText });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+app.post('/api/audiobook-chapters', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.25);
+
+    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
+    if (!docs.length) return res.status(400).json({ error: "Selecciona al menos un documento para generar el audiolibro." });
+
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        audiobookTitle: { type: Type.STRING },
+        executiveSummary: {
+          type: Type.STRING,
+          description: "Resumen académico real, profundo y fiel al contenido de todos los documentos seleccionados, escrito en prosa natural."
+        },
+        keyTakeaways: {
+          type: Type.ARRAY,
+          items: { type: Type.STRING },
+          description: "Puntos clave esenciales extraídos fielmente de los documentos."
+        },
+        chapters: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              chapterTitle: { type: Type.STRING },
+              chapterSummary: { type: Type.STRING, description: "Síntesis fiel de este capítulo." },
+              chapterContent: {
+                type: Type.STRING,
+                description: "Narración completa, extensa y fluida del contenido real del documento para ser escuchada como audiolibro continuo. NO incluyas comas, punto y coma, viñetas, asteriscos, corchetes, paréntesis ni caracteres especiales para que la lectura de voz sea completamente corrida y natural."
+              }
+            },
+            required: ["chapterTitle", "chapterSummary", "chapterContent"]
+          }
+        }
+      },
+      required: ["audiobookTitle", "executiveSummary", "keyTakeaways", "chapters"]
+    };
+
+    const prompt = `
+      Eres un narrador y sintetizador académico universitario de élite.
+      Procesa TODOS los documentos adjuntos (PDFs, apuntes, presentaciones, transcripciones o imágenes escaneadas) y genera un Audiolibro de Estudio Completo con Resúmenes Reales basados 100% en el material subido (sin inventar ni omitir temas).
+      
+      REGLAS ESTRICTAS DE LOCUCIÓN CORRIDA PARA TTS:
+      1. Redacta 'chapterContent' en prosa continua, fluida y natural para ser leída en voz alta sin interrupciones robóticas.
+      2. PROHIBIDO usar comas, punto y coma, paréntesis, corchetes, viñetas, símbolos matemáticos, URLs o citas entre paréntesis dentro de 'chapterContent'. Usa conectores naturales del lenguaje hablado en español para unir las ideas de corrido.
+      3. Asegúrate de que 'executiveSummary' y 'chapterSummary' sean resúmenes académicos fieles y rigurosos del contenido real de los archivos.
+    `;
+
+    const contents = [prompt];
+    docs.forEach(doc => {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+      else if (doc.textContent) contents.push(`Documento (${doc.title}): ${doc.textContent}`);
+    });
+
+    const response = await generateWithFallback(contents, schema);
+    const parsed = JSON.parse(response.text);
+
+    // Garantiza limpieza absoluta sin comas ni caracteres especiales para lectura corrida
+    const sanitizedAudiobook = {
+      id: 'ab-' + Date.now(),
+      createdAt: new Date().toLocaleString('es-GT'),
+      audiobookTitle: parsed.audiobookTitle,
+      bookSummary: sanitizeForFluidTTS(parsed.executiveSummary),
+      executiveSummaryReadable: parsed.executiveSummary,
+      keyTakeaways: parsed.keyTakeaways,
+      chapters: parsed.chapters.map(ch => ({
+        chapterTitle: sanitizeForFluidTTS(ch.chapterTitle),
+        chapterSummary: ch.chapterSummary,
+        chapterContent: sanitizeForFluidTTS(ch.chapterContent)
+      }))
+    };
+
+    const subj = user.subjects.find(s => s.id === req.body.subjectId);
+    subj.audiobooks = subj.audiobooks || [];
+    subj.audiobooks.push(sanitizedAudiobook);
+    user.markModified('subjects');
+    await user.save();
+
+    res.json({ audiobook: sanitizedAudiobook, user: await serializeUser(user, req.DocumentModel) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ================= MÓDULOS INTERACTIVOS TIPO ENCARTA (NEUROLOGÍA, NEUROPSICOLOGÍA Y SUSTANCIAS) =================
+app.post('/api/encarta/neuro-cascade-lab', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.15);
+
+    const { substanceLevels, triggerEvent, subjectId, documentId } = req.body;
+    const kb = await req.KnowledgeModel.findOne({ username: user.username, subjectId }).lean();
+    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, subjectId, documentId || 'ALL');
+
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        interactiveReactionSvg: {
+          type: Type.STRING,
+          description: "Diagrama SVG interactivo (<svg viewBox='0 0 800 450'>) mostrando la neurona presináptica, vesículas liberando moléculas, receptores activados/saturados y el circuito cerebral afectado."
+        },
+        physiologicalCascade: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              stageNumber: { type: Type.INTEGER },
+              timeWindow: { type: Type.STRING },
+              biologicalReaction: { type: Type.STRING },
+              affectedBrainCircuits: { type: Type.ARRAY, items: { type: Type.STRING } }
+            }
+          }
+        },
+        neuropsychologicalEffects: {
+          type: Type.OBJECT,
+          properties: {
+            cognitiveImpact: { type: Type.STRING },
+            emotionalAndBehavioralImpact: { type: Type.STRING },
+            somaticSymptoms: { type: Type.ARRAY, items: { type: Type.STRING } }
+          }
+        },
+        clinicalSyndromeAlert: {
+          type: Type.OBJECT,
+          properties: {
+            syndromeName: { type: Type.STRING },
+            riskLevel: { type: Type.STRING },
+            differentialDiagnosis: { type: Type.ARRAY, items: { type: Type.STRING } }
+          }
+        },
+        humanistAndTherapeuticApproach: { type: Type.STRING }
+      },
+      required: ["interactiveReactionSvg", "physiologicalCascade", "neuropsychologicalEffects", "clinicalSyndromeAlert", "humanistAndTherapeuticApproach"]
+    };
+
+    const learnedContext = kb ? JSON.stringify(kb.neurochemicalRules.slice(-15)) : "Base estándar.";
+
+    const prompt = `
+      Actúa como un Simulador Interactivo de Neuropsicología y Psicofisiología tipo Encarta (Universidad Galileo ICF - enfoque humanista).
+      Niveles de sustancias configurados: ${JSON.stringify(substanceLevels)}.
+      Evento o sustancia desencadenante: "${triggerEvent || 'Variación endógena'}".
+      Conocimiento retroalimentado de los documentos del estudiante y oficiales: ${learnedContext}.
+      Explica qué reacciones en cadena ocurren cuando suben o bajan estas sustancias a nivel sináptico (vesículas, receptores, recaptación), circuitos cerebrales (mesolímbico, mesocortical, nigroestriado, eje HPA) y funciones neuropsicológicas, integrando la perspectiva personalista-humanista.
+    `;
+
+    const contents = [prompt];
+    docs.forEach(doc => {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+    });
+
+    const response = await generateWithFallback(contents, schema);
+    await user.save();
+    res.json(JSON.parse(response.text));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/encarta/neuropsychology-atlas', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.15);
+
+    const { topic, viewMode, subjectId, documentId } = req.body;
+    const kb = await req.KnowledgeModel.findOne({ username: user.username, subjectId }).lean();
+    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, subjectId, documentId || 'ALL');
+
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        articleTitle: { type: Type.STRING },
+        interactiveBrainSvg: {
+          type: Type.STRING,
+          description: "SVG interactivo (<svg viewBox='0 0 800 500'>) del cerebro con áreas marcadas con data-area-id para hacer clic en el frontend."
+        },
+        multimediaCards: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              areaId: { type: Type.STRING },
+              title: { type: Type.STRING },
+              neuroanatomy: { type: Type.STRING },
+              interAreaCommunication: { type: Type.STRING },
+              dopamineAndSynapseFunction: { type: Type.STRING },
+              neuropsychologyFunction: { type: Type.STRING },
+              lesionConsequences: { type: Type.STRING },
+              evaluationTests: { type: Type.ARRAY, items: { type: Type.STRING } },
+              relatedTopics: { type: Type.ARRAY, items: { type: Type.STRING } }
+            }
+          }
+        },
+        selfAssessmentChallenge: {
+          type: Type.OBJECT,
+          properties: {
+            clinicalCaseQuestion: { type: Type.STRING },
+            options: { type: Type.ARRAY, items: { type: Type.STRING } },
+            correctIndex: { type: Type.INTEGER },
+            detailedExplanation: { type: Type.STRING }
+          }
+        }
+      },
+      required: ["articleTitle", "interactiveBrainSvg", "multimediaCards", "selfAssessmentChallenge"]
+    };
+
+    const learnedContext = kb ? JSON.stringify(kb.learnedConcepts.slice(-20)) : "Base estándar.";
+
+    const prompt = `
+      Crea una ficha enciclopédica interactiva estilo Microsoft Encarta sobre Neurología y Neuropsicología (Universidad Galileo ICF).
+      Tema: "${topic || 'Corteza Prefrontal, Sistema Límbico, Vías Dopaminérgicas y Funciones Ejecutivas'}".
+      Modo: "${viewMode || 'EXPLORE_REGION'}".
+      Memoria acumulada de los documentos subidos: ${learnedContext}.
+      Genera un mapa SVG clicable del cerebro y desglosa cada estructura: neuroanatomía, comunicación entre áreas, función de dopamina/sinapsis, función neuropsicológica, trastornos por lesión y pruebas de evaluación.
+    `;
+
+    const contents = [prompt];
+    docs.forEach(doc => {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+    });
+
+    const response = await generateWithFallback(contents, schema);
+    await user.save();
+    res.json(JSON.parse(response.text));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/interactive/human-body-explorer', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.15);
+
+    const { bodySystem, specificOrgan, clinicalCorrelation, courseName } = req.body;
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        interactiveBodySvg: {
+          type: Type.STRING,
+          description: "SVG anatómico (<svg viewBox='0 0 600 800'>) del sistema del cuerpo humano con órganos marcados con data-organ-id."
+        },
+        anatomicalStructures: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              organId: { type: Type.STRING },
+              organName: { type: Type.STRING },
+              macroAndMicroAnatomy: { type: Type.STRING },
+              normalPhysiology: { type: Type.STRING },
+              pathophysiology: { type: Type.STRING },
+              psychosomaticOrSystemicLink: { type: Type.STRING }
+            }
+          }
+        }
+      },
+      required: ["interactiveBodySvg", "anatomicalStructures"]
+    };
+
+    const prompt = `
+      Actúa como Catedrático de Anatomía y Fisiología Médica.
+      Curso: "${courseName || 'Anatomía y Fisiología Humana'}".
+      Sistema: "${bodySystem || 'Sistema Nervioso Autónomo, Endocrino y Cardiovascular'}".
+      Órgano: "${specificOrgan || 'Vista integral del sistema'}".
+      Correlación: "${clinicalCorrelation || 'Fisiología normal y fisiopatología'}".
+      Genera el diagrama SVG interactivo y las fichas anatómicas y fisiológicas detalladas.
+    `;
+
+    const response = await generateWithFallback([prompt], schema);
+    await user.save();
+    res.json(JSON.parse(response.text));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/agents/psychometrics-lab', async (req, res) => {
+  try {
+    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
+    await consumeTokens(user, 0.15);
+
+    const { testName, rawScores, populationMean, populationSD, clinicalContext } = req.body;
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        calculations: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              subscale: { type: Type.STRING },
+              rawScore: { type: Type.NUMBER },
+              zScore: { type: Type.NUMBER },
+              tScore: { type: Type.NUMBER },
+              percentile: { type: Type.NUMBER },
+              clinicalRange: { type: Type.STRING }
+            }
+          }
+        },
+        integratedClinicalReport: { type: Type.STRING },
+        statisticalRecommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
+      },
+      required: ["calculations", "integratedClinicalReport"]
+    };
+
+    const prompt = `
+      Especialista en Psicometría y Estadística Aplicada (Universidad Galileo).
+      Prueba: ${testName}. Puntuaciones directas: ${JSON.stringify(rawScores)}.
+      Media: ${populationMean || 'Estándar'}, DE: ${populationSD || 'Estándar'}. Contexto: ${clinicalContext}.
+      Calcula puntuaciones Z, T (50 + 10Z), percentiles y redacta el informe psicométrico técnico.
+    `;
+
+    const response = await generateWithFallback([prompt], schema);
+    await user.save();
+    res.json(JSON.parse(response.text));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ================= ENDPOINTS BASE EXISTENTES (TUTOR, APA/VANCOUVER, TESIS, CLÍNICA, MAPAS) =================
 app.post('/api/tutor-rag', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
     await consumeTokens(user, 0.05);
     const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
-    const prompt = `Actúa como Tutor RAG estricto. REGLA ANTI-ALUCINACIONES: Responde basándote ÚNICAMENTE en el contexto. Cita la sección/párrafo/página al final. Duda: "${req.body.query}"`;
+    const prompt = `Actúa como Tutor RAG universitario (${user.career}). REGLA ANTI-ALUCINACIONES: Responde basándote ÚNICAMENTE en los documentos adjuntos. Cita la sección/párrafo/página al final. Duda: "${req.body.query}"`;
     const contents = [prompt];
-    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
+    docs.forEach(doc => {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+    });
     const response = await generateWithFallback(contents, null);
-    await user.save(); res.json({ explanation: response.text });
+    await user.save();
+    res.json({ explanation: response.text });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -297,11 +1247,19 @@ app.post('/api/generate-apa-advanced', async (req, res) => {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
     await consumeTokens(user, 0.35);
     const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, 'ALL');
-    const prompt = `Ensayo científico sobre: "${req.body.topic}". REGLAS APA 7ma: HTML (<h1>, <p>). Citas intratextuales. Al menos una TABLA en HTML con <table style="border-collapse: collapse; width: 100%; border-top: 2px solid black; border-bottom: 2px solid black;"> y <td style="border-bottom: 1px solid black; padding: 8px;"> (sin bordes verticales). Referencias finales.`;
+    const isVancouver = user.citationStyle === 'VANCOUVER';
+    const styleInstructions = isVancouver
+      ? `REGLAS VANCOUVER (Medicina): Citas numéricas correlativas entre paréntesis (1), (2). Referencias bibliográficas numeradas al final en formato biomédico Vancouver.`
+      : `REGLAS APA 7ma Edición (Psicología ICF): Citas intratextuales (Autor, año). Al menos una TABLA en HTML con <table style="border-collapse: collapse; width: 100%; border-top: 2px solid black; border-bottom: 2px solid black;"> y <td style="border-bottom: 1px solid black; padding: 8px;"> (sin bordes verticales). Referencias alfabéticas al final.`;
+
+    const prompt = `Ensayo científico sobre: "${req.body.topic}". ${styleInstructions} Devuelve HTML limpio (<h1>, <p>).`;
     const contents = [prompt];
-    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
+    docs.forEach(doc => {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+    });
     const response = await generateWithFallback(contents, null);
-    await user.save(); res.json({ apaDocument: response.text });
+    await user.save();
+    res.json({ apaDocument: response.text });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -310,20 +1268,22 @@ app.post('/api/research/outline', async (req, res) => {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
     await consumeTokens(user, 0.10);
     const schema = { type: Type.OBJECT, properties: { chapters: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["chapters"] };
-    const response = await generateWithFallback([`Índice para investigar: "${req.body.topic}". Devuelve JSON de capítulos.`], schema);
-    await user.save(); res.json({ outline: JSON.parse(response.text).chapters });
+    const response = await generateWithFallback([`Índice académico para investigar: "${req.body.topic}" (Carrera: ${user.career}). Devuelve JSON de capítulos.`], schema);
+    await user.save();
+    res.json({ outline: JSON.parse(response.text).chapters });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/research/chapter', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
-    await consumeTokens(user, 0.25); 
+    await consumeTokens(user, 0.25);
     const { topic, chapterTitle, previousChapterSummary } = req.body;
-    let prompt = `Redacta el capítulo "${chapterTitle}" de la investigación "${topic}". FILTRO ANTI-PLAGIO ACTIVO: Estilo original, 0% similitud Turnitin. Devuelve HTML.`;
+    let prompt = `Redacta el capítulo "${chapterTitle}" de la investigación "${topic}" (Carrera: ${user.career}). FILTRO ANTI-PLAGIO ACTIVO: Estilo original, 0% similitud Turnitin. Devuelve HTML.`;
     if (previousChapterSummary) prompt += `\nResumen anterior: "${previousChapterSummary}".`;
     const response = await generateWithFallback([prompt], null);
-    await user.save(); res.json({ chapterContent: response.text });
+    await user.save();
+    res.json({ chapterContent: response.text });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -332,11 +1292,21 @@ app.post('/api/clinical-simulator', async (req, res) => {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
     await consumeTokens(user, 0.05);
     const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
-    const prompt = `Eres un paciente en una clínica psicológica. Asume un trastorno basado en los documentos (sin revelar el nombre). Historial: ${req.body.history}. Psicólogo: "${req.body.message}". Responde evasivo y emotivo. Máximo 3 oraciones.`;
+    const isMedicine = user.careerCode === 'MED_CIRUGIA';
+    const rolePrompt = isMedicine
+      ? `Eres un paciente en consulta médica universitaria. Presenta síntomas coherentes con los documentos sin decir el diagnóstico.`
+      : `Eres un paciente en una clínica psicológica bajo el enfoque humanista-personalista y logoterapéutico (Universidad Galileo ICF). Asume un caso basado en los documentos (sin revelar el diagnóstico), expresando tu historia biográfica, emociones y búsqueda de sentido.`;
+
+    const prompt = `${rolePrompt} Historial: ${req.body.history}. Estudiante: "${req.body.message}". Responde de forma realista en máximo 3 oraciones.`;
     const contents = [prompt];
-    if (req.body.history === '') { docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } })); }
+    if (req.body.history === '') {
+      docs.forEach(doc => {
+        if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+      });
+    }
     const response = await generateWithFallback(contents, null);
-    await user.save(); res.json({ reply: response.text });
+    await user.save();
+    res.json({ reply: response.text });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -345,13 +1315,39 @@ app.post('/api/generate-presentation', async (req, res) => {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
     await consumeTokens(user, 0.25);
     const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
-    const contents = [`Diseña presentación interactiva alternando diapositivas 'summary' y 'trivia'.`];
-    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
-    const schema = { type: Type.OBJECT, properties: { presentationTitle: { type: Type.STRING }, slides: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { type: { type: Type.STRING }, title: { type: Type.STRING }, content: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctIndex: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["type", "title", "content"] } } }, required: ["presentationTitle", "slides"] };
+    const contents = [`Diseña presentación interactiva universitaria alternando diapositivas 'summary' y 'trivia'.`];
+    docs.forEach(doc => {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+    });
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        presentationTitle: { type: Type.STRING },
+        slides: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              type: { type: Type.STRING },
+              title: { type: Type.STRING },
+              content: { type: Type.STRING },
+              options: { type: Type.ARRAY, items: { type: Type.STRING } },
+              correctIndex: { type: Type.INTEGER },
+              explanation: { type: Type.STRING }
+            },
+            required: ["type", "title", "content"]
+          }
+        }
+      },
+      required: ["presentationTitle", "slides"]
+    };
     const response = await generateWithFallback(contents, schema);
     const newPresentation = { id: 'pres-' + Date.now(), createdAt: new Date().toLocaleString('es-GT'), ...JSON.parse(response.text) };
     const subj = user.subjects.find(s => s.id === req.body.subjectId);
-    subj.presentations = subj.presentations || []; subj.presentations.push(newPresentation); user.markModified('subjects'); await user.save();
+    subj.presentations = subj.presentations || [];
+    subj.presentations.push(newPresentation);
+    user.markModified('subjects');
+    await user.save();
     res.json({ presentation: newPresentation, user: await serializeUser(user, req.DocumentModel) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -360,8 +1356,11 @@ app.post('/api/philosophy-realism', async (req, res) => {
   try {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
     await consumeTokens(user, 0.10);
-    const response = await generateWithFallback([`Analiza bajo la perspectiva Aristotélico-Tomista: "${req.body.query}". Devuelve HTML.`], null);
-    await user.save(); res.json({ answer: response.text });
+    const response = await generateWithFallback([
+      `Analiza bajo la perspectiva Antropológica Personalista, Logoterapéutica y Aristotélico-Tomista (ICF Universidad Galileo): "${req.body.query}". Devuelve HTML.`
+    ], null);
+    await user.save();
+    res.json({ answer: response.text });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -370,13 +1369,63 @@ app.post('/api/generate-evolutionary-storybook', async (req, res) => {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
     await consumeTokens(user, 0.20);
     const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
-    const contents = [`Transforma textos en narrativa cronológica estilo novela gráfica.`];
-    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
-    const schema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, summary: { type: Type.STRING }, scenes: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { sceneNumber: { type: Type.INTEGER }, characterName: { type: Type.STRING }, academicConcept: { type: Type.STRING }, storyDialogue: { type: Type.STRING } }, required: ["sceneNumber", "characterName", "academicConcept", "storyDialogue"] } }, timeline: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { step: { type: Type.INTEGER }, title: { type: Type.STRING }, description: { type: Type.STRING } }, required: ["step", "title", "description"] } }, quiz: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctIndex: { type: Type.INTEGER }, heroExplanation: { type: Type.STRING } }, required: ["question", "options", "correctIndex", "heroExplanation"] } } }, required: ["title", "summary", "scenes", "timeline", "quiz"] };
+    const contents = [`Transforma textos académicos en narrativa cronológica estilo novela gráfica.`];
+    docs.forEach(doc => {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+    });
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        title: { type: Type.STRING },
+        summary: { type: Type.STRING },
+        scenes: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              sceneNumber: { type: Type.INTEGER },
+              characterName: { type: Type.STRING },
+              academicConcept: { type: Type.STRING },
+              storyDialogue: { type: Type.STRING }
+            },
+            required: ["sceneNumber", "characterName", "academicConcept", "storyDialogue"]
+          }
+        },
+        timeline: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              step: { type: Type.INTEGER },
+              title: { type: Type.STRING },
+              description: { type: Type.STRING }
+            },
+            required: ["step", "title", "description"]
+          }
+        },
+        quiz: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              question: { type: Type.STRING },
+              options: { type: Type.ARRAY, items: { type: Type.STRING } },
+              correctIndex: { type: Type.INTEGER },
+              heroExplanation: { type: Type.STRING }
+            },
+            required: ["question", "options", "correctIndex", "heroExplanation"]
+          }
+        }
+      },
+      required: ["title", "summary", "scenes", "timeline", "quiz"]
+    };
     const response = await generateWithFallback(contents, schema);
     const newStorybook = { id: 'sb-' + Date.now(), ...JSON.parse(response.text) };
     const subj = user.subjects.find(s => s.id === req.body.subjectId);
-    subj.storybooks = subj.storybooks || []; subj.storybooks.push(newStorybook); user.markModified('subjects'); await user.save();
+    subj.storybooks = subj.storybooks || [];
+    subj.storybooks.push(newStorybook);
+    user.markModified('subjects');
+    await user.save();
     res.json({ storybook: newStorybook, user: await serializeUser(user, req.DocumentModel) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -386,11 +1435,31 @@ app.post('/api/generate-glossary', async (req, res) => {
     const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
     await consumeTokens(user, 0.10);
     const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
-    const contents = [`Genera glosario técnico.`];
-    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
-    const schema = { type: Type.OBJECT, properties: { glossaryTitle: { type: Type.STRING }, terms: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { term: { type: Type.STRING }, definition: { type: Type.STRING } }, required: ["term", "definition"] } } }, required: ["glossaryTitle", "terms"] };
+    const contents = [`Genera glosario técnico universitario.`];
+    docs.forEach(doc => {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+    });
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        glossaryTitle: { type: Type.STRING },
+        terms: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              term: { type: Type.STRING },
+              definition: { type: Type.STRING }
+            },
+            required: ["term", "definition"]
+          }
+        }
+      },
+      required: ["glossaryTitle", "terms"]
+    };
     const response = await generateWithFallback(contents, schema);
-    await user.save(); res.json({ glossary: JSON.parse(response.text) });
+    await user.save();
+    res.json({ glossary: JSON.parse(response.text) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -400,25 +1469,12 @@ app.post('/api/generate-mindmap', async (req, res) => {
     await consumeTokens(user, 0.15);
     const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
     const contents = [`Devuelve ÚNICAMENTE código Mermaid.js (graph TD) limpio. Sin backticks.`];
-    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
+    docs.forEach(doc => {
+      if (doc.base64Data) contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } });
+    });
     const response = await generateWithFallback(contents, null);
-    await user.save(); res.json({ mermaidCode: response.text.replace(/```mermaid/g, '').replace(/```/g, '').trim() });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.post('/api/audiobook-chapters', async (req, res) => {
-  try {
-    const user = await req.UserModel.findOne({ username: req.body.username.toLowerCase() });
-    await consumeTokens(user, 0.25);
-    const docs = await getFullDocumentsForSubject(req.DocumentModel, user.username, req.body.subjectId, req.body.documentId);
-    const contents = ["Extrae obra completa en capítulos y resumen (bookSummary)."];
-    docs.forEach(doc => contents.push({ inlineData: { data: doc.base64Data, mimeType: doc.mimeType } }));
-    const schema = { type: Type.OBJECT, properties: { audiobookTitle: { type: Type.STRING }, bookSummary: { type: Type.STRING }, chapters: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { chapterTitle: { type: Type.STRING }, chapterContent: { type: Type.STRING } }, required: ["chapterTitle", "chapterContent"] } } }, required: ["audiobookTitle", "bookSummary", "chapters"] };
-    const response = await generateWithFallback(contents, schema);
-    const newAudiobook = { id: 'ab-' + Date.now(), ...JSON.parse(response.text) };
-    const subj = user.subjects.find(s => s.id === req.body.subjectId);
-    subj.audiobooks = subj.audiobooks || []; subj.audiobooks.push(newAudiobook); user.markModified('subjects'); await user.save();
-    res.json({ audiobook: newAudiobook, user: await serializeUser(user, req.DocumentModel) });
+    await user.save();
+    res.json({ mermaidCode: response.text.replace(/```mermaid/g, '').replace(/```/g, '').trim() });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
