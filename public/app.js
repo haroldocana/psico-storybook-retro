@@ -144,7 +144,6 @@ window.enterApp = async function(user) {
   await loadAvailablePensums();
   renderDashboard();
 
-  // Si el usuario ingresó por primera vez con la contraseña temporal enviada por correo, solicita cambio de clave
   if (user.mustChangePassword && user.role !== 'admin') {
     setTimeout(() => {
       alert("🔐 Bienvenido. Por seguridad, cambia tu contraseña temporal por una clave personal.");
@@ -485,7 +484,7 @@ window.handleUploadDoc = async function(e) {
       document.getElementById('selectedFilesPreview').textContent = '';
       document.getElementById('youtubeUrlInput').value = '';
       renderDashboard();
-      alert('✅ Material guardado. Puedes pulsar "🧬 Retroalimentar IA" para entrenar los simuladores con este archivo.');
+      alert('✅ Material guardado. Puedes pulsar "🧬 Retroalimentar IA" para entrenar los simuladores y mapas con este archivo.');
     } else { alert(data.error); }
   } catch (err) { alert('Error al subir.'); } finally { btn.innerHTML = originalText; btn.disabled = false; }
 };
@@ -626,7 +625,6 @@ window.launchEncartaBrain = async function() {
       </div>
     `;
 
-    // Conecta clics dentro del SVG directamente a las tarjetas
     const svgWrapper = document.getElementById('brainSvgWrapper');
     if (svgWrapper) {
       svgWrapper.addEventListener('click', (e) => {
@@ -950,7 +948,7 @@ window.sendSimulatorMessage = async function() {
 };
 
 // ==========================================
-// 10. VISUALES, MERMAID, SLIDES Y AUDIOLIBROS DE LECTURA CORRIDA
+// 10. VISUALES, MAPAS CONCEPTUALES CON IMÁGENES, STORYBOOK + LÍNEA DE TIEMPO Y SUITE HARVARD
 // ==========================================
 window.askRealistPhilosophy = async function() {
   const query = document.getElementById('filosofiaInput').value.trim();
@@ -980,19 +978,56 @@ window.generateGlossary = async function() {
 window.generateMindMap = async function() {
   const docId = document.getElementById('selectDocForAI').value;
   const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
-  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">🧠</span><p class="text-teal-300 font-black text-2xl uppercase mt-4">Construyendo Mapa Conceptual...</p></div>`;
+  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">🧠</span><p class="text-teal-300 font-black text-2xl uppercase mt-4">Construyendo Mapa Conceptual con Ilustraciones y Citas...</p></div>`;
   try {
-    const res = await apiFetch('/api/generate-mindmap', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: docId }) });
+    const res = await apiFetch('/api/generate-mindmap', {
+      method: 'POST',
+      body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: docId })
+    });
     const data = await res.json();
-    v.innerHTML = `<div class="max-w-6xl mx-auto glass-edu rounded-3xl p-10 border-2 border-teal-500 mt-10 relative"><button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-slate-800 text-white font-bold z-50">✕ Cerrar</button><h2 class="text-3xl font-black text-teal-300 mb-8 border-b border-teal-500/30 pb-4">🧠 Mapa Conceptual</h2><div class="bg-slate-900 p-4 rounded-xl overflow-auto flex justify-center"><div class="mermaid">${data.mermaidCode}</div></div></div>`;
+    if (!res.ok) { alert(data.error); return closeFullScreenViewer(); }
+
+    const nodes = data.interactiveNodes || [];
+    v.innerHTML = `
+      <div class="max-w-7xl mx-auto glass-edu rounded-3xl p-8 border-2 border-teal-500 mt-4 relative space-y-6">
+        <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-2.5 rounded-2xl bg-slate-800 text-white font-bold z-50">✕ Cerrar</button>
+        <div class="border-b border-teal-500/30 pb-4">
+          <span class="text-xs font-black text-teal-400 uppercase">Codificación Dual · Mapa Conceptual Basado en Evidencia</span>
+          <h2 class="text-3xl font-black text-white mt-1">🧠 ${data.mapTitle || 'Mapa Conceptual'}</h2>
+          <p class="text-xs text-slate-300 mt-1">${data.centralThesis || ''}</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-7 space-y-4">
+            <div class="encarta-svg-container">${data.visualDiagramSvg || ''}</div>
+            <div class="bg-slate-900 p-4 rounded-2xl overflow-auto flex justify-center border border-teal-500/30">
+              <div class="mermaid">${data.mermaidCode}</div>
+            </div>
+          </div>
+          <div class="lg:col-span-5 space-y-3 max-h-[75vh] overflow-y-auto pr-2">
+            <h3 class="text-xs font-black text-teal-300 uppercase">📑 Nodos Conceptuales y Citas Verificables</h3>
+            ${nodes.map(n => `
+              <div class="p-4 rounded-2xl bg-slate-900 border border-teal-500/40 space-y-1.5">
+                <h4 class="text-sm font-black text-white">${n.conceptName}</h4>
+                <p class="text-xs text-slate-200 leading-relaxed">${n.objectiveDefinition}</p>
+                <p class="text-[11px] text-cyan-300"><b>Relación:</b> ${n.causalConnection}</p>
+                <div class="text-[10px] text-emerald-300 bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-500/30 mt-1">
+                  📚 Fuente: ${n.exactSourceCitation}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>`;
     setTimeout(() => { mermaid.init(undefined, document.querySelectorAll('.mermaid')); }, 100);
-  } catch (err) { alert('Error.'); closeFullScreenViewer(); }
+    renderDashboard();
+  } catch (err) { alert('Error generando mapa conceptual.'); closeFullScreenViewer(); }
 };
 
 window.generateEvoStorybook = async function() {
   const docId = document.getElementById('selectDocForAI').value;
   const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
-  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">📖</span><p class="text-cyan-300 font-black text-2xl uppercase mt-4">Creando Monografía Ilustrada...</p></div>`;
+  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">📖</span><p class="text-cyan-300 font-black text-2xl uppercase mt-4">Creando Storybook Ilustrado y Línea de Tiempo Verídica...</p></div>`;
   try {
     const res = await apiFetch('/api/generate-evolutionary-storybook', { method: 'POST', body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: docId }) });
     const data = await res.json();
@@ -1004,15 +1039,121 @@ window.generateEvoStorybook = async function() {
 window.openStorybook = function(sb) {
   const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
   v.innerHTML = `
-    <div class="max-w-5xl mx-auto glass-edu rounded-3xl p-10 space-y-6 border-2 border-cyan-500 mt-6 relative">
-      <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-3 rounded-2xl bg-slate-800 text-white font-bold">✕ Cerrar</button>
-      <h2 class="text-3xl font-black text-cyan-300">📖 ${sb.title}</h2>
-      <p class="text-sm text-slate-300 bg-slate-900 p-4 rounded-2xl">${sb.summary}</p>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        ${(sb.scenes || []).map(sc => `<div class="cartoon-card p-5 space-y-2"><span class="text-xs font-black text-cyan-400">Escena ${sc.sceneNumber} · ${sc.characterName}</span><h4 class="font-black text-white">${sc.academicConcept}</h4><p class="text-xs text-slate-300">${sc.storyDialogue}</p></div>`).join('')}
+    <div class="max-w-6xl mx-auto glass-edu rounded-3xl p-8 space-y-8 border-2 border-cyan-500 mt-4 relative">
+      <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-2.5 rounded-2xl bg-slate-800 text-white font-bold">✕ Cerrar</button>
+      
+      <div class="border-b border-cyan-500/30 pb-4">
+        <span class="text-xs font-black text-cyan-400 uppercase">Narrativa Científica Ilustrada y Línea de Tiempo Verídica</span>
+        <h2 class="text-3xl font-black text-white mt-1">📖 ${sb.title}</h2>
+        <p class="text-xs text-slate-300 mt-2 bg-slate-900 p-4 rounded-2xl border border-slate-700">${sb.summary}</p>
       </div>
+
+      <!-- LÍNEA DE TIEMPO CRONOLÓGICA / SECUENCIAL -->
+      <div class="space-y-3">
+        <h3 class="text-sm font-black text-amber-300 uppercase">⏳ Línea de Tiempo Evolutiva / Secuencial del Documento</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          ${(sb.timeline || []).map(t => `
+            <div class="p-4 rounded-2xl bg-slate-900 border-l-4 border-amber-400 space-y-1.5">
+              <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-950 text-amber-300">Paso ${t.step} · ${t.chronologicalMarker || ''}</span>
+              <h4 class="text-sm font-black text-white">${t.title}</h4>
+              <p class="text-xs text-slate-300">${t.description}</p>
+              ${t.sourceReference ? `<p class="text-[10px] text-cyan-400 pt-1">📌 ${t.sourceReference}</p>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- ESCENAS ILUSTRADAS CON EVIDENCIA TEXTUAL -->
+      <div class="space-y-3">
+        <h3 class="text-sm font-black text-cyan-300 uppercase">🎨 Escenas Conceptuales Ilustradas</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          ${(sb.scenes || []).map(sc => `
+            <div class="cartoon-card p-5 space-y-3">
+              <div class="flex justify-between items-center">
+                <span class="text-xs font-black text-cyan-400">Escena ${sc.sceneNumber} · ${sc.characterName}</span>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-950 text-cyan-200 font-bold">${sc.academicConcept}</span>
+              </div>
+              ${sc.sceneIllustrationSvg ? `<div class="encarta-svg-container">${sc.sceneIllustrationSvg}</div>` : ''}
+              <p class="text-xs text-slate-200 leading-relaxed">${sc.storyDialogue}</p>
+              ${sc.verbatimSourceEvidence ? `<div class="text-[10px] text-emerald-300 bg-emerald-950/50 p-2.5 rounded-xl border border-emerald-500/30">📚 Evidencia: ${sc.verbatimSourceEvidence}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- EVALUACIÓN TAXONOMÍA DE BLOOM -->
+      ${(sb.quiz && sb.quiz.length) ? `
+        <div class="p-6 rounded-2xl bg-slate-900 border border-indigo-500/40 space-y-4">
+          <h3 class="text-sm font-black text-indigo-300 uppercase">🎯 Recuperación Activa (Taxonomía de Bloom)</h3>
+          ${sb.quiz.map((q, qIdx) => `
+            <div class="space-y-2 border-b border-slate-800 pb-4">
+              <span class="text-[10px] font-black text-purple-300 uppercase">${q.bloomLevel || 'Análisis'}</span>
+              <p class="text-xs font-bold text-white">${qIdx + 1}. ${q.question}</p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                ${(q.options || []).map((opt, oIdx) => `
+                  <button onclick="alert('${oIdx === q.correctIndex ? '✅ ¡Correcto!' : '❌ Revisa la evidencia.'}\\n\\n${(q.heroExplanation || '').replace(/'/g, '')}')" class="text-left p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-900 text-xs text-slate-200">${opt}</button>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
     </div>
   `;
+};
+
+window.launchHarvardStudySuite = async function() {
+  const docId = document.getElementById('selectDocForAI').value;
+  const v = document.getElementById('viewerArea'); v.classList.add('fullscreen-mode'); v.classList.remove('hidden');
+  v.innerHTML = `<div class="text-center pt-32 animate-pulse"><span class="text-6xl">🎓</span><p class="text-amber-300 font-black text-2xl uppercase mt-4">Generando Suite de Estudio Científico (Cornell, Feynman y Active Recall)...</p></div>`;
+
+  try {
+    const res = await apiFetch('/api/pedagogy/harvard-study-suite', {
+      method: 'POST',
+      body: JSON.stringify({ username: currentUser.username, subjectId: activeSubjectId, documentId: docId })
+    });
+    const data = await res.json();
+    if (!res.ok) { alert(data.error); return closeFullScreenViewer(); }
+
+    v.innerHTML = `
+      <div class="max-w-6xl mx-auto glass-edu rounded-3xl p-8 space-y-6 border-2 border-amber-500 mt-4 relative">
+        <button onclick="closeFullScreenViewer()" class="absolute top-6 right-6 px-5 py-2.5 rounded-2xl bg-slate-800 text-white font-bold">✕ Cerrar</button>
+        <h2 class="text-3xl font-black text-amber-300 border-b border-amber-500/30 pb-4">🎓 Suite de Aprendizaje Científico (Basado en Evidencia)</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="p-5 rounded-2xl bg-slate-900 border border-cyan-500/40 space-y-3">
+            <h3 class="text-sm font-black text-cyan-300 uppercase">📝 Sistema Cornell</h3>
+            <div class="space-y-2">
+              <p class="text-xs font-bold text-slate-400">Preguntas Disparadoras:</p>
+              <ul class="list-disc pl-4 text-xs text-cyan-200 space-y-1">${(data.cornellNotes?.cueQuestions || []).map(q => `<li>${q}</li>`).join('')}</ul>
+              <p class="text-xs font-bold text-slate-400 pt-2">Notas con Citas:</p>
+              <ul class="list-disc pl-4 text-xs text-slate-200 space-y-1">${(data.cornellNotes?.detailedNotes || []).map(n => `<li>${n}</li>`).join('')}</ul>
+              <div class="p-3 rounded-xl bg-cyan-950/40 text-xs text-cyan-100 mt-2"><b>Síntesis:</b> ${data.cornellNotes?.synthesisSummary || ''}</div>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div class="p-5 rounded-2xl bg-slate-900 border border-emerald-500/40 space-y-2">
+              <h3 class="text-sm font-black text-emerald-300 uppercase">💡 Técnica Feynman (Claridad Conceptual)</h3>
+              <p class="text-xs text-slate-200 leading-relaxed">${data.feynmanSimplification}</p>
+            </div>
+            <div class="p-5 rounded-2xl bg-slate-900 border border-purple-500/40 space-y-2">
+              <h3 class="text-sm font-black text-purple-300 uppercase">🃏 Tarjetas Active Recall (Clic para ver respuesta)</h3>
+              <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                ${(data.activeRecallFlashcards || []).map(fc => `
+                  <details class="p-3 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer">
+                    <summary class="text-xs font-bold text-purple-200">${fc.frontQuestion}</summary>
+                    <p class="text-xs text-emerald-300 mt-2 pt-2 border-t border-slate-800">${fc.backAnswerWithCitation}</p>
+                  </details>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    renderDashboard();
+  } catch (e) { alert("Error generando suite de estudio."); closeFullScreenViewer(); }
 };
 
 window.generatePresentation = async function() {
@@ -1130,7 +1271,6 @@ window.openSavedAudiobook = function(ab) {
           <h2 class="text-3xl font-black text-white mt-1">🎧 ${ab.audiobookTitle}</h2>
         </div>
 
-        <!-- RESUMEN EJECUTIVO REAL DEL MATERIAL SUBIDO -->
         <div class="p-5 rounded-2xl bg-slate-900/90 border border-rose-500/40 space-y-3">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <h3 class="text-sm font-black text-rose-300 uppercase">📑 Resumen Ejecutivo Real del Documento</h3>
@@ -1143,7 +1283,6 @@ window.openSavedAudiobook = function(ab) {
           ${(ab.keyTakeaways && ab.keyTakeaways.length) ? `<div class="flex flex-wrap gap-2 pt-1">${ab.keyTakeaways.map(k => `<span class="px-2.5 py-1 rounded-lg bg-rose-950/60 border border-rose-500/30 text-[11px] text-rose-200">✓ ${k}</span>`).join('')}</div>` : ''}
         </div>
 
-        <!-- CONTROLES DE REPRODUCCIÓN CONTINUA -->
         <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
           <div class="flex gap-2">
             <button onclick="window.speechSynthesis.pause()" class="px-4 py-2 rounded-xl bg-slate-800 text-white text-xs font-black">⏸ Pausar</button>
