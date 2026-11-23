@@ -183,11 +183,12 @@
               
               <div class="grid grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
                 <button onclick="document.getElementById('modalTutor').classList.remove('hidden')" class="py-3 px-2 rounded-xl bg-slate-700 font-black text-xs text-cyan-300 border border-cyan-500">👨‍🏫 Tutor RAG</button>
-                <button onclick="generateMindMap()" class="py-3 px-2 rounded-xl bg-teal-600 font-black text-xs text-white shadow-lg">🧠 Mapa Mental</button>
+                <button onclick="generateMindMap()" class="py-3 px-2 rounded-xl bg-teal-600 font-black text-xs text-white shadow-lg">🧠 Mapa + SVG</button>
                 <button onclick="generateGlossary()" class="py-3 px-2 rounded-xl bg-indigo-600 font-black text-xs text-white shadow-lg">📕 Glosario</button>
-                <button onclick="generateEvoStorybook()" class="py-3 px-2 rounded-xl bg-cyan-600 font-black text-xs text-white shadow-lg">📖 Storybook</button>
+                <button onclick="generateEvoStorybook()" class="py-3 px-2 rounded-xl bg-cyan-600 font-black text-xs text-white shadow-lg">📖 Storybook + Tiempo</button>
                 <button onclick="document.getElementById('modalAPA').classList.remove('hidden')" class="py-3 px-2 rounded-xl bg-slate-700 font-black text-xs text-emerald-300 border border-emerald-500">📝 Ensayo Científico</button>
                 <button onclick="document.getElementById('modalResearch').classList.remove('hidden')" class="py-3 px-2 rounded-xl bg-slate-700 font-black text-xs text-amber-300 border border-amber-500">🔬 Tesis / Monografía</button>
+                <button onclick="launchHarvardStudySuite()" class="col-span-3 py-3 px-2 rounded-xl bg-gradient-to-r from-amber-600 to-yellow-600 font-black text-xs text-white shadow-lg border border-amber-400">🎓 Método Cornell + Feynman + Active Recall (Harvard)</button>
                 <button onclick="generatePresentation()" class="col-span-3 py-3 px-2 rounded-xl bg-orange-600 font-black text-xs text-white shadow-lg border border-orange-400">📊 Generar Presentación + Trivia Evaluativa</button>
               </div>
 
@@ -206,7 +207,7 @@
 
         <!-- HISTORIALES GUARDADOS -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="glass-edu rounded-3xl p-7 border border-indigo-500/30 shadow-xl"><p class="text-sm font-black text-slate-200 uppercase mb-4 border-b border-indigo-500/30 pb-3">🗂️ Monografías</p><div id="savedHistoryList" class="space-y-3 max-h-48 overflow-y-auto pr-2"></div></div>
+          <div class="glass-edu rounded-3xl p-7 border border-indigo-500/30 shadow-xl"><p class="text-sm font-black text-slate-200 uppercase mb-4 border-b border-indigo-500/30 pb-3">🗂️ Monografías & Líneas de Tiempo</p><div id="savedHistoryList" class="space-y-3 max-h-48 overflow-y-auto pr-2"></div></div>
           <div class="glass-edu rounded-3xl p-7 border border-rose-500/30 shadow-xl"><p class="text-sm font-black text-rose-300 uppercase mb-4 border-b border-rose-500/30 pb-3">🎧 Audiolibros Corridos</p><div id="savedAudiobooksList" class="space-y-3 max-h-40 overflow-y-auto pr-2"></div></div>
           <div class="glass-edu rounded-3xl p-7 border border-orange-500/30 shadow-xl"><p class="text-sm font-black text-orange-300 uppercase mb-4 border-b border-orange-500/30 pb-3">📊 Presentaciones</p><div id="savedPresentationsList" class="space-y-3 max-h-40 overflow-y-auto pr-2"></div></div>
         </div>
